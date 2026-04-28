@@ -1,0 +1,7 @@
+{
+  "name": "com.yourcompany.core",
+  "version": "0.1.0",
+  "displayName": "Core Framework",
+  "description": "EventBus, ReactiveProperty, and shared utilities",
+  "unity": "2022.3"
+}
