@@ -1,0 +1,14 @@
+ {
+    "name": "Exploration",
+    "references": [
+        "Core",
+        "Definitions",
+        "Shared",
+        "Combat",
+        "UniTask",
+        "Unity.Addressables",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": []
+}
