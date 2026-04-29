@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Definitions;
@@ -10,11 +11,11 @@ namespace Combat
         public int Mana { get; set; }
         public int MaxMana { get; set; }
         public int HumanResources { get; set; }
-        public List<Card> Deck { get; } = new();
+        public List<Card> Deck { get; set; } = new();
         public List<Card> Hand { get; } = new();
         public List<Card> Graveyard { get; } = new();
 
-        IBoard IPlayerSide.Board => Board;
+        IBoard IPlayerSide.Board => (IBoard)Board;
         IGameEntity IPlayerSide.Town => Board.TownSlot?.Occupant;
         IReadOnlyList<ICard> IPlayerSide.Hand => Hand.AsReadOnly();
         IReadOnlyList<ICard> IPlayerSide.Deck => Deck.AsReadOnly();

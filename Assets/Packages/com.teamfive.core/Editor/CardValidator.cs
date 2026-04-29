@@ -25,8 +25,10 @@ namespace Core.Editor
                 }
                 if (card.Artwork == null)
                     Debug.LogWarning($"Card {card.CardName}: Missing artwork.", card);
-                if (card.Type == CardType.Creature && (card.AllowedSlotTypes == null || card.AllowedSlotTypes.Count == 0))
-                    Debug.LogWarning($"Creature card {card.CardName}: No allowed slot types.", card);
+                /* if ((card.Type == CardType.Vanguard ||
+                     card.Type == CardType.Building ||
+                     card.Type == CardType.Human) && (card.AllowedSlotTypes == null || card.AllowedSlotTypes.Count == 0))
+                    Debug.LogWarning($"Creature card {card.CardName}: No allowed slot types.", card); */
             }
 
             var encounterGuids = AssetDatabase.FindAssets("t:CombatEncounter");

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Core;
 using Definitions;
@@ -16,6 +17,7 @@ namespace Combat
         public bool IsAlive => Health > 0;
         public CardDef SourceCard { get; }
         public bool IsTown { get; set; } = false;
+        public Definitions.RowType TypeOfRow { get; private set; }
 
         public IGameEntity PlannedTarget { get; set; }
 

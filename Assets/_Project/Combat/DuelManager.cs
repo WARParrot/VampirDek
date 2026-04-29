@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -46,7 +47,7 @@ namespace Combat
             if (!_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
-                GlobalServices.SaveSystem.SaveActiveBattle(_tableId, dto);
+                /*GlobalServices.SaveSystem.SaveActiveBattle(_tableId, dto);*/
             }
             if (_combatScene.isLoaded) await SceneManager.UnloadSceneAsync(_combatScene);
             _duelState = null;

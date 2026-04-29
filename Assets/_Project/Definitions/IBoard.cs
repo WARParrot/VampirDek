@@ -9,7 +9,7 @@ namespace Definitions
         IBoardSlot[] BuildingRow { get; }
         IBoardSlot[] HumanRow { get; }
 
-        bool TryPlaceCard(CardDef cardDef);
+        bool TryPlaceCard(CardDef cardDef, out IBoardSlot placedSlot);
         void PlaceTownCard(CardDef townDef);
         void RemoveCard(IBoardCard card);
     }

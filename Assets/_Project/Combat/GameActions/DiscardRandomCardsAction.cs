@@ -3,12 +3,12 @@ using Definitions;
 
 namespace Combat
 {
-    public class DiscardRandomCardsAction(IPlayerSide side, int count) : IGameAction
+    public class DiscardRandomCardsAction : IGameAction
     {
-        private IPlayerSide _side = side;
-        private int _count = count;
+        private readonly IPlayerSide _side;
+        private readonly int _count;
         public string Description => $"Discard {_count} random card(s)";
-
+        public DiscardRandomCardsAction(IPlayerSide side, int count) { _side = side; _count = count; }
         public async UniTask ExecuteAsync() => _side.DiscardRandomCards(_count);
     }
 }

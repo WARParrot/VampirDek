@@ -7,7 +7,7 @@ namespace Definitions
         int MaxHealth { get; }
         int Attack { get; }
         bool IsAlive { get; }
-        RowType RowType { get; }
+        RowType TypeOfRow { get; }
         CardDef SourceCard { get; }
     }
 }

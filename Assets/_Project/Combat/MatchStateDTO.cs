@@ -1,4 +1,6 @@
-using UnityEngine;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Definitions;
 
 namespace Combat
@@ -56,7 +58,7 @@ namespace Combat
         {
             return new BoardSnapshot
             {
-                Slots = board.Slots.Select(s => new SlotSnapshot
+                /*Slots = board.Slots.Select(s => new SlotSnapshot
                 {
                     Index = s.Index,
                     AllowedType = s.AllowedType,
@@ -65,7 +67,7 @@ namespace Combat
                     OccupantHealth = s.Occupant?.Health ?? 0,
                     OccupantMaxHealth = s.Occupant?.MaxHealth ?? 0,
                     OccupantSpeed = s.Occupant?.Speed ?? 1
-                }).ToList()
+                }).ToList()*/
             };
         }
     }

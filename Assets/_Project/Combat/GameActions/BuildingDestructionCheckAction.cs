@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Definitions;
+using Core;
 
 namespace Combat
 {
@@ -14,11 +15,11 @@ namespace Combat
         {
             foreach (var slot in _board.BuildingRow)
             {
-                if (slot.Occupant is BoardCard building && building.RowType == RowType.Building)
+                if (slot.Occupant is BoardCard building && building.TypeOfRow == Definitions.RowType.Building)
                 {
                     if (building.DamageReceivedThisTurn >= building.MaxHealth)
                     {
-                        building.Health = 0;
+                        //building.Health = 0;
                         GlobalServices.EventBus.Publish(new EntityDiedEvent(building));
                         _board.RemoveCard(building);
                     }

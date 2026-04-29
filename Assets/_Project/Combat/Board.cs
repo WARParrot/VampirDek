@@ -29,10 +29,10 @@ namespace Combat
                 var slot = new BoardSlot { AllowedRow = def.Row, Index = def.Index };
                 switch (def.Row)
                 {
-                    case RowType.Vanguard: vanguard.Add(slot); break;
-                    case RowType.Building: building.Add(slot); break;
-                    case RowType.Human:    humanList.Add(slot); break;
-                    case RowType.Town:     TownSlot = slot; break;
+                    case Definitions.RowType.Vanguard: vanguard.Add(slot); break;
+                    case Definitions.RowType.Building: building.Add(slot); break;
+                    case Definitions.RowType.Human:    humanList.Add(slot); break;
+                    case Definitions.RowType.Town:     TownSlot = slot; break;
                 }
             }
             VanguardRow = vanguard.ToArray();
@@ -48,7 +48,7 @@ namespace Combat
             if (TownSlot.Occupant != null) yield return TownSlot.Occupant;
         }
 
-        public bool TryPlaceCard(CardDef cardDef, out BoardSlot placedSlot)
+        public bool TryPlaceCard(CardDef cardDef, out IBoardSlot placedSlot)
         {
             placedSlot = null;
             BoardSlot[] row = GetRow(cardDef.RowType);
@@ -60,7 +60,7 @@ namespace Combat
             card.ApplyInnateEnchantments();
             emptySlot.Occupant = card;
             placedSlot = emptySlot;
-            GlobalServices.EventBus.Publish(new CreatureSummonedEvent(card, this));
+            GlobalServices.EventBus.Publish(new PlacedCardEvent(card, this));
             return true;
         }
 
@@ -73,7 +73,7 @@ namespace Combat
             GlobalServices.EventBus.Publish(new TownPlacedEvent(town, this));
         }
 
-        public void RemoveCard(BoardCard card)
+        public void RemoveCard(IBoardCard card)
         {
             foreach (var slot in AllSlots())
             {
@@ -93,13 +93,12 @@ namespace Combat
             yield return TownSlot;
         }
 
-        private BoardSlot[] GetRow(RowType rowType) => rowType switch
+        private BoardSlot[] GetRow(Definitions.RowType rowType) => rowType switch
         {
-            RowType.Vanguard => VanguardRow,
-            RowType.Building => BuildingRow,
-            RowType.Human => HumanRow,
-            RowType.Town => new[] { TownSlot },
-            _ => null
+            Definitions.RowType.Vanguard => VanguardRow,
+            Definitions.RowType.Building => BuildingRow,
+            Definitions.RowType.Human => HumanRow,
+            Definitions.RowType.Town => new[] { TownSlot },
         };
     }
 
@@ -107,11 +106,11 @@ namespace Combat
     public class BoardSlot : IBoardSlot
     {
         public int Index;
-        public RowType AllowedRow;
+        public Definitions.RowType AllowedRow;
         public BoardCard Occupant;
         public bool IsEmpty => Occupant == null;
 
-        RowType IBoardSlot.AllowedRow => AllowedRow;
+        Definitions.RowType IBoardSlot.AllowedRow => AllowedRow;
         IBoardCard IBoardSlot.Occupant => Occupant;
         int IBoardSlot.Index => Index;
     }

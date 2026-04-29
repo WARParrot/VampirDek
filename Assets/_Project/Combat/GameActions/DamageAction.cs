@@ -1,18 +1,24 @@
-using UnityEngine;
 using Cysharp.Threading.Tasks;
 using Core;
 using Definitions;
 
 namespace Combat
 {
-    public class DamageAction(IGameEntity target, int amount, IGameEntity source) : IGameAction, IPreventableAction
+    public class DamageAction : IGameAction, IPreventableAction
     {
         public bool IsPrevented { get; set; }
-        private readonly IGameEntity _target = target;
-        private readonly int _amount = amount;
-        private readonly IGameEntity _source = source;
+        private readonly IGameEntity _target;
+        private readonly int _amount;
+        private readonly IGameEntity _source;
 
         public string Description => $"Deal {_amount} damage to {_target.Id}";
+
+        public DamageAction(IGameEntity target, int amount, IGameEntity source)
+        {
+            _target = target;
+            _amount = amount;
+            _source = source;
+        }
 
         public async UniTask ExecuteAsync()
         {

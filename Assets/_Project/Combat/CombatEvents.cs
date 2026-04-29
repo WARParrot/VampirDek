@@ -1,36 +1,34 @@
-using UnityEngine;
+using System.Collections.Generic;
 using Core;
 using Definitions;
 
 namespace Combat
 {
-    public struct DamageDealtEvent(IGameEntity t, int a) : IGameEvent { public IGameEntity Target = t; public int Amount = a;
+    public struct DamageDealtEvent : IGameEvent { public IGameEntity Target; public int Amount; public DamageDealtEvent(IGameEntity t, int a) { Target=t; Amount=a; }
     }
-    public struct DamagePreventedEvent(IGameEntity t, IGameEntity s) : IGameEvent { public IGameEntity Target = t; public IGameEntity Source = s;
+    public struct DamagePreventedEvent : IGameEvent { public IGameEntity Target; public IGameEntity Source; public DamagePreventedEvent(IGameEntity t, IGameEntity s) { Target=t; Source=s; } 
     }
-    public struct CardDrawnEvent(IPlayerSide side, ICard card) : IGameEvent { public IPlayerSide Side = side; public ICard Card = card;
+    public struct CardDrawnEvent : IGameEvent { public IPlayerSide Side; public ICard Card; public CardDrawnEvent(IPlayerSide side, ICard card) { Side=side; Card=card; }
     }
-    public struct CardDiscardedEvent(IPlayerSide s, ICard c) : IGameEvent { public IPlayerSide Side = s; public ICard Card = c;
+    public struct CardDiscardedEvent : IGameEvent { public IPlayerSide Side; public ICard Card; public CardDiscardedEvent(IPlayerSide s, ICard c) { Side=s; Card=c; }
     }
-    public struct ManaChangedEvent(IPlayerSide s) : IGameEvent { public IPlayerSide Side = s;
+    public struct ManaChangedEvent : IGameEvent { public IPlayerSide Side; public ManaChangedEvent(IPlayerSide s) { Side=s; }
     }
-    public struct PhaseEnterEvent(string id, List<string> tags) : IGameEvent { public string PhaseId = id; public List<string> Tags = tags;
+    public struct PhaseEnterEvent : IGameEvent { public string PhaseId; public List<string> Tags; public PhaseEnterEvent(string id, List<string> tags) { PhaseId=id; Tags=tags; }
     }
-    public struct PhaseExitEvent(string id) : IGameEvent { public string PhaseId = id;
+    public struct PhaseExitEvent : IGameEvent { public string PhaseId; public PhaseExitEvent(string id){ PhaseId=id; }
     }
-    public struct ActionExecutedEvent(IGameAction a) : IGameEvent { public IGameAction Action = a;
+    public struct ActionExecutedEvent : IGameEvent { public IGameAction Action; public ActionExecutedEvent(IGameAction a) { Action=a; }
     }
-    public struct CardPlacedEvent(BoardCard c, Board b) : IGameEvent { public BoardCard Card = c; public Board Board = b;
+    public struct PlacedCardEvent : IGameEvent { public BoardCard Card; public Board Board; public PlacedCardEvent(BoardCard c, Board b) { Card=c; Board=b; }
     }
-    public struct TownPlacedEvent(BoardCard l, Board b) : IGameEvent { public BoardCard Leader = l; public Board Board = b;
+    public struct EntityDiedEvent : IGameEvent { public IGameEntity Entity; public EntityDiedEvent(IGameEntity e) { Entity=e; }
     }
-    public struct EntityDiedEvent(IGameEntity e) : IGameEvent { public IGameEntity Entity = e;
+    public struct PlaceFailedEvent : IGameEvent { public string CardName; public string Reason; public PlaceFailedEvent(string n, string r) { CardName=n; Reason=r; }
     }
-    public struct PlaceFailedEvent(string n, string r) : IGameEvent { public string CardName = n; public string Reason = r;
+    public struct PreDamageEvent : IGameEvent { public IGameEntity Target; public int Amount; public IGameEntity Source; public int ModifiedAmount; public bool Prevented; public PreDamageEvent(IGameEntity t, int a, IGameEntity s) { Target=t; Amount=a; Source=s; ModifiedAmount=a; Prevented=false; }
     }
-    public struct PreDamageEvent(IGameEntity t, int a, IGameEntity s) : IGameEvent { public IGameEntity Target = t; public int Amount = a; public IGameEntity Source = s; public int ModifiedAmount = a; public bool Prevented = false;
-    }
-    public struct DuelPhaseTagEvent(string t) : IGameEvent { public string Tag = t;
+    public struct DuelPhaseTagEvent : IGameEvent { public string Tag; public DuelPhaseTagEvent(string t) { Tag=t; }
     }
     public struct ClashResolvedEvent : IGameEvent { public BoardCard Winner; public BoardCard Loser; public ClashResolvedEvent(BoardCard w, BoardCard l) { Winner = w; Loser = l; }
     }
