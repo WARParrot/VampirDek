@@ -1,0 +1,19 @@
+{
+    "name": "Core",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "Unity.InputSystem",
+        "VContainer",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

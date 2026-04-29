@@ -1,0 +1,19 @@
+{
+    "name": "Combat",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Definitions",
+        "Shared",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

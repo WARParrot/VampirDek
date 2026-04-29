@@ -1,0 +1,11 @@
+{
+  "name": "com.teamfive.core",
+  "version": "1.0.0",
+  "displayName": "Core Systems",
+  "description": "Game Director, Event Bus, Services.",
+  "unity": "6000.4.4f1",
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.10",
+    "com.unity.inputsystem": "1.19.0"
+  }
+}

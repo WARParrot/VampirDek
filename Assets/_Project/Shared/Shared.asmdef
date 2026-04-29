@@ -1,0 +1,4 @@
+{
+	"name": "Shared",
+	"references": [ "Core", "Definitions", "UniTask", "Unity.Addressables", "DOTween" ]
+}

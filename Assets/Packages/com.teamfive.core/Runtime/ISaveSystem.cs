@@ -1,0 +1,12 @@
+using Cysharp.Threading.Tasks;
+
+namespace Core
+{
+    public interface ISaveSystem
+    {
+        UniTask SaveAsync(string fileName, byte[] data);
+        UniTask<byte[]> LoadAsync(string fileName);
+        bool Exists(string fileName);
+        void Delete(string fileName);
+    }
+}

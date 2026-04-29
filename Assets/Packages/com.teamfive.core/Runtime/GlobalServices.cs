@@ -1,0 +1,13 @@
+using VContainer;
+
+namespace Core
+{
+    public static class GlobalServices
+    {
+        public static IObjectResolver Resolver { get; set; }
+        public static GameDirector Director => Resolver.Resolve<GameDirector>();
+        public static EventBus EventBus => Resolver.Resolve<EventBus>();
+        public static ISaveSystem SaveSystem => Resolver.Resolve<ISaveSystem>();
+        public static DevConsole DevConsole => Resolver.Resolve<DevConsole>();
+    }
+}
