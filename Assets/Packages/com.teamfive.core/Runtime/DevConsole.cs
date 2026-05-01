@@ -1,50 +1,98 @@
-using UnityEngine;
-using UnityEngine.UI;
+using System.Collections.Generic;
 using TMPro;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Core
 {
     public class DevConsole : MonoBehaviour
     {
-        [SerializeField] private GameObject _panel;
-        [SerializeField] private TMP_InputField _inputField;
-        [SerializeField] private TextMeshProUGUI _outputText;
+        [SerializeField] private GameObject consolePanel;
+        [SerializeField] private TMP_InputField inputField;
+        [SerializeField] private TextMeshProUGUI logText;
+        [SerializeField] private ScrollRect scrollRect;
+
+        private static readonly List<string> _logs = new();
+        private const int MaxLogs = 200;
 
         private void Awake()
         {
-            _inputField.onSubmit.AddListener(Execute);
-            _panel.SetActive(false);
+            DontDestroyOnLoad(gameObject);
+            consolePanel.SetActive(false);
+            Application.logMessageReceived += OnUnityLog;
         }
 
-        public void Toggle()
+        private void OnDestroy()
         {
-            _panel.SetActive(!_panel.activeSelf);
-            if (_panel.activeSelf) _inputField.ActivateInputField();
+            Application.logMessageReceived -= OnUnityLog;
         }
 
-        private void Execute(string input)
+        private void Update()
         {
-            if (string.IsNullOrWhiteSpace(input)) return;
-            var parts = input.Split(' ', 2);
-            var command = parts[0].ToLower();
-            var arg = parts.Length > 1 ? parts[1] : null;
+            if (Keyboard.current?.backquoteKey.wasPressedThisFrame ?? false)
+            {
+                consolePanel.SetActive(!consolePanel.activeSelf);
+                if (consolePanel.activeSelf)
+                    inputField.ActivateInputField();
+            }
 
-            switch (command)
+            if (consolePanel.activeSelf && (Keyboard.current?.enterKey.wasPressedThisFrame ?? false))
+            {
+                Execute(inputField.text);
+                inputField.text = "";
+                inputField.ActivateInputField();
+            }
+        }
+
+        private void OnUnityLog(string message, string stackTrace, LogType type)
+        {
+            string color = type switch
+            {
+                LogType.Error => "#FF4444",
+                LogType.Warning => "#FFAA00",
+                _ => "#FFFFFF"
+            };
+
+            _logs.Add($"<color={color}>[{type}] {message}</color>");
+            if (_logs.Count > MaxLogs) _logs.RemoveAt(0);
+            UpdateLogDisplay();
+        }
+
+        private void UpdateLogDisplay()
+        {
+            logText.text = string.Join("\n", _logs);
+            Canvas.ForceUpdateCanvases();
+            scrollRect.verticalNormalizedPosition = 0f;
+        }
+
+        private void Execute(string command)
+        {
+            if (string.IsNullOrWhiteSpace(command)) return;
+            Debug.Log($"<color=#00CCCC>> {command}</color>");
+
+            var parts = command.Split(' ');
+            switch (parts[0].ToLower())
             {
                 case "help":
-                    AppendOutput("Commands: help, echo <msg>");
+                    Debug.Log("Commands: help, clear, time, quit");
                     break;
-                case "echo":
-                    AppendOutput(arg ?? string.Empty);
+                case "clear":
+                    _logs.Clear();
+                    UpdateLogDisplay();
+                    break;
+                case "time":
+                    if (parts.Length > 1 && float.TryParse(parts[1], out float t))
+                        Time.timeScale = t;
+                    Debug.Log($"Time.timeScale = {Time.timeScale}");
+                    break;
+                case "quit":
+                    Application.Quit();
                     break;
                 default:
-                    AppendOutput($"Unknown command: {command}");
+                    Debug.Log($"Unknown command: {parts[0]}");
                     break;
             }
-            _inputField.text = "";
-            _inputField.ActivateInputField();
         }
-
-        private void AppendOutput(string msg) => _outputText.text += $"{msg}\n";
     }
 }
