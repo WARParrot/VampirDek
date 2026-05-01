@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="Combat.csproj" />
+  <Project Path="Definitions.csproj" />
+  <Project Path="Core.csproj" />
+  <Project Path="Core.Editor.csproj" />
+</Solution>

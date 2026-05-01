@@ -28,8 +28,7 @@ namespace Combat
 
             if (LoadArenaScene)
             {
-                var op = SceneManager.LoadSceneAsync("Arena_Ruins", LoadSceneMode.Additive);
-                await op;
+                await SceneManager.LoadSceneAsync("Arena_Ruins", LoadSceneMode.Additive).ToUniTask();
                 _combatScene = SceneManager.GetSceneByName("Arena_Ruins");
             }
 
@@ -49,7 +48,7 @@ namespace Combat
                 var dto = MatchStateDTO.FromDuelState(_duelState);
                 /*GlobalServices.SaveSystem.SaveActiveBattle(_tableId, dto);*/
             }
-            if (_combatScene.isLoaded) await SceneManager.UnloadSceneAsync(_combatScene);
+            if (_combatScene.isLoaded) await SceneManager.UnloadSceneAsync(_combatScene).ToUniTask();
             _duelState = null;
         }
 

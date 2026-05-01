@@ -26,13 +26,13 @@ namespace Combat
 
             foreach (var def in layout.Slots)
             {
-                var slot = new BoardSlot { AllowedRow = def.Row, Index = def.Index };
-                switch (def.Row)
+                var slot = new BoardSlot { AllowedRow = (Definitions.RowType)def.Type, Index = layout.Slots.IndexOf(def) };
+                switch (def.Type)
                 {
-                    case Definitions.RowType.Vanguard: vanguard.Add(slot); break;
-                    case Definitions.RowType.Building: building.Add(slot); break;
-                    case Definitions.RowType.Human:    humanList.Add(slot); break;
-                    case Definitions.RowType.Town:     TownSlot = slot; break;
+                    case Definitions.SlotType.Vanguard: vanguard.Add(slot); break;
+                    case Definitions.SlotType.Building: building.Add(slot); break;
+                    case Definitions.SlotType.Human:    humanList.Add(slot); break;
+                    case Definitions.SlotType.Town:     TownSlot = slot; break;
                 }
             }
             VanguardRow = vanguard.ToArray();

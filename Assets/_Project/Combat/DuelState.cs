@@ -8,8 +8,8 @@ namespace Combat
     {
         public SideState PlayerSide { get; }
         public SideState OpponentSide { get; }
-        public IGameEntity PlayerTown { get; }
-        public IGameEntity OpponentTown { get; }
+        public IGameEntity PlayerTown => PlayerSide.Board.TownSlot?.Occupant;
+        public IGameEntity OpponentTown => OpponentSide.Board.TownSlot?.Occupant;
         public PhaseGraph PhaseGraph { get; }
         public PhaseNode CurrentPhase { get; set; }
         public int TurnNumber { get; set; }
@@ -23,8 +23,8 @@ namespace Combat
             PlayerSide.Deck = playerDeck.Select(d => new Card(d, nextId++)).ToList();
             OpponentSide.Deck = opponentDeck.Select(d => new Card(d, nextId++)).ToList();
 
-            PlayerTown = PlayerSide.InitializeTown();
-            OpponentTown = OpponentSide.InitializeTown();
+            PlayerSide.InitializeTown();
+            OpponentSide.InitializeTown();
 
             PhaseGraph = encounter.PhaseGraph;
             CurrentPhase = PhaseGraph.StartingNode;
