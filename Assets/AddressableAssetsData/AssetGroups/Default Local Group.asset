@@ -15,8 +15,83 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: c77554e8b8c196a47acaddfd7f305184
   m_SerializeEntries:
+  - m_GUID: 062e786ceab23ee48a1e2120157f0328
+    m_Address: Assets/_Project/Data/Cards/UsualBuilding.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0e4e0c3b5a0af664f80d8883e81aff9b
+    m_Address: Assets/_Project/Data/Cards/VampireFodder.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 12757641de249a64faefbc67f1bc491b
+    m_Address: Assets/_Project/Data/PhaseNodes/ClashingPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 24535bac36f8d3d49aa5cf25698cf1d2
+    m_Address: Assets/_Project/Data/PhaseNodes/EndOfTurn.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 38ff5444e19258740bea1d272a6dc51d
+    m_Address: Assets/_Project/Data/PhaseNodes/PlanningPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3a63db47d756e784e90f453b85cc0854
+    m_Address: Assets/_Project/Data/PhaseNodes/BuildingPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3c887e6a3e8b69a419370f7b4504cde7
+    m_Address: Assets/_Project/Data/WinConditions/Standard_TakeTownWinCondition.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5c5b79c97b077d64ba856b3106c822da
+    m_Address: Assets/_Project/Data/PhaseNodes/DuelEnd.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 77267488830e80047ad4f64a9490f67e
+    m_Address: Assets/_Project/Data/Cards/Human.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 943d0785e935cb443b367e0d551da40c
+    m_Address: Assets/_Project/Data/PhaseGraphs/Standard_Phases.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b87cad2ab5e321b4c8c0852d29dac269
+    m_Address: Assets/_Project/Data/PhaseNodes/OneSidedAttackPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cc3871db6e844764bb91a2983284a759
     m_Address: Assets/_Project/Data/BoardLayouts/Standard_BoardLayout.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cfe84c65498847c47b488d88bdf3a51e
+    m_Address: Assets/_Project/Data/PhaseNodes/StartOfTurn.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d6f9808d523bb3647a75a645d5f6dc88
+    m_Address: Assets/_Project/Data/Encounters/Test_Encounter.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dfcdab09cda31684fa68f04c9067488e
+    m_Address: Assets/_Project/Data/ActionDefs/Standard_HumanResourcePay.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f07f6756f740eb645a54c0c1a875c616
+    m_Address: Assets/_Project/Data/Cards/BaseTown.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -10,21 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 61a4a12ae61775146864e3f75733293b, type: 3}
-  m_Name: VampireFodder
+  m_Name: UsualBuilding
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
-  CardName: Vampire
+  CardName: Building
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
-  Type: 0
-  RowType: 0
-  MinSpeed: 1
-  MaxSpeed: 3
+  Type: 1
+  RowType: 1
+  MinSpeed: 0
+  MaxSpeed: 0
   Health: 2
-  Attack: 1
-  Costs: []
+  Attack: 0
+  Costs:
+  - {fileID: 11400000, guid: f2469e6f16486a248966d06805d4cdda, type: 2}
   Effects: []
   InnateEnchantments: []

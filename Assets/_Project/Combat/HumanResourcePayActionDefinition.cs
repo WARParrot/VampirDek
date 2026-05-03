@@ -8,9 +8,7 @@ namespace Combat
     {
         public override IGameAction CreateAction(ICostContext context)
         {
-            return new PayHumanResourceAction(context.PlayerSide, _amount);
+            return new PayHumanResourceAction(context.PlayerSide, context.Amount);
         }
-
-        [SerializeField] private int _amount;   // must match the cost's amount
     }
 }

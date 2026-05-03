@@ -13,96 +13,12 @@ MonoBehaviour:
   m_Name: Standard_Phases
   m_EditorClassIdentifier: Definitions::Definitions.PhaseGraph
   Nodes:
-  - PhaseId: DuelStart
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: StartOfTurn
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: StartOfTurn
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: BuildingPhase
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: BuildingPhase
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: PlanningPhase
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: PlanningPhase
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: ClashingPhase
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: ClashingPhase
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: OneSidedAttack
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: OneSidedAttackPhase
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: EndOfTurn
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: EndOfTurn
-    Tags: []
-    Transitions:
-    - Target:
-        PhaseId: StartOfTurn
-        Tags: []
-        Transitions: []
-      Condition:
-        Type: 0
-        Threshold: 0
-        TagTrigger: 
-    - Target:
-        PhaseId: DuelEnd
-        Tags:
-        - WinConditionMet
-        Transitions: []
-      Condition:
-        Type: 3
-        Threshold: 0
-        TagTrigger: 
-  - PhaseId: DuelEnd
-    Tags: []
-    Transitions: []
-  StartingNode:
-    PhaseId: 
-    Tags: []
-    Transitions: []
+  - {fileID: 11400000, guid: ef55d7ad32cb6444aa612ff07946c68a, type: 2}
+  - {fileID: 11400000, guid: cfe84c65498847c47b488d88bdf3a51e, type: 2}
+  - {fileID: 11400000, guid: 3a63db47d756e784e90f453b85cc0854, type: 2}
+  - {fileID: 11400000, guid: 38ff5444e19258740bea1d272a6dc51d, type: 2}
+  - {fileID: 11400000, guid: 12757641de249a64faefbc67f1bc491b, type: 2}
+  - {fileID: 11400000, guid: b87cad2ab5e321b4c8c0852d29dac269, type: 2}
+  - {fileID: 11400000, guid: 24535bac36f8d3d49aa5cf25698cf1d2, type: 2}
+  - {fileID: 11400000, guid: 5c5b79c97b077d64ba856b3106c822da, type: 2}
+  StartingNode: {fileID: 11400000, guid: ef55d7ad32cb6444aa612ff07946c68a, type: 2}

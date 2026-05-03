@@ -10,6 +10,11 @@ namespace Definitions
         {
             return _payAction?.CreateAction(context);
         }
+        public IGameAction GetPaymentAction(IPlayerSide side, int amount)
+        {
+            var context = new CostContext { PlayerSide = side, Amount = amount };
+            return GetPaymentAction(context);
+        }   
         public abstract string GetCostText();
     }
 }

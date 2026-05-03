@@ -9,8 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9fcdd2eae2ad6e549a1efb4ee565c261, type: 3}
-  m_Name: HumanResourceCost_2
-  m_EditorClassIdentifier: Definitions::Definitions.HumanResourceCost
-  _payAction: {fileID: 11400000, guid: dfcdab09cda31684fa68f04c9067488e, type: 2}
+  m_Script: {fileID: 11500000, guid: e87d8a8d2a82dce45b6eab1bf9c298ab, type: 3}
+  m_Name: Standard_HumanResourcePay
+  m_EditorClassIdentifier: Combat::Combat.HumanResourcePayActionDefinition
   _amount: 2
