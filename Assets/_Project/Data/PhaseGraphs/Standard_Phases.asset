@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb92649a38235a24a892880ccd9155d3, type: 3}
+  m_Name: Standard_Phases
+  m_EditorClassIdentifier: Definitions::Definitions.PhaseGraph
+  Nodes:
+  - PhaseId: DuelStart
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: StartOfTurn
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: StartOfTurn
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: BuildingPhase
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: BuildingPhase
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: PlanningPhase
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: PlanningPhase
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: ClashingPhase
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: ClashingPhase
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: OneSidedAttack
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: OneSidedAttackPhase
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: EndOfTurn
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: EndOfTurn
+    Tags: []
+    Transitions:
+    - Target:
+        PhaseId: StartOfTurn
+        Tags: []
+        Transitions: []
+      Condition:
+        Type: 0
+        Threshold: 0
+        TagTrigger: 
+    - Target:
+        PhaseId: DuelEnd
+        Tags:
+        - WinConditionMet
+        Transitions: []
+      Condition:
+        Type: 3
+        Threshold: 0
+        TagTrigger: 
+  - PhaseId: DuelEnd
+    Tags: []
+    Transitions: []
+  StartingNode:
+    PhaseId: 
+    Tags: []
+    Transitions: []
