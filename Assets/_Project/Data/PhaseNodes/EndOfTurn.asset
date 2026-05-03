@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: EndOfTurn
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
   PhaseId: EndOfTurn
-  Tags: []
+  Tags:
+  - EndOfTurn
   Transitions:
   - Target: {fileID: 11400000, guid: cfe84c65498847c47b488d88bdf3a51e, type: 2}
     Condition:

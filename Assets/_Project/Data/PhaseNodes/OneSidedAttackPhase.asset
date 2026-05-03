@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: OneSidedAttackPhase
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
   PhaseId: OneSidedAttackPhase
-  Tags: []
+  Tags:
+  - OneSidedAttackPhase
   Transitions:
   - Target: {fileID: 11400000, guid: 24535bac36f8d3d49aa5cf25698cf1d2, type: 2}
     Condition:

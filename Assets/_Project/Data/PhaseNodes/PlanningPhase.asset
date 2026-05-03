@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: PlanningPhase
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
   PhaseId: PlanningPhase
-  Tags: []
+  Tags:
+  - PlanningPhase
   Transitions:
   - Target: {fileID: 11400000, guid: 12757641de249a64faefbc67f1bc491b, type: 2}
     Condition:
-      Type: 0
+      Type: 3
       Threshold: 0
-      TagTrigger: 
+      TagTrigger: _playerConfirmedPhase

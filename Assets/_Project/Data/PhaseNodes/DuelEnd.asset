@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: DuelEnd
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
   PhaseId: DuelEnd
-  Tags: []
+  Tags:
+  - DuelEnd
   Transitions: []

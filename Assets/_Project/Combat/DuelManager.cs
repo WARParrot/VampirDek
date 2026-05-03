@@ -1,14 +1,14 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Core;
 using Definitions;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Combat
 {
-    public class DuelManager : IGameMode
+    public class DuelManager : MonoBehaviour, IGameMode
     {
         private readonly Queue<IGameAction> _actionQueue = new();
         private CombatState _state = CombatState.PlayerTurnIdle;
@@ -18,6 +18,14 @@ namespace Combat
         private Scene _combatScene;
 
         public DuelState CurrentDuelState => _duelState;
+        public bool LoadArenaScene = false;
+        private bool _playerConfirmedPhase;
+
+        public void ConfirmCurrentPhase()
+        {
+            Debug.Log("[DuelManager] ConfirmCurrentPhase called");
+            _playerConfirmedPhase = true;
+        }
 
         public async UniTask EnterAsync(object context)
         {
@@ -28,7 +36,8 @@ namespace Combat
 
             if (LoadArenaScene)
             {
-                await SceneManager.LoadSceneAsync("Arena_Ruins", LoadSceneMode.Additive).ToUniTask();
+                var op = SceneManager.LoadSceneAsync("Arena_Ruins", LoadSceneMode.Additive);
+                await op;
                 _combatScene = SceneManager.GetSceneByName("Arena_Ruins");
             }
 
@@ -46,14 +55,31 @@ namespace Combat
             if (!_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
-                /*GlobalServices.SaveSystem.SaveActiveBattle(_tableId, dto);*/
+                string json = JsonUtility.ToJson(dto);
+                GlobalServices.SaveSystem.SaveActiveBattle(_tableId, json);
             }
-            if (_combatScene.isLoaded) await SceneManager.UnloadSceneAsync(_combatScene).ToUniTask();
+
+            DetachAllEnchantments(_duelState.PlayerSide);
+            DetachAllEnchantments(_duelState.OpponentSide);
+
+            if (_combatScene.isLoaded)
+                await SceneManager.UnloadSceneAsync(_combatScene);
+
             _duelState = null;
+            _encounter = null;
         }
 
-        public async UniTask OnPauseAsync() => _state = CombatState.Paused;
-        public async UniTask OnResumeAsync() => _state = CombatState.PlayerTurnIdle;
+        public UniTask OnPauseAsync()
+        {
+            _state = CombatState.Paused;
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask OnResumeAsync()
+        {
+            _state = CombatState.PlayerTurnIdle;
+            return UniTask.CompletedTask;
+        }
 
         public void QueueAction(IGameAction action) => _actionQueue.Enqueue(action);
 
@@ -81,29 +107,42 @@ namespace Combat
 
             _duelState.CurrentPhase = targetNode;
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(targetNode.PhaseId, targetNode.Tags));
+            Debug.Log($"[Phase] Entered {targetNode.PhaseId} with tags: {string.Join(", ", targetNode.Tags)}");
 
-            // Phase-specific automatic actions
-            if (targetNode.Tags.Contains("StartOfTurn"))
+            if (targetNode.Tags.Contains("DuelStart"))
             {
-                // Roll speed for both sides
-                QueueAction(new RollSpeedAction(_duelState.PlayerSide.Board));
-                QueueAction(new RollSpeedAction(_duelState.OpponentSide.Board));
-                // Regenerate human resources
+                Debug.Log("[Phase] Drawing 3 cards...");
+                QueueAction(new DrawCardsAction(_duelState.PlayerSide, 3));
+                await ProcessActionsAsync();
+                Debug.Log($"[Phase] Hand count after draw: {_duelState.PlayerSide.Hand.Count}");
+            }
+            else if (targetNode.Tags.Contains("StartOfTurn"))
+            {
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.PlayerSide));
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.OpponentSide));
-                // Reset building damage accumulators
+
                 QueueAction(new ResetBuildingDamageAction(_duelState.PlayerSide.Board));
                 QueueAction(new ResetBuildingDamageAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
             }
             else if (targetNode.Tags.Contains("BuildingPhase"))
             {
-                // Enable player building input (UI will handle)
+                Debug.Log("[Phase] Waiting for player confirmation...");
+                _playerConfirmedPhase = false;
+                await UniTask.WaitUntil(() => _playerConfirmedPhase);
+                Debug.Log("[Phase] Confirmed - advancing.");
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
             {
-                // Planning will be handled by UI and AI controller; we'll let the manager wait for external completion.
-                // For now, transition automatically after a simulated delay.
+                QueueAction(new RollSpeedAction(_duelState.PlayerSide.Board));
+                QueueAction(new RollSpeedAction(_duelState.OpponentSide.Board));
+                await ProcessActionsAsync();
+
+                Debug.Log("[Phase] Waiting for player confirmation...");
+                _playerConfirmedPhase = false;
+                await UniTask.WaitUntil(() => _playerConfirmedPhase);
+                Debug.Log("[Phase] Confirmed - advancing.");
+
                 await SimulatePlanningAsync();
             }
             else if (targetNode.Tags.Contains("ClashingPhase"))
@@ -127,9 +166,11 @@ namespace Combat
         public async UniTask TransitionToPhaseWithTagAsync(string triggerTag)
         {
             var node = _duelState.CurrentPhase;
+            if (node == null) return;
             foreach (var trans in node.Transitions)
             {
-                if (trans.Condition.Type == ConditionType.TagActive && trans.Condition.TagTrigger == triggerTag)
+                if (trans.Condition.Type == ConditionType.TagActive &&
+                    trans.Condition.TagTrigger == triggerTag)
                 {
                     await TransitionToPhaseAsync(trans.Target);
                     return;
@@ -168,7 +209,7 @@ namespace Combat
                 if (resolved.Contains(card)) continue;
                 var target = card.PlannedTarget as BoardCard;
                 if (target == null || resolved.Contains(target)) continue;
-                if (target.PlannedTarget == card)
+                if (target.PlannedTarget == card) // mutual targeting
                 {
                     resolved.Add(card);
                     resolved.Add(target);
@@ -205,24 +246,41 @@ namespace Combat
 
         private async UniTask SimulatePlanningAsync()
         {
-            // Opponent AI chooses targets (simple random for now)
-            var rng = new Random();
+            var rng = new System.Random();
             foreach (var slot in _duelState.OpponentSide.Board.VanguardRow)
             {
                 if (slot.Occupant != null)
                 {
-                    var playerVanguard = _duelState.PlayerSide.Board.VanguardRow.Where(s => s.Occupant != null).ToArray();
+                    var playerVanguard = _duelState.PlayerSide.Board.VanguardRow
+                        .Where(s => s.Occupant != null && s.Occupant.IsAlive)
+                        .ToArray();
                     if (playerVanguard.Length > 0)
                         slot.Occupant.PlannedTarget = playerVanguard[rng.Next(playerVanguard.Length)].Occupant;
                 }
             }
-            // Player planning is done via UI; we skip for now
             await UniTask.Yield();
         }
 
-        // Win condition check after actions already handled.
+        private void DetachAllEnchantments(SideState side)
+        {
+            foreach (var slot in side.Board.VanguardRow)
+                if (slot.Occupant != null)
+                    foreach (var e in slot.Occupant.Enchantments) e.OnDetach();
+            foreach (var slot in side.Board.BuildingRow)
+                if (slot.Occupant != null)
+                    foreach (var e in slot.Occupant.Enchantments) e.OnDetach();
+            foreach (var slot in side.Board.HumanRow)
+                if (slot.Occupant != null)
+                    foreach (var e in slot.Occupant.Enchantments) e.OnDetach();
+            if (side.Board.TownSlot.Occupant != null)
+                foreach (var e in side.Board.TownSlot.Occupant.Enchantments) e.OnDetach();
+        }
 
-        private enum CombatState { PlayerTurnIdle, Animating, Paused }
-        private bool LoadArenaScene = false; // for testing
+        private enum CombatState
+        {
+            PlayerTurnIdle,
+            Animating,
+            Paused
+        }
     }
 }

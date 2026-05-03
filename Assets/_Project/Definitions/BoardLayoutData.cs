@@ -16,7 +16,7 @@ namespace Definitions
     public class SlotDefinition
     {
         public SlotType Type;
-        public bool IsLeaderSlot;
+        public int index;
     }
 
     public enum SlotType { Vanguard, Building, Human, Town }

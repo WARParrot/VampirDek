@@ -5,7 +5,9 @@
         "Core",
         "Definitions",
         "Shared",
-        "UniTask"
+        "UniTask",
+        "VContainer",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

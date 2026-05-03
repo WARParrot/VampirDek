@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: ClashingPhase
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
   PhaseId: ClashingPhase
-  Tags: []
+  Tags:
+  - ClashingPhase
   Transitions:
   - Target: {fileID: 11400000, guid: b87cad2ab5e321b4c8c0852d29dac269, type: 2}
     Condition:

@@ -8,5 +8,6 @@ namespace Core
         UniTask<byte[]> LoadAsync(string fileName);
         bool Exists(string fileName);
         void Delete(string fileName);
+        void SaveActiveBattle(string tableId, string matchDataJson);
     }
 }

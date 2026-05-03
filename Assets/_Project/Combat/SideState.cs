@@ -14,6 +14,7 @@ namespace Combat
         public List<Card> Deck { get; set; } = new();
         public List<Card> Hand { get; } = new();
         public List<Card> Graveyard { get; } = new();
+        public BoardCard Town => Board.TownSlot?.Occupant;
 
         IBoard IPlayerSide.Board => (IBoard)Board;
         IGameEntity IPlayerSide.Town => Board.TownSlot?.Occupant;

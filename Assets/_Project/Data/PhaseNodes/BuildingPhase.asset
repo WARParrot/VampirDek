@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: BuildingPhase
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
   PhaseId: BuildingPhase
-  Tags: []
+  Tags:
+  - BuildingPhase
   Transitions:
   - Target: {fileID: 11400000, guid: 38ff5444e19258740bea1d272a6dc51d, type: 2}
     Condition:
-      Type: 0
+      Type: 3
       Threshold: 0
-      TagTrigger: 
+      TagTrigger: _playerConfirmedPhase

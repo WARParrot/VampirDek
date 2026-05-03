@@ -23,5 +23,11 @@ namespace Core
 
         public bool Exists(string fileName) => File.Exists(GetPath(fileName));
         public void Delete(string fileName) => File.Delete(GetPath(fileName));
+        
+        public void SaveActiveBattle(string tableId, string matchDataJson)
+        {
+            var fileName = $"battle_{tableId}.json";
+            File.WriteAllText(GetPath(fileName), matchDataJson);
+        }
     }
 }

@@ -13,9 +13,11 @@ namespace Combat
         public PhaseGraph PhaseGraph { get; }
         public PhaseNode CurrentPhase { get; set; }
         public int TurnNumber { get; set; }
+        public CombatEncounter Encounter { get; private set; }
 
         public DuelState(CombatEncounter encounter, List<CardDef> playerDeck, List<CardDef> opponentDeck)
         {
+            Encounter = encounter;
             PlayerSide = new SideState(encounter.PlayerBoardLayout);
             OpponentSide = new SideState(encounter.OpponentBoardLayout);
 

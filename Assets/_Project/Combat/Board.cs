@@ -66,7 +66,14 @@ namespace Combat
 
         public void PlaceTownCard(CardDef townDef)
         {
-            if (!TownSlot.IsEmpty) throw new InvalidOperationException("Town slot is occupied.");
+            if (TownSlot == null)
+                throw new System.InvalidOperationException(
+                    "Board layout does not contain a Town slot. " +
+                    "Add a slot with Type = Town to the BoardLayoutData asset.");
+
+            if (!TownSlot.IsEmpty)
+                throw new System.InvalidOperationException("Town slot is already occupied.");
+
             var town = new BoardCard(townDef) { IsTown = true };
             town.ApplyInnateEnchantments();
             TownSlot.Occupant = town;

@@ -7,6 +7,7 @@ namespace Definitions
     {
         [SerializeField] private int _amount;
         public int Amount => _amount;
+        public override int GetAmount() => _amount;
 
         public override bool CanPay(ICostContext context)
         {

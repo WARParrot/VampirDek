@@ -6,19 +6,20 @@ namespace Combat
 {
     public class PlacedCardAction : IGameAction
     {
-        private readonly Board _board;
+        private readonly IPlayerSide _side;
         private readonly CardDef _cardDef;
-        public string Description => $"Summon {_cardDef.CardName}";
 
-        public PlacedCardAction(Board board, CardDef cardDef)
+        public string Description => $"Place {_cardDef.CardName}";
+
+        public PlacedCardAction(IPlayerSide side, CardDef cardDef)
         {
-            _board = board;
+            _side = side;
             _cardDef = cardDef;
         }
 
         public async UniTask ExecuteAsync()
         {
-            if (!_board.TryPlaceCard(_cardDef, out _))
+            if (!_side.Board.TryPlaceCard(_cardDef, out _))
                 GlobalServices.EventBus.Publish(new PlaceFailedEvent(_cardDef.CardName, "No valid slot"));
         }
     }
