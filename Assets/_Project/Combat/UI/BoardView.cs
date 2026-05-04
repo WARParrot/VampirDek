@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Core;
 using Combat;
+using Combat.UI;
 using Definitions;
 using UnityEngine;
 using UnityEngine.UI;
@@ -142,6 +143,7 @@ public class BoardView : MonoBehaviour
             var ui = slot.GetComponent<BoardSlotUI>();
             if (ui != null)
             {
+                ui.Board = isPlayer ? _duelManager.CurrentDuelState.PlayerSide.Board : _duelManager.CurrentDuelState.OpponentSide.Board;
                 ui.RowType = rowType;
                 ui.Index = i;
             }
@@ -205,6 +207,18 @@ public class BoardView : MonoBehaviour
         {
             ui.SetHighlight(false);
             ui.IsValidDropTarget = false;
+        }
+    }
+    
+    public void SetCardHighlight(BoardCard card, Color color)
+    {
+        foreach (var ui in _slotUIs.Values)
+        {
+            if (ui.Occupant == card)
+            {
+                ui.HighlightImage.color = color;
+                return;
+            }
         }
     }
 

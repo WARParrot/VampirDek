@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -113,7 +114,7 @@ namespace Combat
             if (targetNode.Tags.Contains("DuelStart"))
             {
                 Debug.Log("[Phase] Drawing 3 cards...");
-                QueueAction(new DrawCardsAction(_duelState.PlayerSide, 3));
+                QueueAction(new DrawCardsAction(_duelState.PlayerSide, 2));
                 await ProcessActionsAsync();
                 Debug.Log($"[Phase] Hand count after draw: {_duelState.PlayerSide.Hand.Count}");
             }
@@ -125,6 +126,11 @@ namespace Combat
                 QueueAction(new ResetBuildingDamageAction(_duelState.PlayerSide.Board));
                 QueueAction(new ResetBuildingDamageAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
+
+                Debug.Log("[Phase] Drawing 1 card...");
+                QueueAction(new DrawCardsAction(_duelState.PlayerSide, 1));
+                await ProcessActionsAsync();
+                Debug.Log($"[Phase] Hand count after draw: {_duelState.PlayerSide.Hand.Count}");
             }
             else if (targetNode.Tags.Contains("BuildingPhase"))
             {
@@ -166,6 +172,7 @@ namespace Combat
             else if (targetNode.Tags.Contains("OneSidedAttackPhase"))
             {
                 await ResolveOneSidedAttacksAsync();
+                ClearAllPlannedTargets();
             }
             else if (targetNode.Tags.Contains("EndOfTurn"))
             {
@@ -207,27 +214,85 @@ namespace Combat
 
         private async UniTask ResolveClashesAsync()
         {
-            var allAttackers = new List<BoardCard>();
-            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-            {
-                foreach (var slot in side.Board.VanguardRow)
-                    if (slot.Occupant != null && slot.Occupant.PlannedTarget != null)
-                        allAttackers.Add(slot.Occupant);
-            }
-
-            allAttackers.Sort((a, b) => b.CurrentSpeed.CompareTo(a.CurrentSpeed));
+            var attackers = GetAllVanguardAttackers()
+                .OrderByDescending(a => a.CurrentSpeed)
+                .ToList();
 
             var resolved = new HashSet<BoardCard>();
-            foreach (var card in allAttackers)
+
+            foreach (var card in attackers)
             {
                 if (resolved.Contains(card)) continue;
+
                 var target = card.PlannedTarget as BoardCard;
-                if (target == null || resolved.Contains(target)) continue;
-                if (target.PlannedTarget == card) // mutual targeting
+                if (target == null || !target.IsAlive || resolved.Contains(target)) continue;
+
+                // Mutual targeting → clash
+                if (target.PlannedTarget == card)
                 {
                     resolved.Add(card);
                     resolved.Add(target);
-                    QueueAction(new ClashAction(card, target));
+
+                    var forceA = GetClashForce(card);
+                    var forceB = GetClashForce(target);
+
+                    bool cardWins = false;
+                    bool targetWins = false;
+                    bool mutualLoss = false;
+
+                    if (forceA == ClashForce.Win && forceB == ClashForce.Win)
+                    {
+                        mutualLoss = true;
+                    }
+                    else if (forceA == ClashForce.Win)
+                    {
+                        cardWins = true;
+                    }
+                    else if (forceB == ClashForce.Win)
+                    {
+                        targetWins = true;
+                    }
+                    else if (forceA == ClashForce.Lose && forceB == ClashForce.Lose)
+                    {
+                        mutualLoss = true;
+                    }
+                    else if (forceA == ClashForce.Lose)
+                    {
+                        targetWins = true;
+                    }
+                    else if (forceB == ClashForce.Lose)
+                    {
+                        cardWins = true;
+                    }
+                    else
+                    {
+                        int powerA = GetClashAttack(card);
+                        int powerB = GetClashAttack(target);
+                        if (powerA > powerB)
+                            cardWins = true;
+                        else if (powerB > powerA)
+                            targetWins = true;
+                        else
+                            mutualLoss = true;
+                    }
+
+                    if (mutualLoss)
+                    {
+                        card.PlannedTarget = null;
+                        target.PlannedTarget = null;
+                    }
+                    else if (cardWins)
+                    {
+                        QueueAction(new DamageAction(target, card.Attack, card));
+                        target.PlannedTarget = null;            // loser's attack cancelled
+                        GlobalServices.EventBus.Publish(new ClashResolvedEvent(card, target));
+                    }
+                    else if (targetWins)
+                    {
+                        QueueAction(new DamageAction(card, target.Attack, target));
+                        card.PlannedTarget = null;
+                        GlobalServices.EventBus.Publish(new ClashResolvedEvent(target, card));
+                    }
                 }
             }
             await ProcessActionsAsync();
@@ -235,27 +300,69 @@ namespace Combat
 
         private async UniTask ResolveOneSidedAttacksAsync()
         {
-            var allAttackers = new List<BoardCard>();
-            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-            {
-                foreach (var slot in side.Board.VanguardRow)
-                    if (slot.Occupant != null && slot.Occupant.PlannedTarget != null && slot.Occupant.PlannedTarget.IsAlive)
-                        allAttackers.Add(slot.Occupant);
-            }
+            var attackers = GetAllVanguardAttackers()
+                        .Where(a => a.PlannedTarget != null && a.PlannedTarget.IsAlive)
+                        .OrderByDescending(a => a.CurrentSpeed);
 
-            foreach (var card in allAttackers)
+            foreach (var card in attackers)
             {
-                var target = card.PlannedTarget;
-                QueueAction(new DamageAction(target, card.Attack, card));
+                QueueAction(new DamageAction(card.PlannedTarget, card.Attack, card));
             }
             await ProcessActionsAsync();
+        }
 
+        private IEnumerable<BoardCard> GetAllVanguardAttackers()
+        {
+            var all = new List<BoardCard>();
             foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-            {
+                foreach (var slot in side.Board.VanguardRow)
+                    if (slot.Occupant != null && slot.Occupant.PlannedTarget != null && slot.Occupant.IsAlive)
+                        all.Add(slot.Occupant);
+            return all;
+        }
+
+        private void ClearAllPlannedTargets()
+        {
+            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
                 foreach (var slot in side.Board.VanguardRow)
                     if (slot.Occupant != null)
                         slot.Occupant.PlannedTarget = null;
+        }
+
+        private enum ClashForce { None, Win, Lose }
+
+        private ClashForce GetClashForce(BoardCard card)
+        {
+            bool hasWin = false;
+            bool hasLose = false;
+            foreach (var enchantment in card.Enchantments)
+            {
+                foreach (var mod in enchantment.Data.Modifiers)
+                {
+                    if (mod.Stat == "ClashForce")
+                    {
+                        if (mod.Value == 1) hasWin = true;
+                        else if (mod.Value == 2) hasLose = true;
+                    }
+                }
             }
+            if (hasWin) return ClashForce.Win;
+            if (hasLose) return ClashForce.Lose;
+            return ClashForce.None;
+        }
+
+        private int GetClashAttack(BoardCard card)
+        {
+            int clashAttack = card.Attack;
+            foreach (var enchantment in card.Enchantments)
+            {
+                foreach (var mod in enchantment.Data.Modifiers)
+                {
+                    if (mod.Stat == "ClashAttack" && mod.Type == ModifierType.Add)
+                        clashAttack += mod.Value;
+                }
+            }
+            return clashAttack;
         }
 
         private async UniTask SimulatePlanningAsync()

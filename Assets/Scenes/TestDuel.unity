@@ -456,6 +456,7 @@ GameObject:
   - component: {fileID: 175672662}
   - component: {fileID: 175672661}
   - component: {fileID: 175672660}
+  - component: {fileID: 175672664}
   m_Layer: 5
   m_Name: CardCanvas
   m_TagString: Untagged
@@ -557,6 +558,20 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &175672664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 175672659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bca997ab958146408fa7053d372c9d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Combat::Combat.UI.PlanningPhaseController
+  AttackerHighlight: {r: 0, g: 1, b: 1, a: 1}
+  TargetHighlight: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0

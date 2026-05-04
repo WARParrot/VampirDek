@@ -135,6 +135,18 @@ namespace Combat
             Definitions.RowType.Human => HumanRow,
             Definitions.RowType.Town => new[] { TownSlot },
         };
+
+        public BoardSlot GetSlot(Definitions.RowType row, int index)
+        {
+            switch (row)
+            {
+                case Definitions.RowType.Vanguard: return index < VanguardRow.Length ? VanguardRow[index] : null;
+                case Definitions.RowType.Building: return index < BuildingRow.Length ? BuildingRow[index] : null;
+                case Definitions.RowType.Human:    return index < HumanRow.Length ? HumanRow[index] : null;
+                case Definitions.RowType.Town:     return TownSlot;
+            }
+            return null;
+        }
     }
 
     [Serializable]

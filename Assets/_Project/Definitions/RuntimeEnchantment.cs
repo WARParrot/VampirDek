@@ -14,6 +14,7 @@ namespace Definitions
         private int _durationLeft;
         public bool IsExpired => _data.Duration != -1 && _durationLeft <= 0;
         public IGameEntity Owner => _owner;
+        public EnchantmentData Data => _data;
 
         public RuntimeEnchantment(EnchantmentData data, IGameEntity owner)
         {
