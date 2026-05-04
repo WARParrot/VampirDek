@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Definitions;
 
 public class BoardSlotUI : MonoBehaviour
 {
     public Image HighlightImage;
     public bool IsValidDropTarget { get; set; }
+    public Definitions.RowType RowType;
+    public int Index;
 
     public void SetHighlight(bool on)
     {

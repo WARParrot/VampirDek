@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,19 +19,18 @@ public class BoardView : MonoBehaviour
     private Dictionary<string, BoardSlotUI> _slotUIs = new();
     private bool _subscribed = false;
 
-    public void SetDuelManager(DuelManager duelManager)
+    public void Start()
     {
-        _duelManager = duelManager;
         StartCoroutine(InitUI());
     }
 
     IEnumerator InitUI()
     {
         yield return new WaitUntil(() =>
-            GlobalServices.EventBus != null &&
-            (GlobalServices.Director.CurrentMode as DuelManager)?.CurrentDuelState != null);
+            DuelManagerProxy.Instance != null &&
+            DuelManagerProxy.Instance.CurrentDuelState != null);
 
-        _duelManager = GlobalServices.Director.CurrentMode as DuelManager;
+        _duelManager = DuelManagerProxy.Instance;
         var encounter = _duelManager.CurrentDuelState.Encounter;
 
         InitializeLayout(encounter.PlayerBoardLayout, PlayerBoardContainer, true);
@@ -43,6 +43,16 @@ public class BoardView : MonoBehaviour
             GlobalServices.EventBus.Subscribe<EntityDiedEvent>(OnEntityDied);
             _subscribed = true;
         }
+
+        SyncExistingCards();
+    }
+
+    void SyncExistingCards()
+    {
+        foreach (var slot in _duelManager.CurrentDuelState.PlayerSide.Board.AllSlots())
+            if (slot.Occupant != null) UpdateSlotUIForEntity(slot.Occupant);
+        foreach (var slot in _duelManager.CurrentDuelState.OpponentSide.Board.AllSlots())
+            if (slot.Occupant != null) UpdateSlotUIForEntity(slot.Occupant);
     }
 
     void OnDisable()
@@ -60,19 +70,19 @@ public class BoardView : MonoBehaviour
 {
     if (layout == null)
     {
-        Debug.LogError("BoardLayoutData is null – check your CombatEncounter asset.");
+        Debug.LogError("BoardLayoutData is null - check your CombatEncounter asset.");
         return;
     }
 
     foreach (Transform child in container)
         Destroy(child.gameObject);
 
-    var rows = new (string name, int count, RowType type)[]
+    var rows = new (string name, int count, Definitions.RowType type)[]
     {
-        ("Vanguard", layout.VanguardSlotsCount, RowType.Vanguard),
-        ("Building",  layout.BuildingSlotsCount, RowType.Building),
-        ("Human",     layout.HumanSlotsCount, RowType.Human),
-        ("Town",      1, RowType.Town)
+        ("Vanguard", layout.VanguardSlotsCount, Definitions.RowType.Vanguard),
+        ("Building",  layout.BuildingSlotsCount, Definitions.RowType.Building),
+        ("Human",     layout.HumanSlotsCount, Definitions.RowType.Human),
+        ("Town",      1, Definitions.RowType.Town)
     };
 
     foreach (var (rowName, count, rowType) in rows)
@@ -97,7 +107,7 @@ public class BoardView : MonoBehaviour
             {
                 slot = Instantiate(SlotPrefab, rowObj.transform);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError($"Failed to instantiate SlotPrefab. Is it assigned in the Inspector? Error: {e.Message}");
                 return;
@@ -106,8 +116,7 @@ public class BoardView : MonoBehaviour
             var indexTextComponent = slot.transform.Find("SlotIndex");
             if (indexTextComponent == null)
             {
-                // Try TMPro first, then legacy Text
-                var tmp = slot.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                var tmp = slot.GetComponentInChildren<TextMeshProUGUI>();
                 if (tmp == null)
                     Debug.LogError("BoardSlot prefab has no 'SlotIndex' child with a Text or TextMeshPro component.", slot);
                 else
@@ -131,7 +140,12 @@ public class BoardView : MonoBehaviour
             }
 
             var ui = slot.GetComponent<BoardSlotUI>();
-            if (ui == null)
+            if (ui != null)
+            {
+                ui.RowType = rowType;
+                ui.Index = i;
+            }
+            else
             {
                 Debug.LogError("BoardSlot prefab is missing BoardSlotUI component.", slot);
                 continue;
@@ -147,23 +161,41 @@ public class BoardView : MonoBehaviour
 
     public void ShowValidDropZones(Definitions.RowType cardRowType)
     {
+        Debug.Log($"[BoardView] ShowValidDropZones for {cardRowType}. Total slots: {_slotUIs.Count}");
         foreach (var kv in _slotUIs)
         {
             var parts = kv.Key.Split('_');
-            if (parts.Length != 3) continue;
-            bool isPlayer = parts[0] == "P";
-            Definitions.RowType slotRow;
-            if (!System.Enum.TryParse(parts[1], out slotRow)) continue;
-            int index = int.Parse(parts[2]);
-
-            bool isValid = false;
-            if (isPlayer && cardRowType == slotRow)
+            if (parts.Length != 3)
             {
-                var board = _duelManager.CurrentDuelState.PlayerSide.Board;
-                isValid = IsSlotEmpty(board, slotRow, index);
+                Debug.LogWarning($"Bad key: {kv.Key}");
+                continue;
             }
-            kv.Value.IsValidDropTarget = isValid;
-            kv.Value.SetHighlight(isValid);
+            bool isPlayer = parts[0] == "P";
+            if (!isPlayer)
+            {
+                kv.Value.IsValidDropTarget = false;
+                kv.Value.SetHighlight(false);
+                continue;
+            }
+
+            if (!Enum.TryParse(parts[1], out Definitions.RowType slotRow))
+            {
+                Debug.LogWarning($"Unrecognised RowType in key: {kv.Key}");
+                continue;
+            }
+
+            if (slotRow != cardRowType)
+            {
+                kv.Value.IsValidDropTarget = false;
+                kv.Value.SetHighlight(false);
+                continue;
+            }
+
+            int index = int.Parse(parts[2]);
+            bool empty = IsSlotEmpty(_duelManager.CurrentDuelState.PlayerSide.Board, slotRow, index);
+            kv.Value.IsValidDropTarget = empty;
+            kv.Value.SetHighlight(empty);
+            if (empty) Debug.Log($"[BoardView] Highlighted {kv.Key}");
         }
     }
 
@@ -178,12 +210,28 @@ public class BoardView : MonoBehaviour
 
     private bool IsSlotEmpty(Board board, Definitions.RowType row, int index)
     {
+        bool empty = false;
         switch (row)
         {
-            case Definitions.RowType.Vanguard: return index < board.VanguardRow.Length && board.VanguardRow[index].IsEmpty;
-            case Definitions.RowType.Building: return index < board.BuildingRow.Length && board.BuildingRow[index].IsEmpty;
-            case Definitions.RowType.Human:    return index < board.HumanRow.Length && board.HumanRow[index].IsEmpty;
-            case Definitions.RowType.Town:     return board.TownSlot.IsEmpty;
+            case Definitions.RowType.Vanguard:
+                bool inBounds = index < board.VanguardRow.Length;
+                empty = inBounds && board.VanguardRow[index].IsEmpty;
+                Debug.Log($"[IsSlotEmpty] Vanguard[{index}] - inBounds={inBounds}, occupant={board.VanguardRow[index]?.Occupant?.SourceCard?.CardName ?? "none"}, IsEmpty={empty}");
+                return empty;
+            case Definitions.RowType.Building:
+                bool bInBounds = index < board.BuildingRow.Length;
+                empty = bInBounds && board.BuildingRow[index].IsEmpty;
+                Debug.Log($"[IsSlotEmpty] Building[{index}] - inBounds={bInBounds}, IsEmpty={empty}");
+                return empty;
+            case Definitions.RowType.Human:
+                bool hInBounds = index < board.HumanRow.Length;
+                empty = hInBounds && board.HumanRow[index].IsEmpty;
+                Debug.Log($"[IsSlotEmpty] Human[{index}] - inBounds={hInBounds}, IsEmpty={empty}");
+                return empty;
+            case Definitions.RowType.Town:
+                empty = board.TownSlot.IsEmpty;
+                Debug.Log($"[IsSlotEmpty] Town - occupant={board.TownSlot?.Occupant?.SourceCard?.CardName ?? "none"}, IsEmpty={empty}");
+                return empty;
         }
         return false;
     }

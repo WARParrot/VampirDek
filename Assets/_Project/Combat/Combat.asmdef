@@ -7,7 +7,9 @@
         "Shared",
         "UniTask",
         "VContainer",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        ""
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -11,6 +11,7 @@ namespace Combat.UI
         private Canvas _canvas;
         private RectTransform _rectTransform;
         private CanvasGroup _canvasGroup;
+        private LayoutElement _layoutElement;
         private ICard _card;
         private HandUIManager _handManager;
 
@@ -21,6 +22,10 @@ namespace Combat.UI
             _rectTransform = GetComponent<RectTransform>();
             _canvasGroup = GetComponent<CanvasGroup>();
             _canvas = GetComponentInParent<Canvas>();
+
+            _layoutElement = GetComponent<LayoutElement>();
+            if (_layoutElement == null)
+                _layoutElement = gameObject.AddComponent<LayoutElement>();
         }
 
         public void Setup(ICard card, HandUIManager manager)
@@ -36,6 +41,7 @@ namespace Combat.UI
             _canvasGroup.alpha = 0.6f;
             _canvasGroup.blocksRaycasts = false;
             IsDragging = true;
+            if (_layoutElement != null) _layoutElement.ignoreLayout = true;
             _handManager.OnCardDragStarted(this);
         }
 
@@ -47,9 +53,8 @@ namespace Combat.UI
             _canvasGroup.alpha = 1f;
             _canvasGroup.blocksRaycasts = true;
             IsDragging = false;
+            if (_layoutElement != null) _layoutElement.ignoreLayout = false;
             _handManager.OnCardDragEnded(this, eventData);
         }
-
-        public void ReturnToHand(Vector2 position) => _rectTransform.anchoredPosition = position;
     }
 }

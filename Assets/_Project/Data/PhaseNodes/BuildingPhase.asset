@@ -18,6 +18,6 @@ MonoBehaviour:
   Transitions:
   - Target: {fileID: 11400000, guid: 38ff5444e19258740bea1d272a6dc51d, type: 2}
     Condition:
-      Type: 3
+      Type: 0
       Threshold: 0
-      TagTrigger: _playerConfirmedPhase
+      TagTrigger: 

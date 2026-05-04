@@ -89,6 +89,7 @@ namespace Combat
             {
                 if (_state == CombatState.Paused) break;
                 var action = _actionQueue.Dequeue();
+                Debug.Log($"[DuelManager] Processing action: {action.Description}");
                 await action.ExecuteAsync();
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
@@ -129,7 +130,20 @@ namespace Combat
             {
                 Debug.Log("[Phase] Waiting for player confirmation...");
                 _playerConfirmedPhase = false;
-                await UniTask.WaitUntil(() => _playerConfirmedPhase);
+                while (!_playerConfirmedPhase)
+                {
+                    if (_actionQueue.Count > 0)
+                    {
+                        Debug.Log($"[Phase] Loop iteration - queue count: {_actionQueue.Count}");
+                        Debug.Log("[Phase] Processing actions...");
+                        await ProcessActionsAsync();
+                        Debug.Log("[Phase] Actions processed.");
+                    }
+                    else
+                    {
+                        await UniTask.Yield();
+                    }
+                };
                 Debug.Log("[Phase] Confirmed - advancing.");
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))

@@ -26,12 +26,6 @@ public class DebugDuelStarter : MonoBehaviour
             TableId = "TestDuel"
         };
         await GlobalServices.Director.PushModeAsync(duelManager, context);
-        var handUI = DuelUI.GetComponentInChildren<HandUIManager>();
-        if (handUI == null) handUI = DuelUI.GetComponent<HandUIManager>();
-            handUI?.SetDuelManager(duelManager);
         if (DuelUI != null) DuelUI.SetActive(true);
-        
-        var boardView = DuelUI.GetComponentInChildren<BoardView>();
-        boardView?.SetDuelManager(duelManager);
     }
 }

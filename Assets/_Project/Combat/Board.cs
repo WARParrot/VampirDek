@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Core;
 using Definitions;
+using UnityEngine;
 
 namespace Combat
 {
@@ -64,6 +65,33 @@ namespace Combat
             return true;
         }
 
+        public bool TryPlaceCardIntoSlot(CardDef cardDef, BoardSlot targetSlot)
+        {
+            Debug.Log($"[Board] TryPlaceCardIntoSlot: {cardDef.CardName}, slot {targetSlot.AllowedRow}[{targetSlot.Index}]");
+            if (targetSlot == null)
+            {
+                Debug.Log("[Board] Slot is null");
+                return false;
+            }
+            if (!targetSlot.IsEmpty)
+            {
+                Debug.Log("[Board] Slot not empty");
+                return false;
+            }
+            if (cardDef.RowType != targetSlot.AllowedRow)
+            {
+                Debug.Log("[Board] RowType mismatch");
+                return false;
+            }
+
+            var card = new BoardCard(cardDef);
+            card.ApplyInnateEnchantments();
+            targetSlot.Occupant = card;
+            GlobalServices.EventBus.Publish(new PlacedCardEvent(card, this));
+            Debug.Log("[Board] Card placed successfully");
+            return true;
+        }
+
         public void PlaceTownCard(CardDef townDef)
         {
             if (TownSlot == null)
@@ -92,7 +120,7 @@ namespace Combat
             }
         }
 
-        private IEnumerable<BoardSlot> AllSlots()
+        public IEnumerable<BoardSlot> AllSlots()
         {
             foreach (var s in VanguardRow) yield return s;
             foreach (var s in BuildingRow) yield return s;
