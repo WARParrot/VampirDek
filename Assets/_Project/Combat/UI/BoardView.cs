@@ -16,6 +16,10 @@ public class BoardView : MonoBehaviour
     public Transform PlayerBoardContainer;
     public Transform OpponentBoardContainer;
 
+    [Header("Empty slot texts")]
+    [SerializeField] private string _emptySlotName = "New Text";
+    [SerializeField] private string _emptySlotStats = "";
+
     private DuelManager _duelManager;
     private Dictionary<string, BoardSlotUI> _slotUIs = new();
     private bool _subscribed = false;
@@ -68,98 +72,113 @@ public class BoardView : MonoBehaviour
     }
 
     private void InitializeLayout(BoardLayoutData layout, Transform container, bool isPlayer)
-{
-    if (layout == null)
     {
-        Debug.LogError("BoardLayoutData is null - check your CombatEncounter asset.");
-        return;
-    }
-
-    foreach (Transform child in container)
-        Destroy(child.gameObject);
-
-    var rows = new (string name, int count, Definitions.RowType type)[]
-    {
-        ("Vanguard", layout.VanguardSlotsCount, Definitions.RowType.Vanguard),
-        ("Building",  layout.BuildingSlotsCount, Definitions.RowType.Building),
-        ("Human",     layout.HumanSlotsCount, Definitions.RowType.Human),
-        ("Town",      1, Definitions.RowType.Town)
-    };
-
-    foreach (var (rowName, count, rowType) in rows)
-    {
-        var rowObj = new GameObject(rowName, typeof(HorizontalLayoutGroup));
-        rowObj.transform.SetParent(container, false);
-
-        var layoutRow = rowObj.GetComponent<HorizontalLayoutGroup>();
-        layoutRow.spacing = 5f;
-        layoutRow.childAlignment = TextAnchor.MiddleCenter;
-
-        layoutRow.childControlHeight = false;
-        layoutRow.childControlWidth = false;
-
-        layoutRow.childForceExpandHeight = false;
-        layoutRow.childForceExpandWidth = false;
-
-        for (int i = 0; i < count; i++)
+        if (layout == null)
         {
-            GameObject slot;
-            try
-            {
-                slot = Instantiate(SlotPrefab, rowObj.transform);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to instantiate SlotPrefab. Is it assigned in the Inspector? Error: {e.Message}");
-                return;
-            }
+            Debug.LogError("BoardLayoutData is null - check your CombatEncounter asset.");
+            return;
+        }
 
-            var indexTextComponent = slot.transform.Find("SlotIndex");
-            if (indexTextComponent == null)
+        foreach (Transform child in container)
+            Destroy(child.gameObject);
+
+        var rows = new (string name, int count, Definitions.RowType type)[]
+        {
+            ("Vanguard", layout.VanguardSlotsCount, Definitions.RowType.Vanguard),
+            ("Building",  layout.BuildingSlotsCount, Definitions.RowType.Building),
+            ("Human",     layout.HumanSlotsCount, Definitions.RowType.Human),
+            ("Town",      1, Definitions.RowType.Town)
+        };
+
+        foreach (var (rowName, count, rowType) in rows)
+        {
+            var rowObj = new GameObject(rowName, typeof(HorizontalLayoutGroup));
+            rowObj.transform.SetParent(container, false);
+
+            var layoutRow = rowObj.GetComponent<HorizontalLayoutGroup>();
+            layoutRow.spacing = 5f;
+            layoutRow.childAlignment = TextAnchor.MiddleCenter;
+
+            layoutRow.childControlHeight = false;
+            layoutRow.childControlWidth = false;
+
+            layoutRow.childForceExpandHeight = false;
+            layoutRow.childForceExpandWidth = false;
+
+            for (int i = 0; i < count; i++)
             {
-                var tmp = slot.GetComponentInChildren<TextMeshProUGUI>();
-                if (tmp == null)
-                    Debug.LogError("BoardSlot prefab has no 'SlotIndex' child with a Text or TextMeshPro component.", slot);
-                else
-                    tmp.text = $"{rowName[0]}{i}";
-            }
-            else
-            {
-                var txt = indexTextComponent.GetComponent<Text>();
-                if (txt == null)
+                GameObject slot;
+                try
                 {
-                    var tmp = indexTextComponent.GetComponent<TextMeshProUGUI>();
+                    slot = Instantiate(SlotPrefab, rowObj.transform);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to instantiate SlotPrefab. Is it assigned in the Inspector? Error: {e.Message}");
+                    return;
+                }
+
+                var indexTextComponent = slot.transform.Find("SlotIndex");
+                if (indexTextComponent == null)
+                {
+                    var tmp = slot.GetComponentInChildren<TextMeshProUGUI>();
                     if (tmp == null)
-                        Debug.LogError("'SlotIndex' child has neither Text nor TextMeshPro component.", slot);
+                        Debug.LogError("BoardSlot prefab has no 'SlotIndex' child with a Text or TextMeshPro component.", slot);
                     else
                         tmp.text = $"{rowName[0]}{i}";
                 }
                 else
                 {
-                    txt.text = $"{rowName[0]}{i}";
+                    var txt = indexTextComponent.GetComponent<Text>();
+                    if (txt == null)
+                    {
+                        var tmp = indexTextComponent.GetComponent<TextMeshProUGUI>();
+                        if (tmp == null)
+                            Debug.LogError("'SlotIndex' child has neither Text nor TextMeshPro component.", slot);
+                        else
+                            tmp.text = $"{rowName[0]}{i}";
+                    }
+                    else
+                    {
+                        txt.text = $"{rowName[0]}{i}";
+                    }
                 }
-            }
 
-            var ui = slot.GetComponent<BoardSlotUI>();
-            if (ui != null)
-            {
-                ui.Board = isPlayer ? _duelManager.CurrentDuelState.PlayerSide.Board : _duelManager.CurrentDuelState.OpponentSide.Board;
-                ui.RowType = rowType;
-                ui.Index = i;
-            }
-            else
-            {
-                Debug.LogError("BoardSlot prefab is missing BoardSlotUI component.", slot);
-                continue;
-            }
+                // Инициализация заглушек для имени и статов (пустой слот)
+                var cn = slot.transform.Find("CardName");
+                if (cn != null)
+                {
+                    var tmp = cn.GetComponent<TextMeshProUGUI>();
+                    if (tmp != null) tmp.text = _emptySlotName;
+                }
 
-            string key = $"{(isPlayer ? "P" : "O")}_{rowType}_{i}";
-            _slotUIs[key] = ui;
+                var cs = slot.transform.Find("CardStats");
+                if (cs != null)
+                {
+                    var tmp = cs.GetComponent<TextMeshProUGUI>();
+                    if (tmp != null) tmp.text = _emptySlotStats;
+                }
+
+                var ui = slot.GetComponent<BoardSlotUI>();
+                if (ui != null)
+                {
+                    ui.Board = isPlayer ? _duelManager.CurrentDuelState.PlayerSide.Board : _duelManager.CurrentDuelState.OpponentSide.Board;
+                    ui.RowType = rowType;
+                    ui.Index = i;
+                }
+                else
+                {
+                    Debug.LogError("BoardSlot prefab is missing BoardSlotUI component.", slot);
+                    continue;
+                }
+
+                string key = $"{(isPlayer ? "P" : "O")}_{rowType}_{i}";
+                _slotUIs[key] = ui;
+            }
         }
-    }
 
-    Debug.Log($"Board layout initialized for {(isPlayer ? "Player" : "Opponent")}.");
-}
+        Debug.Log($"Board layout initialized for {(isPlayer ? "Player" : "Opponent")}.");
+    }
 
     public void ShowValidDropZones(Definitions.RowType cardRowType)
     {
@@ -209,7 +228,7 @@ public class BoardView : MonoBehaviour
             ui.IsValidDropTarget = false;
         }
     }
-    
+
     public void SetCardHighlight(BoardCard card, Color color)
     {
         foreach (var ui in _slotUIs.Values)
@@ -282,16 +301,18 @@ public class BoardView : MonoBehaviour
         string key = $"{(isPlayer ? "P" : "O")}_{row}_{index}";
         if (!_slotUIs.TryGetValue(key, out var ui)) return;
 
-        var nameText = ui.transform.Find("CardName").GetComponent<TextMeshProUGUI>();
-        var statsText = ui.transform.Find("CardStats").GetComponent<TextMeshProUGUI>();
+        var nameText = ui.transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
+        var statsText = ui.transform.Find("CardStats")?.GetComponent<TextMeshProUGUI>();
+
         if (card == null || !card.IsAlive)
         {
-            nameText.text = statsText.text = "";
+            if (nameText != null) nameText.text = _emptySlotName;
+            if (statsText != null) statsText.text = _emptySlotStats;
         }
         else
         {
-            nameText.text = card.SourceCard.CardName;
-            statsText.text = $"{card.Health}/{card.MaxHealth} ATK{card.Attack}";
+            if (nameText != null) nameText.text = card.SourceCard.CardName;
+            if (statsText != null) statsText.text = $"{card.Health}/{card.MaxHealth} ATK{card.Attack}";
         }
     }
 }

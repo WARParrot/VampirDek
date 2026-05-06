@@ -25,6 +25,8 @@ MonoBehaviour:
   MaxSpeed: 3
   Health: 2
   Attack: 1
-  Costs: []
+  Costs:
+  - {fileID: 11400000, guid: cc15bc8810ceeb446a0d4ac0c60adcb1, type: 2}
   Effects: []
-  InnateEnchantments: []
+  InnateEnchantments:
+  - {fileID: 11400000, guid: 0373980d6ef3b4043ae8885512cf570d, type: 2}

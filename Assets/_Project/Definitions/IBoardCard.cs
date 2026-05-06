@@ -1,6 +1,6 @@
 namespace Definitions
 {
-    public interface IBoardCard
+    public interface IBoardCard : IGameEntity
     {
         int Id { get; }
         int Health { get; }

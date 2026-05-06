@@ -4,6 +4,7 @@ namespace Definitions
 {
     public interface IBoard
     {
+        IBoard OwnerBoard { get; }
         IBoardSlot TownSlot { get; }
         IBoardSlot[] VanguardRow { get; }
         IBoardSlot[] BuildingRow { get; }
@@ -12,6 +13,7 @@ namespace Definitions
         bool TryPlaceCard(CardDef cardDef, out IBoardSlot placedSlot);
         void PlaceTownCard(CardDef townDef);
         void RemoveCard(IBoardCard card);
+        IBoardCard GetFirstAliveCardInRow(RowType rowType);
     }
 
     public interface IBoardSlot
@@ -21,4 +23,5 @@ namespace Definitions
         IBoardCard Occupant { get; }
         bool IsEmpty { get; }
     }
+
 }

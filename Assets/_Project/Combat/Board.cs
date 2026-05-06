@@ -14,6 +14,7 @@ namespace Combat
         public BoardSlot[] HumanRow { get; private set; }
         public BoardSlot TownSlot { get; private set; }
 
+        public IBoard OwnerBoard { get; set; }
         IBoardSlot IBoard.TownSlot => TownSlot;
         IBoardSlot[] IBoard.VanguardRow => VanguardRow;
         IBoardSlot[] IBoard.BuildingRow => BuildingRow;
@@ -32,8 +33,8 @@ namespace Combat
                 {
                     case Definitions.SlotType.Vanguard: vanguard.Add(slot); break;
                     case Definitions.SlotType.Building: building.Add(slot); break;
-                    case Definitions.SlotType.Human:    humanList.Add(slot); break;
-                    case Definitions.SlotType.Town:     TownSlot = slot; break;
+                    case Definitions.SlotType.Human: humanList.Add(slot); break;
+                    case Definitions.SlotType.Town: TownSlot = slot; break;
                 }
             }
             VanguardRow = vanguard.ToArray();
@@ -142,8 +143,29 @@ namespace Combat
             {
                 case Definitions.RowType.Vanguard: return index < VanguardRow.Length ? VanguardRow[index] : null;
                 case Definitions.RowType.Building: return index < BuildingRow.Length ? BuildingRow[index] : null;
-                case Definitions.RowType.Human:    return index < HumanRow.Length ? HumanRow[index] : null;
-                case Definitions.RowType.Town:     return TownSlot;
+                case Definitions.RowType.Human: return index < HumanRow.Length ? HumanRow[index] : null;
+                case Definitions.RowType.Town: return TownSlot;
+            }
+            return null;
+        }
+
+        IBoardCard IBoard.GetFirstAliveCardInRow(Definitions.RowType rowType)
+        {
+            IBoardSlot[] slots = rowType switch
+            {
+                Definitions.RowType.Vanguard => VanguardRow,
+                Definitions.RowType.Building => BuildingRow,
+                Definitions.RowType.Human => HumanRow,
+                Definitions.RowType.Town => new[] { TownSlot },
+                _ => null
+            };
+
+            if (slots == null) return null;
+
+            foreach (var slot in slots)
+            {
+                if (slot.Occupant != null && slot.Occupant.IsAlive)
+                    return slot.Occupant;
             }
             return null;
         }

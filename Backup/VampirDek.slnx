@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Project Path="Combat.csproj" />
   <Project Path="Definitions.csproj" />
   <Project Path="Core.csproj" />
