@@ -1,4 +1,0 @@
-{
-	"name": "Exploration",
-	"references": [ "Core", "Definitions", "Shared", "UniTask", "DOTween" ]
-}
