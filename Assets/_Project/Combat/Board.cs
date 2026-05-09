@@ -9,6 +9,7 @@ namespace Combat
 {
     public class Board : IBoard
     {
+        public IEnumerable<BoardSlot> Slots => AllSlots();
         public BoardSlot[] VanguardRow { get; private set; }
         public BoardSlot[] BuildingRow { get; private set; }
         public BoardSlot[] HumanRow { get; private set; }

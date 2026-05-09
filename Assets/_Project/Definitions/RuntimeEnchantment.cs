@@ -12,6 +12,8 @@ namespace Definitions
         private readonly IGameEntity _owner;
         private readonly List<IDisposable> _subscriptions = new();
         private int _durationLeft;
+        public int DurationLeft => _durationLeft;
+        public void SetDurationLeft(int left) => _durationLeft = left;
         public bool IsExpired => _data.Duration != -1 && _durationLeft <= 0;
         public IGameEntity Owner => _owner;
         public EnchantmentData Data => _data;

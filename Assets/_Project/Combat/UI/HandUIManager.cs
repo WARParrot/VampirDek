@@ -74,6 +74,13 @@ public class HandUIManager : MonoBehaviour
         _lastHandCount = side.Hand.Count;
     }
 
+    public void RefreshHandImmediately()
+    {
+        var state = _duelManager?.CurrentDuelState;
+        if (state != null)
+            RefreshHand(state.PlayerSide);
+    }
+
     public void OnCardDragStarted(DragHandler handler)
     {
         _currentlyDragging = handler;

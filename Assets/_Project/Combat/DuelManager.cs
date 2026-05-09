@@ -19,7 +19,7 @@ namespace Combat
         private Scene _combatScene;
 
         public DuelState CurrentDuelState => _duelState;
-        public bool LoadArenaScene = false;
+        public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
 
         public void ConfirmCurrentPhase()
@@ -30,25 +30,26 @@ namespace Combat
 
         public async UniTask EnterAsync(object context)
         {
-            var ctx = (DuelStartContext)context;
+            var ctx = (DuelStartContext) context;
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
-            _duelState = new DuelState(_encounter, ctx.PlayerDeck, _encounter.OpponentDeck);
 
-            if (LoadArenaScene)
+            if (_encounter.DuelScene != null && !_encounter.DuelScene.RuntimeKeyIsValid())
             {
-                var op = SceneManager.LoadSceneAsync("Arena_Ruins", LoadSceneMode.Additive);
-                await op;
-                _combatScene = SceneManager.GetSceneByName("Arena_Ruins");
+                var loadOp = _encounter.DuelScene.LoadSceneAsync(LoadSceneMode.Additive);
+                await loadOp;
             }
 
-            foreach (var data in _encounter.PermanentGlobalEnchantments)
+            if (ctx.SavedMatchState != null)
             {
-                var runtime = EnchantmentFactory.Create(data, null);
-                runtime.OnAttach();
+                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, ctx.PlayerDeck, _encounter.OpponentDeck);
+                await ResumeFromSaveAsync();
             }
-
-            await TransitionToPhaseAsync(_duelState.CurrentPhase);
+            else
+            {
+                _duelState = new DuelState(_encounter, ctx.PlayerDeck, _encounter.OpponentDeck);
+                await TransitionToPhaseAsync(_duelState.CurrentPhase);
+            }
         }
 
         public async UniTask ExitAsync()
@@ -80,6 +81,18 @@ namespace Combat
         {
             _state = CombatState.PlayerTurnIdle;
             return UniTask.CompletedTask;
+        }
+
+        private async UniTask ResumeFromSaveAsync()
+        {
+            await UniTask.DelayFrame(5);
+            var boardView = FindObjectOfType<BoardView>(true);
+            boardView?.RefreshAllSlots();
+
+            var handUI = FindObjectOfType<HandUIManager>(true);
+            handUI?.RefreshHandImmediately();
+
+            await TransitionToPhaseAsync(_duelState.CurrentPhase);
         }
 
         public void QueueAction(IGameAction action) => _actionQueue.Enqueue(action);

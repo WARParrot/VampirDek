@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Definitions
 {
@@ -7,6 +8,7 @@ namespace Definitions
     public class CombatEncounter : ScriptableObject
     {
         public string EncounterId;
+        public AssetReference DuelScene;
         public BoardLayoutData PlayerBoardLayout;
         public BoardLayoutData OpponentBoardLayout;
         public PhaseGraph PhaseGraph;

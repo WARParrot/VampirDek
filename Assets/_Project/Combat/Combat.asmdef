@@ -9,7 +9,8 @@
         "VContainer",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
-        ""
+        "Unity.Addressables",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_DefaultGroup: c77554e8b8c196a47acaddfd7f305184
   m_currentHash:
     serializedVersion: 2
-    Hash: 927982e335aba417c2f2d1d603ca10af
+    Hash: 28baefbcc4c762a6b1906a8b95c025ba
   m_OptimizeCatalogSize: 0
   m_BuildRemoteCatalog: 0
   m_CatalogRequestsTimeout: 0
@@ -101,6 +101,8 @@ MonoBehaviour:
   m_LabelTable:
     m_LabelNames:
     - default
+    - Enchantments
+    - Cards
   m_SchemaTemplates: []
   m_GroupTemplateObjects:
   - {fileID: 11400000, guid: c0e2dac5ab6b76c449236452242eaab7, type: 2}

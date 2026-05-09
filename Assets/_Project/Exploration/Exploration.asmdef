@@ -1,13 +1,17 @@
 {
-    "name": "Shared",
+    "name": "Exploration",
     "rootNamespace": "",
     "references": [
         "Core",
         "Definitions",
+        "Shared",
         "UniTask",
-        "Unity.Addressables",
         "DOTween",
-        "Unity.InputSystem"
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.InputSystem",
+        "VContainer",
+        "Combat"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

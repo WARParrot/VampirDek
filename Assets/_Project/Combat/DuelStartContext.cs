@@ -8,5 +8,6 @@ namespace Combat
         public CombatEncounter Encounter;
         public List<CardDef> PlayerDeck;
         public string TableId;
+        public MatchStateDTO SavedMatchState;
     }
 }

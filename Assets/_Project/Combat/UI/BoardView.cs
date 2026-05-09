@@ -71,6 +71,17 @@ public class BoardView : MonoBehaviour
         }
     }
 
+    public void RefreshAllSlots()
+    {
+        if (_duelManager?.CurrentDuelState == null) return;
+
+        foreach (var slot in _duelManager.CurrentDuelState.PlayerSide.Board.AllSlots())
+            UpdateSlotUIForEntity(slot.Occupant);
+
+        foreach (var slot in _duelManager.CurrentDuelState.OpponentSide.Board.AllSlots())
+            UpdateSlotUIForEntity(slot.Occupant);
+    }
+
     private void InitializeLayout(BoardLayoutData layout, Transform container, bool isPlayer)
     {
         if (layout == null)

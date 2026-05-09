@@ -1,5 +1,7 @@
-using UnityEngine;
 using Core;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using VContainer;
 
 namespace Exploration
 {
@@ -13,21 +15,30 @@ namespace Exploration
         [Header("Interaction")]
         [SerializeField] private float _interactRange = 4f;
         [SerializeField] private LayerMask _interactMask = -1;
+        [SerializeField] private InputActionAsset _inputActions;
 
+        private InputController _input;
         private CharacterController _cc;
         private Camera _camera;
-        private InputController _input;
-        private Controls _controls;
+        private InputAction _moveAction;
+        private InputAction _interactAction;
+        private Vector2 _moveInput;
         private bool _isActive;
 
-        private Vector2 _moveInput;
+        [Inject]
+        private void Construct(InputController inputController)
+        {
+            _input = inputController;
+        }
 
         private void Awake()
         {
             _cc = GetComponent<CharacterController>();
             _camera = Camera.main;
-            _input = GlobalServices.Resolver.Resolve<InputController>();
-            _controls = new Controls();
+
+            var map = _inputActions.FindActionMap("Exploration");
+            _moveAction = map.FindAction("Move");
+            _interactAction = map.FindAction("Interact");
         }
 
         public void Activate()
@@ -36,10 +47,11 @@ namespace Exploration
             _isActive = true;
 
             _input.EnableExplorationMap();
-            _controls.Exploration.Enable();
-            _controls.Exploration.Move.performed += OnMove;
-            _controls.Exploration.Move.canceled += OnMove;
-            _controls.Exploration.Interact.performed += OnInteract;
+            _moveAction.performed += OnMove;
+            _moveAction.canceled += OnMove;
+            _interactAction.performed += OnInteract;
+            _moveAction.Enable();
+            _interactAction.Enable();
         }
 
         public void Deactivate()
@@ -47,19 +59,25 @@ namespace Exploration
             if (!_isActive) return;
             _isActive = false;
 
-            _controls.Exploration.Move.performed -= OnMove;
-            _controls.Exploration.Move.canceled -= OnMove;
-            _controls.Exploration.Interact.performed -= OnInteract;
-            _controls.Exploration.Disable();
+            _moveAction.performed -= OnMove;
+            _moveAction.canceled -= OnMove;
+            _interactAction.performed -= OnInteract;
+            _moveAction.Disable();
+            _interactAction.Disable();
+        }
+
+        private void OnDisable()
+        {
+            if (_isActive) Deactivate();
         }
 
         private void Update()
         {
             if (!_isActive) return;
-            HandleMovement();
+            ApplyMovement();
         }
 
-        private void HandleMovement()
+        private void ApplyMovement()
         {
             Vector3 forward = _camera.transform.forward;
             Vector3 right = _camera.transform.right;
@@ -70,35 +88,30 @@ namespace Exploration
 
             Vector3 desiredMove = forward * _moveInput.y + right * _moveInput.x;
             _cc.Move(desiredMove * (_walkSpeed * Time.deltaTime));
+
             if (desiredMove.sqrMagnitude > 0.01f)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(desiredMove);
-                transform.rotation = Quaternion.Slerp(
-                    transform.rotation, targetRotation, _rotationSpeed * Time.deltaTime);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, _rotationSpeed * Time.deltaTime);
             }
         }
 
-        private void OnMove(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
+        private void OnMove(InputAction.CallbackContext ctx)
         {
             _moveInput = ctx.ReadValue<Vector2>();
         }
 
-        private void OnInteract(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
+        private void OnInteract(InputAction.CallbackContext ctx)
         {
             TryInteract();
         }
 
         private void TryInteract()
         {
-            if (Physics.Raycast(
-                _camera.transform.position,
-                _camera.transform.forward,
-                out RaycastHit hit,
-                _interactRange,
-                _interactMask))
+            if (Physics.Raycast(_camera.transform.position, _camera.transform.forward, out RaycastHit hit, _interactRange, _interactMask))
             {
                 var interactable = hit.collider.GetComponent<IInteractable>();
-                interactable?.Interact();
+                interactable?.Interact(this);
             }
         }
     }

@@ -32,6 +32,14 @@ namespace Combat
             Attack = sourceCard.Attack;
         }
 
+        public void SetHealth(int current, int max)
+        {
+            Health = current;
+            MaxHealth = max;
+        }
+
+        public void SetAttack(int value) => Attack = value;
+
         public void TakeDamage(int amount, IGameEntity source)
         {
             Health -= amount;
