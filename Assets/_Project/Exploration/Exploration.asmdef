@@ -10,8 +10,8 @@
         "Unity.Addressables",
         "Unity.ResourceManager",
         "Unity.InputSystem",
-        "VContainer",
-        "Combat"
+        "Combat",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

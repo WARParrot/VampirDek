@@ -43,11 +43,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 28fab8c211bf64640b67b51b4ae53a1a
-    m_Address: Assets/Scenes/TestWorld.unity
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 38ff5444e19258740bea1d272a6dc51d
     m_Address: Assets/_Project/Data/PhaseNodes/PlanningPhase.asset
     m_ReadOnly: 0
@@ -63,8 +58,8 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5a6050c62f77eca428f6c6bd526692f1
-    m_Address: Assets/Scenes/TestDuel.unity
+  - m_GUID: 469347e2fe177fd49b902bdb3af6fa05
+    m_Address: Assets/_Project/Combat/Data/Decks/TestOpponentDeck.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -81,6 +76,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 943d0785e935cb443b367e0d551da40c
     m_Address: Assets/_Project/Data/PhaseGraphs/Standard_Phases.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b3db4b073aad97845bbbd487d81653c1
+    m_Address: Assets/_Project/Combat/Data/Decks/FallbackDeck.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -106,7 +106,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d6f9808d523bb3647a75a645d5f6dc88
-    m_Address: Assets/_Project/Data/Encounters/Test_Encounter.asset
+    m_Address: TestEncounter
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -29,5 +29,20 @@ namespace Core
             var fileName = $"battle_{tableId}.json";
             File.WriteAllText(GetPath(fileName), matchDataJson);
         }
+
+        public string LoadActiveBattleJson(string tableId)
+        {
+            var fileName = $"battle_{tableId}.json";
+            var path = GetPath(fileName);
+            if (!File.Exists(path)) return null;
+            return File.ReadAllText(path);
+        }
+
+        public string LoadJson(string fileName)
+        {
+            var path = GetPath(fileName);
+            if (!File.Exists(path)) return null;
+            return File.ReadAllText(path);
+        }
     }
 }

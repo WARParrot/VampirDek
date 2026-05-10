@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using Definitions;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 
 namespace Combat
 {
@@ -9,5 +11,7 @@ namespace Combat
         public List<CardDef> PlayerDeck;
         public string TableId;
         public MatchStateDTO SavedMatchState;
+        public string SavedMatchJson;
+        public AsyncOperationHandle<SceneInstance> DuelSceneHandle;
     }
 }

@@ -9,7 +9,7 @@ using UnityEngine;
 public class DebugDuelStarter : MonoBehaviour
 {
     public CombatEncounter Encounter;
-    public List<CardDef> PlayerDeckCards;
+    public DeckData PlayerDeck;
     public GameObject DuelUI;
 
     async void Start()
@@ -22,7 +22,7 @@ public class DebugDuelStarter : MonoBehaviour
         var context = new DuelStartContext
         {
             Encounter = Encounter,
-            PlayerDeck = PlayerDeckCards,
+            PlayerDeck = PlayerDeck.Cards,
             TableId = "TestDuel"
         };
         await GlobalServices.Director.PushModeAsync(duelManager, context);

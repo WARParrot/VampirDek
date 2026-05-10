@@ -6,6 +6,10 @@ using Core;
 using Definitions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.InputSystem;
+using UnityEngine.AddressableAssets;
 
 namespace Combat
 {
@@ -17,6 +21,9 @@ namespace Combat
         private CombatEncounter _encounter;
         private string _tableId;
         private Scene _combatScene;
+        private AsyncOperationHandle<SceneInstance> _duelLoadHandle;
+
+        private InputAction _leaveAction;
 
         public DuelState CurrentDuelState => _duelState;
         public bool LoadDuelScene = false;
@@ -30,24 +37,33 @@ namespace Combat
 
         public async UniTask EnterAsync(object context)
         {
-            var ctx = (DuelStartContext) context;
+            var ctx = (DuelStartContext)context;
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
-
-            if (_encounter.DuelScene != null && !_encounter.DuelScene.RuntimeKeyIsValid())
+            _duelLoadHandle = ctx.DuelSceneHandle;
+            MatchStateDTO savedDto = null;
+            if (!string.IsNullOrEmpty(ctx.SavedMatchJson))
             {
-                var loadOp = _encounter.DuelScene.LoadSceneAsync(LoadSceneMode.Additive);
-                await loadOp;
+                savedDto = JsonUtility.FromJson<MatchStateDTO>(ctx.SavedMatchJson);
             }
+
+            List<CardDef> opponentDeckList = _encounter.OpponentDeck?.Cards;
+            var playerDeckList = ctx.PlayerDeck;
+
+            DuelManagerProxy.Instance = this;
+
+            _leaveAction = new InputAction("LeaveDuel", binding: "<Keyboard>/s");
+            _leaveAction.performed += OnLeaveDuel;
+            _leaveAction.Enable();
 
             if (ctx.SavedMatchState != null)
             {
-                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, ctx.PlayerDeck, _encounter.OpponentDeck);
+                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, playerDeckList, opponentDeckList);
                 await ResumeFromSaveAsync();
             }
             else
             {
-                _duelState = new DuelState(_encounter, ctx.PlayerDeck, _encounter.OpponentDeck);
+                _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
                 await TransitionToPhaseAsync(_duelState.CurrentPhase);
             }
         }
@@ -64,11 +80,14 @@ namespace Combat
             DetachAllEnchantments(_duelState.PlayerSide);
             DetachAllEnchantments(_duelState.OpponentSide);
 
-            if (_combatScene.isLoaded)
-                await SceneManager.UnloadSceneAsync(_combatScene);
+            if (_duelLoadHandle.IsValid())
+                await Addressables.UnloadSceneAsync(_duelLoadHandle, true);
 
             _duelState = null;
             _encounter = null;
+
+            _leaveAction?.Disable();
+            _leaveAction?.Dispose();
         }
 
         public UniTask OnPauseAsync()
@@ -81,6 +100,17 @@ namespace Combat
         {
             _state = CombatState.PlayerTurnIdle;
             return UniTask.CompletedTask;
+        }
+
+        private void OnLeaveDuel(InputAction.CallbackContext ctx)
+        {
+            GlobalServices.Director.PopModeAsync().Forget();
+        }
+
+        private void OnDestroy()
+        {
+            _leaveAction?.Disable();
+            _leaveAction?.Dispose();
         }
 
         private async UniTask ResumeFromSaveAsync()
@@ -240,7 +270,6 @@ namespace Combat
                 var target = card.PlannedTarget as BoardCard;
                 if (target == null || !target.IsAlive || resolved.Contains(target)) continue;
 
-                // Mutual targeting → clash
                 if (target.PlannedTarget == card)
                 {
                     resolved.Add(card);
@@ -297,7 +326,7 @@ namespace Combat
                     else if (cardWins)
                     {
                         QueueAction(new DamageAction(target, card.Attack, card));
-                        target.PlannedTarget = null;            // loser's attack cancelled
+                        target.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(card, target));
                     }
                     else if (targetWins)

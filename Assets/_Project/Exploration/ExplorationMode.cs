@@ -43,14 +43,21 @@ namespace Exploration
 
         public async UniTask OnPauseAsync()
         {
+            SceneTransitionManager.Instance.SaveCameraState();
+
             if (_player != null)
                 _player.Deactivate();
         }
 
         public async UniTask OnResumeAsync()
         {
+            await SceneTransitionManager.Instance.RestoreCameraAsync(1.0f);
+
             if (_player != null)
                 _player.Activate();
+
+            EncounterPoint.EnableAllTables();
+            EncounterPoint.ShowAllTables();
         }
     }
 }

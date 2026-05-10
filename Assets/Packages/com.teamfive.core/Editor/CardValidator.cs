@@ -36,7 +36,7 @@ namespace Core.Editor
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var enc = AssetDatabase.LoadAssetAtPath<CombatEncounter>(path);
-                if (enc.OpponentDeck.Count(c => c.Type == CardType.Town) != 1)
+                if (enc.OpponentDeck.Cards.Count(c => c.Type == CardType.Town) != 1)
                 {
                     Debug.LogError($"Encounter {enc.EncounterId}: Opponent deck must have exactly one Town.", enc);
                     errors++;

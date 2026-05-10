@@ -15,7 +15,7 @@ namespace Definitions
         public WinCondition WinCondition;
         public List<EnchantmentData> PermanentGlobalEnchantments;
         public WeatherEntry StartingWeather;
-        public List<CardDef> OpponentDeck;
+        public DeckData OpponentDeck;
     }
 
     [System.Serializable]

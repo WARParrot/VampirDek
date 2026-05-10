@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Definitions;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using Cysharp.Threading.Tasks;
 
 namespace Combat
 {
@@ -27,6 +28,23 @@ namespace Combat
             var h = Addressables.LoadAssetAsync<CardDef>(cardName);
             h.WaitForCompletion();
             return h.Result;
+        }
+
+        public static async UniTask<CardDef> GetCardAsync(string cardName)
+        {
+            if (_cache.TryGetValue(cardName, out var card))
+                return card;
+            try
+            {
+                var handle = Addressables.LoadAssetAsync<CardDef>(cardName);
+                await handle.Task;
+                _cache[cardName] = handle.Result;
+                return handle.Result;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
