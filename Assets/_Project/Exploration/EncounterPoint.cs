@@ -26,11 +26,9 @@ namespace Exploration
         [Header("Camera Seat")]
         [SerializeField] private Transform _cameraSeat;
 
-        public static event Action OnAllTablesEnable;
-
         public async UniTask StartDuelAsync()
         {
-            var player = FindObjectOfType<ExplorationController>();
+            var player = FindAnyObjectByType<ExplorationController>();
             if (player != null)
                 player.Deactivate();
 
@@ -85,22 +83,13 @@ namespace Exploration
             return deck;
         }
 
-        private void OnEnable() => OnAllTablesEnable += ShowTable;
-        private void OnDisable() => OnAllTablesEnable -= ShowTable;
-        private void ShowTable()
-        {
-            if (_worldTableVisual != null)
-                _worldTableVisual.SetActive(true);
-        }
-        public static void EnableAllTables() => OnAllTablesEnable?.Invoke();
+        void OnEnable() => GlobalServices.EventBus.Subscribe<DuelEndedEvent>(OnDuelEnded);
+        void OnDisable() => GlobalServices.EventBus.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
 
-        public static void ShowAllTables()
+        void OnDuelEnded(DuelEndedEvent e)
         {
-            foreach (var point in FindObjectsOfType<EncounterPoint>())
-            {
-                if (point._worldTableVisual != null && !point._worldTableVisual.activeSelf)
-                    point._worldTableVisual.SetActive(true);
-            }
+            if (_worldTableVisual != null && !_worldTableVisual.activeSelf)
+                _worldTableVisual.SetActive(true);
         }
     }
 }

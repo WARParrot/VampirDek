@@ -88,6 +88,8 @@ namespace Combat
 
             _leaveAction?.Disable();
             _leaveAction?.Dispose();
+
+            GlobalServices.EventBus.Publish(new DuelEndedEvent());
         }
 
         public UniTask OnPauseAsync()

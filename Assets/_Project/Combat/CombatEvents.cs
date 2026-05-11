@@ -34,4 +34,5 @@ namespace Combat
     }
     public struct TownPlacedEvent : IGameEvent { public BoardCard Town; public Board Board; public TownPlacedEvent(BoardCard t, Board b) { Town = t; Board = b; }
     }
+    public struct DuelEndedEvent : IGameEvent { }
 }

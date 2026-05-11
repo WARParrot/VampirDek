@@ -31,9 +31,12 @@ public class BoardView : MonoBehaviour
 
     IEnumerator InitUI()
     {
-        yield return new WaitUntil(() =>
-            DuelManagerProxy.Instance != null &&
-            DuelManagerProxy.Instance.CurrentDuelState != null);
+        Debug.Log("[BoardView] InitUI started - waiting for proxy...");
+        yield return new WaitUntil(() => DuelManagerProxy.Instance != null);
+        Debug.Log("[BoardView] Proxy acquired.");
+
+        yield return new WaitUntil(() => DuelManagerProxy.Instance.CurrentDuelState != null);
+        Debug.Log("[BoardView] DuelState ready. Building layout...");
 
         _duelManager = DuelManagerProxy.Instance;
         var encounter = _duelManager.CurrentDuelState.Encounter;

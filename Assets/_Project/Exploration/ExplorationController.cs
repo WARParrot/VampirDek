@@ -39,7 +39,7 @@ namespace Exploration
 
         private void Awake()
         {
-            _input = Object.FindFirstObjectByType<InputController>();
+            _input = Object.FindAnyObjectByType<InputController>();
             if (_input == null)
             {
                 Debug.LogError("[ExplorationController] InputController not found in scene. Disabling.");

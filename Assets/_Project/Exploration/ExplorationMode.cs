@@ -27,7 +27,7 @@ namespace Exploration
             _sceneHandle = Addressables.LoadSceneAsync(_worldSceneAddress, LoadSceneMode.Additive);
             await _sceneHandle.Task;
 
-            _player = Object.FindObjectOfType<ExplorationController>();
+            _player = Object.FindAnyObjectByType<ExplorationController>();
             if (_player != null)
                 _player.Activate();
         }
@@ -55,9 +55,6 @@ namespace Exploration
 
             if (_player != null)
                 _player.Activate();
-
-            EncounterPoint.EnableAllTables();
-            EncounterPoint.ShowAllTables();
         }
     }
 }
