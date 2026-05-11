@@ -28,21 +28,30 @@ namespace Exploration
 
         public async UniTask StartDuelAsync()
         {
-            var player = FindAnyObjectByType<ExplorationController>();
-            if (player != null)
-                player.Deactivate();
+            Debug.Log($"[EncounterPoint] Starting duel at table {UniqueTableId}");
 
-            if (_worldTableVisual != null) _worldTableVisual.SetActive(false);
+            var player = FindAnyObjectByType<ExplorationController>();
+            if (player != null) player.Deactivate();
+
+            if (_worldTableVisual != null)
+                _worldTableVisual.SetActive(false);
+
+            SceneTransitionManager.Instance.SaveCameraState();
 
             var loadHandle = Addressables.LoadSceneAsync(Encounter.DuelScene, LoadSceneMode.Additive);
             var duelLoadUniTask = loadHandle.Task.AsUniTask();
 
-            var transitionUniTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
+            var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
 
-            await UniTask.WhenAll(duelLoadUniTask, transitionUniTask);
+            await UniTask.WhenAll(duelLoadUniTask, camMoveTask);
+
+            var playerDeck = await GetPlayerDeckAsync();
 
             string savedJson = GlobalServices.SaveSystem.LoadActiveBattleJson(UniqueTableId);
-            var playerDeck = await GetPlayerDeckAsync();
+
+            var duelGO = new GameObject("DuelManager");
+            var duelManager = duelGO.AddComponent<DuelManager>();
+            DuelManagerProxy.Instance = duelManager;
 
             var context = new DuelStartContext
             {
@@ -53,7 +62,6 @@ namespace Exploration
                 DuelSceneHandle = loadHandle
             };
 
-            var duelManager = new DuelManager();
             await GlobalServices.Director.PushModeAsync(duelManager, context);
         }
 

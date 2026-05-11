@@ -1,7 +1,7 @@
 using Combat;
 using UnityEngine;
 
-public class DuelManagerProxy : MonoBehaviour
+public static class DuelManagerProxy
 {
     public static DuelManager Instance { get; set; }
 }

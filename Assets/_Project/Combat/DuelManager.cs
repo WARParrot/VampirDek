@@ -37,7 +37,7 @@ namespace Combat
 
         public async UniTask EnterAsync(object context)
         {
-            var ctx = (DuelStartContext)context;
+            var ctx = (DuelStartContext) context;
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
             _duelLoadHandle = ctx.DuelSceneHandle;
@@ -49,8 +49,6 @@ namespace Combat
 
             List<CardDef> opponentDeckList = _encounter.OpponentDeck?.Cards;
             var playerDeckList = ctx.PlayerDeck;
-
-            DuelManagerProxy.Instance = this;
 
             _leaveAction = new InputAction("LeaveDuel", binding: "<Keyboard>/s");
             _leaveAction.performed += OnLeaveDuel;
@@ -90,6 +88,7 @@ namespace Combat
             _leaveAction?.Dispose();
 
             GlobalServices.EventBus.Publish(new DuelEndedEvent());
+            Destroy(gameObject);
         }
 
         public UniTask OnPauseAsync()
