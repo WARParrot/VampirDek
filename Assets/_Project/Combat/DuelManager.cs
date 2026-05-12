@@ -45,6 +45,7 @@ namespace Combat
             if (!string.IsNullOrEmpty(ctx.SavedMatchJson))
             {
                 savedDto = JsonUtility.FromJson<MatchStateDTO>(ctx.SavedMatchJson);
+                ctx.SavedMatchState = savedDto;
             }
 
             List<CardDef> opponentDeckList = _encounter.OpponentDeck?.Cards;

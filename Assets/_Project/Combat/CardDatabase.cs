@@ -21,6 +21,12 @@ namespace Combat
             };
         }
 
+        public static void RegisterCard(CardDef card)
+        {
+            if (!string.IsNullOrEmpty(card?.CardName))
+                _cache[card.CardName] = card;
+        }
+
         public static CardDef GetCard(string cardName)
         {
             if (_cache.TryGetValue(cardName, out var card))

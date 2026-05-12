@@ -18,7 +18,7 @@ namespace Combat
         {
             return new MatchStateDTO
             {
-                EncounterId = "",
+                EncounterId = state.Encounter.EncounterId,
                 PlayerSide = SideSnapshot.FromSideState(state.PlayerSide),
                 OpponentSide = SideSnapshot.FromSideState(state.OpponentSide),
                 CurrentPhaseId = state.CurrentPhase.PhaseId,
