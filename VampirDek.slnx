@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Project Path="Combat.csproj" />
+  <Project Path="Shared.csproj" />
+  <Project Path="Definitions.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Core.csproj" />
+  <Project Path="Exploration.csproj" />
+  <Project Path="Core.Editor.csproj" />
+</Solution>

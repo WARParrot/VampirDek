@@ -1186,6 +1186,34 @@
             "id": "b8d829e6-678e-4051-a754-7fcfea76553a",
             "actions": [],
             "bindings": []
+        },
+        {
+            "name": "DevConsole",
+            "id": "61fa36fc-8c2b-47da-8bca-5046e67eea0d",
+            "actions": [
+                {
+                    "name": "ToggleConsole",
+                    "type": "Button",
+                    "id": "b34108a9-49c3-4d77-8c5c-5667d88dc14d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "8d2c11eb-0d45-412e-a23f-07d743f6a7cb",
+                    "path": "<Keyboard>/backquote",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToggleConsole",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": [

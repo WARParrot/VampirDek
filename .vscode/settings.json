@@ -67,6 +67,6 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "VampirDek-2026-05-03-12-04-45.slnx",
+    "dotnet.defaultSolution": "VampirDek.slnx",
     "dotnet.enableWorkspaceBasedDevelopment": false
 }
