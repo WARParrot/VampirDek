@@ -50,9 +50,16 @@ namespace Combat
             List<CardDef> opponentDeckList = _encounter.OpponentDeck?.Cards;
             var playerDeckList = ctx.PlayerDeck;
 
-            _leaveAction = new InputAction("LeaveDuel", binding: "<Keyboard>/s");
-            _leaveAction.performed += OnLeaveDuel;
-            _leaveAction.Enable();
+            var input = FindObjectOfType<InputController>();
+            if (input != null)
+            {
+                _leaveAction = input.GetAction("Duel/LeaveDuel");
+                if (_leaveAction != null)
+                {
+                    _leaveAction.performed += OnLeaveDuel;
+                    _leaveAction.Enable();
+                }
+            }
 
             if (ctx.SavedMatchState != null)
             {
@@ -84,8 +91,12 @@ namespace Combat
             _duelState = null;
             _encounter = null;
 
-            _leaveAction?.Disable();
-            _leaveAction?.Dispose();
+            if (_leaveAction != null)
+            {
+                _leaveAction.performed -= OnLeaveDuel;
+                _leaveAction.Disable();
+                _leaveAction.Dispose();
+            }
 
             GlobalServices.EventBus.Publish(new DuelEndedEvent());
             Destroy(gameObject);

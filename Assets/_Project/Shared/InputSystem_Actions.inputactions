@@ -1182,10 +1182,32 @@
             ]
         },
         {
-            "name": "Combat",
+            "name": "Duel",
             "id": "b8d829e6-678e-4051-a754-7fcfea76553a",
-            "actions": [],
-            "bindings": []
+            "actions": [
+                {
+                    "name": "LeaveDuel",
+                    "type": "Button",
+                    "id": "b4c5abfa-c90d-4beb-8262-265847322ada",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "18af6f5a-f2e3-4a26-b1bd-450ffca26693",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "LeaveDuel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         },
         {
             "name": "DevConsole",

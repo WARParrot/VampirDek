@@ -777,8 +777,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 220, y: -150}
-  m_SizeDelta: {x: 440, y: 0}
+  m_AnchoredPosition: {x: 951.5, y: -150}
+  m_SizeDelta: {x: 1903, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5605253238481666775
 CanvasRenderer:
@@ -907,7 +907,7 @@ GameObject:
   - component: {fileID: 6749417479108670069}
   - component: {fileID: 3411645213370040514}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: ConsoleCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

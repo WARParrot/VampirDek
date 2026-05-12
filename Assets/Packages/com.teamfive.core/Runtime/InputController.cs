@@ -21,5 +21,28 @@ namespace Core
         public void EnableCombatMap() => _playerInput.SwitchCurrentActionMap(CombatMap);
         public void EnableExplorationMap() => _playerInput.SwitchCurrentActionMap(ExplorationMap);
         public void EnableUIMap() => _playerInput.SwitchCurrentActionMap(UIMap);
+
+        public InputAction GetAction(string actionPath)
+        {
+            var parts = actionPath.Split('/');
+            if (parts.Length != 2)
+            {
+                Debug.LogWarning($"Invalid action path: {actionPath}. Expected 'mapName/actionName'.");
+                return null;
+            }
+
+            var map = _inputActions?.FindActionMap(parts[0]);
+            if (map == null)
+            {
+                Debug.LogWarning($"Action map '{parts[0]}' not found.");
+                return null;
+            }
+
+            var action = map.FindAction(parts[1]);
+            if (action == null)
+                Debug.LogWarning($"Action '{parts[1]}' not found in map '{parts[0]}'.");
+
+            return action;
+        }
     }
 }

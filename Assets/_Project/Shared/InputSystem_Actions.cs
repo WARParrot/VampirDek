@@ -1270,10 +1270,32 @@ namespace Shared
             ]
         },
         {
-            ""name"": ""Combat"",
+            ""name"": ""Duel"",
             ""id"": ""b8d829e6-678e-4051-a754-7fcfea76553a"",
-            ""actions"": [],
-            ""bindings"": []
+            ""actions"": [
+                {
+                    ""name"": ""LeaveDuel"",
+                    ""type"": ""Button"",
+                    ""id"": ""b4c5abfa-c90d-4beb-8262-265847322ada"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""18af6f5a-f2e3-4a26-b1bd-450ffca26693"",
+                    ""path"": ""<Keyboard>/s"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""LeaveDuel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         },
         {
             ""name"": ""DevConsole"",
@@ -1395,8 +1417,9 @@ namespace Shared
             m_Exploration_Move = m_Exploration.FindAction("Move", throwIfNotFound: true);
             m_Exploration_Interact = m_Exploration.FindAction("Interact", throwIfNotFound: true);
             m_Exploration_StartDuel = m_Exploration.FindAction("StartDuel", throwIfNotFound: true);
-            // Combat
-            m_Combat = asset.FindActionMap("Combat", throwIfNotFound: true);
+            // Duel
+            m_Duel = asset.FindActionMap("Duel", throwIfNotFound: true);
+            m_Duel_LeaveDuel = m_Duel.FindAction("LeaveDuel", throwIfNotFound: true);
             // DevConsole
             m_DevConsole = asset.FindActionMap("DevConsole", throwIfNotFound: true);
             m_DevConsole_ToggleConsole = m_DevConsole.FindAction("ToggleConsole", throwIfNotFound: true);
@@ -1407,7 +1430,7 @@ namespace Shared
             UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Player.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, InputSystem_Actions.UI.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_Exploration.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Exploration.Disable() has not been called.");
-            UnityEngine.Debug.Assert(!m_Combat.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Combat.Disable() has not been called.");
+            UnityEngine.Debug.Assert(!m_Duel.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Duel.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_DevConsole.enabled, "This will cause a leak and performance issues, InputSystem_Actions.DevConsole.Disable() has not been called.");
         }
 
@@ -1978,24 +2001,29 @@ namespace Shared
         /// </summary>
         public ExplorationActions @Exploration => new ExplorationActions(this);
 
-        // Combat
-        private readonly InputActionMap m_Combat;
-        private List<ICombatActions> m_CombatActionsCallbackInterfaces = new List<ICombatActions>();
+        // Duel
+        private readonly InputActionMap m_Duel;
+        private List<IDuelActions> m_DuelActionsCallbackInterfaces = new List<IDuelActions>();
+        private readonly InputAction m_Duel_LeaveDuel;
         /// <summary>
-        /// Provides access to input actions defined in input action map "Combat".
+        /// Provides access to input actions defined in input action map "Duel".
         /// </summary>
-        public struct CombatActions
+        public struct DuelActions
         {
             private @InputSystem_Actions m_Wrapper;
 
             /// <summary>
             /// Construct a new instance of the input action map wrapper class.
             /// </summary>
-            public CombatActions(@InputSystem_Actions wrapper) { m_Wrapper = wrapper; }
+            public DuelActions(@InputSystem_Actions wrapper) { m_Wrapper = wrapper; }
+            /// <summary>
+            /// Provides access to the underlying input action "Duel/LeaveDuel".
+            /// </summary>
+            public InputAction @LeaveDuel => m_Wrapper.m_Duel_LeaveDuel;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
-            public InputActionMap Get() { return m_Wrapper.m_Combat; }
+            public InputActionMap Get() { return m_Wrapper.m_Duel; }
             /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
             public void Enable() { Get().Enable(); }
             /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
@@ -2003,9 +2031,9 @@ namespace Shared
             /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
             public bool enabled => Get().enabled;
             /// <summary>
-            /// Implicitly converts an <see ref="CombatActions" /> to an <see ref="InputActionMap" /> instance.
+            /// Implicitly converts an <see ref="DuelActions" /> to an <see ref="InputActionMap" /> instance.
             /// </summary>
-            public static implicit operator InputActionMap(CombatActions set) { return set.Get(); }
+            public static implicit operator InputActionMap(DuelActions set) { return set.Get(); }
             /// <summary>
             /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
             /// </summary>
@@ -2013,11 +2041,14 @@ namespace Shared
             /// <remarks>
             /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
             /// </remarks>
-            /// <seealso cref="CombatActions" />
-            public void AddCallbacks(ICombatActions instance)
+            /// <seealso cref="DuelActions" />
+            public void AddCallbacks(IDuelActions instance)
             {
-                if (instance == null || m_Wrapper.m_CombatActionsCallbackInterfaces.Contains(instance)) return;
-                m_Wrapper.m_CombatActionsCallbackInterfaces.Add(instance);
+                if (instance == null || m_Wrapper.m_DuelActionsCallbackInterfaces.Contains(instance)) return;
+                m_Wrapper.m_DuelActionsCallbackInterfaces.Add(instance);
+                @LeaveDuel.started += instance.OnLeaveDuel;
+                @LeaveDuel.performed += instance.OnLeaveDuel;
+                @LeaveDuel.canceled += instance.OnLeaveDuel;
             }
 
             /// <summary>
@@ -2026,18 +2057,21 @@ namespace Shared
             /// <remarks>
             /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
             /// </remarks>
-            /// <seealso cref="CombatActions" />
-            private void UnregisterCallbacks(ICombatActions instance)
+            /// <seealso cref="DuelActions" />
+            private void UnregisterCallbacks(IDuelActions instance)
             {
+                @LeaveDuel.started -= instance.OnLeaveDuel;
+                @LeaveDuel.performed -= instance.OnLeaveDuel;
+                @LeaveDuel.canceled -= instance.OnLeaveDuel;
             }
 
             /// <summary>
-            /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="CombatActions.UnregisterCallbacks(ICombatActions)" />.
+            /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="DuelActions.UnregisterCallbacks(IDuelActions)" />.
             /// </summary>
-            /// <seealso cref="CombatActions.UnregisterCallbacks(ICombatActions)" />
-            public void RemoveCallbacks(ICombatActions instance)
+            /// <seealso cref="DuelActions.UnregisterCallbacks(IDuelActions)" />
+            public void RemoveCallbacks(IDuelActions instance)
             {
-                if (m_Wrapper.m_CombatActionsCallbackInterfaces.Remove(instance))
+                if (m_Wrapper.m_DuelActionsCallbackInterfaces.Remove(instance))
                     UnregisterCallbacks(instance);
             }
 
@@ -2047,21 +2081,21 @@ namespace Shared
             /// <remarks>
             /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
             /// </remarks>
-            /// <seealso cref="CombatActions.AddCallbacks(ICombatActions)" />
-            /// <seealso cref="CombatActions.RemoveCallbacks(ICombatActions)" />
-            /// <seealso cref="CombatActions.UnregisterCallbacks(ICombatActions)" />
-            public void SetCallbacks(ICombatActions instance)
+            /// <seealso cref="DuelActions.AddCallbacks(IDuelActions)" />
+            /// <seealso cref="DuelActions.RemoveCallbacks(IDuelActions)" />
+            /// <seealso cref="DuelActions.UnregisterCallbacks(IDuelActions)" />
+            public void SetCallbacks(IDuelActions instance)
             {
-                foreach (var item in m_Wrapper.m_CombatActionsCallbackInterfaces)
+                foreach (var item in m_Wrapper.m_DuelActionsCallbackInterfaces)
                     UnregisterCallbacks(item);
-                m_Wrapper.m_CombatActionsCallbackInterfaces.Clear();
+                m_Wrapper.m_DuelActionsCallbackInterfaces.Clear();
                 AddCallbacks(instance);
             }
         }
         /// <summary>
-        /// Provides a new <see cref="CombatActions" /> instance referencing this action map.
+        /// Provides a new <see cref="DuelActions" /> instance referencing this action map.
         /// </summary>
-        public CombatActions @Combat => new CombatActions(this);
+        public DuelActions @Duel => new DuelActions(this);
 
         // DevConsole
         private readonly InputActionMap m_DevConsole;
@@ -2402,12 +2436,19 @@ namespace Shared
             void OnStartDuel(InputAction.CallbackContext context);
         }
         /// <summary>
-        /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Combat" which allows adding and removing callbacks.
+        /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Duel" which allows adding and removing callbacks.
         /// </summary>
-        /// <seealso cref="CombatActions.AddCallbacks(ICombatActions)" />
-        /// <seealso cref="CombatActions.RemoveCallbacks(ICombatActions)" />
-        public interface ICombatActions
+        /// <seealso cref="DuelActions.AddCallbacks(IDuelActions)" />
+        /// <seealso cref="DuelActions.RemoveCallbacks(IDuelActions)" />
+        public interface IDuelActions
         {
+            /// <summary>
+            /// Method invoked when associated input action "LeaveDuel" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLeaveDuel(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "DevConsole" which allows adding and removing callbacks.
