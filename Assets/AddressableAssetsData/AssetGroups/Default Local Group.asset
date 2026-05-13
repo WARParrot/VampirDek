@@ -38,6 +38,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1d442dd9512ae574290771ed3c301702
+    m_Address: Assets/_Project/Art/polnotsenka_khitraya.png
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 24535bac36f8d3d49aa5cf25698cf1d2
     m_Address: Assets/_Project/Data/PhaseNodes/EndOfTurn.asset
     m_ReadOnly: 0
@@ -55,6 +60,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3c887e6a3e8b69a419370f7b4504cde7
     m_Address: Assets/_Project/Data/WinConditions/Standard_TakeTownWinCondition.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 43385d1020cc08a46b90253dfe05c004
+    m_Address: Assets/_Project/Art/polnotsenka_khitraya 1.png
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -102,6 +112,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cfe84c65498847c47b488d88bdf3a51e
     m_Address: Assets/_Project/Data/PhaseNodes/StartOfTurn.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d4af3181975a4104c99762414066d5a5
+    m_Address: Assets/_Project/Art/devushka_vampir_polnotsenka.jpg
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

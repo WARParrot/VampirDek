@@ -1,5 +1,6 @@
 ﻿<Solution>
   <Project Path="Combat.csproj" />
+  <Project Path="Novel.csproj" />
   <Project Path="Shared.csproj" />
   <Project Path="Definitions.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
