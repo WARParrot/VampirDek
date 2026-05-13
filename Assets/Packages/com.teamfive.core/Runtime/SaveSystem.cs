@@ -23,18 +23,25 @@ namespace Core
 
         public bool Exists(string fileName) => File.Exists(GetPath(fileName));
         public void Delete(string fileName) => File.Delete(GetPath(fileName));
-        
-        public void SaveActiveBattle(string tableId, string matchDataJson)
+
+        public void SaveActiveBattle(string tableId, string json)
         {
             var fileName = $"battle_{tableId}.json";
-            File.WriteAllText(GetPath(fileName), matchDataJson);
+            var path = GetPath(fileName);
+            Debug.Log($"[SaveSystem] Saving battle to: {path}");
+            File.WriteAllText(path, json);
         }
 
         public string LoadActiveBattleJson(string tableId)
         {
             var fileName = $"battle_{tableId}.json";
             var path = GetPath(fileName);
-            if (!File.Exists(path)) return null;
+            Debug.Log($"[SaveSystem] Loading battle from: {path}");
+            if (!File.Exists(path))
+            {
+                Debug.Log("[SaveSystem] No saved battle found.");
+                return null;
+            }
             return File.ReadAllText(path);
         }
 

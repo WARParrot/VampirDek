@@ -20,6 +20,12 @@ namespace Combat
             };
         }
 
+        public static void RegisterEnchantment(EnchantmentData enchantment)
+        {
+            if (!string.IsNullOrEmpty(enchantment?.DisplayName))
+                _cache[enchantment.DisplayName] = enchantment;
+        }
+
         public static EnchantmentData Get(string displayName)
         {
             if (_cache.TryGetValue(displayName, out var data))
