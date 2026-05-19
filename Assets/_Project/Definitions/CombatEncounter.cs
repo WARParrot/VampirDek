@@ -16,6 +16,7 @@ namespace Definitions
         public List<EnchantmentData> PermanentGlobalEnchantments;
         public WeatherEntry StartingWeather;
         public DeckData OpponentDeck;
+        public List<HintData> Hints;
     }
 
     [System.Serializable]

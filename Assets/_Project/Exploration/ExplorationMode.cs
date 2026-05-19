@@ -1,4 +1,3 @@
-// Assets/_Project/Exploration/ExplorationMode.cs
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Core;
@@ -24,8 +23,10 @@ namespace Exploration
 
         public async UniTask EnterAsync(object context)
         {
+            Debug.Log($"[ExplorationMode] Loading scene: {_worldSceneAddress}");
             _sceneHandle = Addressables.LoadSceneAsync(_worldSceneAddress, LoadSceneMode.Additive);
             await _sceneHandle.Task;
+            Debug.Log($"[ExplorationMode] Scene loaded successfully.");
 
             _player = Object.FindAnyObjectByType<ExplorationController>();
             if (_player != null)

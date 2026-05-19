@@ -72,6 +72,8 @@ namespace Combat
                 _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
                 await TransitionToPhaseAsync(_duelState.CurrentPhase);
             }
+
+            GlobalServices.EventBus.Publish(new DuelStartedEvent(_encounter));
         }
 
         public async UniTask ExitAsync()
@@ -165,6 +167,7 @@ namespace Combat
 
             _duelState.CurrentPhase = targetNode;
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(targetNode.PhaseId, targetNode.Tags));
+            GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
             Debug.Log($"[Phase] Entered {targetNode.PhaseId} with tags: {string.Join(", ", targetNode.Tags)}");
 
             if (targetNode.Tags.Contains("DuelStart"))
