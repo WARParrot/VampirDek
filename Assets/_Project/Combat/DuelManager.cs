@@ -28,6 +28,7 @@ namespace Combat
         public DuelState CurrentDuelState => _duelState;
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
+        private bool _duelFinished = false;
 
         public void ConfirmCurrentPhase()
         {
@@ -78,6 +79,18 @@ namespace Combat
 
         public async UniTask ExitAsync()
         {
+            if (_duelFinished)
+            {
+                bool playerWon = !_duelState.OpponentSide.Town.IsAlive;
+                GlobalServices.EventBus.Publish(new DuelResultEvent
+                {
+                    PlayerWon = playerWon,
+                    EncounterId = _encounter.EncounterId,
+                    WinFlag = _encounter.WinFlag,
+                    LoseFlag = _encounter.LoseFlag
+                });
+            }
+
             if (!_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
@@ -138,6 +151,9 @@ namespace Combat
             handUI?.RefreshHandImmediately();
 
             await TransitionToPhaseAsync(_duelState.CurrentPhase);
+
+            boardView?.RefreshAllSlots();
+            handUI?.RefreshHandImmediately();
         }
 
         public void QueueAction(IGameAction action) => _actionQueue.Enqueue(action);
@@ -238,6 +254,13 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.PlayerSide.Board));
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
+
+                if (_encounter.WinCondition.Check(_duelState))
+                {
+                    _duelFinished = true;
+                    await TransitionToPhaseWithTagAsync("WinConditionMet");
+                    return;
+                }
             }
 
             await CheckAutoTransitionsAsync();

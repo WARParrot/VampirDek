@@ -13,6 +13,7 @@ namespace Core
         public string SceneId;
         public string AddressableKey;
         public string DisplayName;
+        public List<string> RequiredFlags = new();
     }
 
     public class DuelSceneInfo
