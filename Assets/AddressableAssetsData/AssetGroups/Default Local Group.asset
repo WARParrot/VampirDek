@@ -104,6 +104,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af4902a7374014a44a5cda5899e775f0
+    m_Address: Assets/_Project/Combat/Data/ActionDefs/SacrificeHumanActionDef.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b3db4b073aad97845bbbd487d81653c1
     m_Address: Assets/_Project/Combat/Data/Decks/FallbackDeck.asset
     m_ReadOnly: 0
@@ -119,6 +124,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels:
     - Enchantments
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc15bc8810ceeb446a0d4ac0c60adcb1
+    m_Address: Assets/_Project/Combat/Data/Costs/HumanSacrifice.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cc3871db6e844764bb91a2983284a759
     m_Address: Assets/_Project/Data/BoardLayouts/Standard_BoardLayout.asset

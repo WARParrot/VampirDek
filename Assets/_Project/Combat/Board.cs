@@ -170,6 +170,14 @@ namespace Combat
             }
             return null;
         }
+
+        public IBoardSlot[] GetCardsRow(Definitions.RowType rowType) => rowType switch
+        {
+            Definitions.RowType.Vanguard => VanguardRow,
+            Definitions.RowType.Building => BuildingRow,
+            Definitions.RowType.Human => HumanRow,
+            Definitions.RowType.Town => new[] { TownSlot },
+        };
     }
 
     [Serializable]

@@ -8,13 +8,15 @@ namespace Definitions
         [SerializeField] private RowType _requiredRowType;
         public RowType RequiredRowType => _requiredRowType;
 
+        [SerializeField] private int _amount;
+        public int Amount => _amount;
+        public override int GetAmount() => _amount;
+
         public override bool CanPay(ICostContext context)
         {
-            return context.PlayerSide.Board.GetFirstAliveCardInRow(_requiredRowType) != null;
+            return context.PlayerSide.Board.GetCardsRow(_requiredRowType).Length >= _amount;
         }
 
-        public override string GetCostText() => $"Sacrifice a {_requiredRowType}";
-
-        public override int GetAmount() => 0;
+        public override string GetCostText() => (_amount == 1) ? $"{_requiredRowType}" : $"{_amount} {_requiredRowType}";
     }
 }
