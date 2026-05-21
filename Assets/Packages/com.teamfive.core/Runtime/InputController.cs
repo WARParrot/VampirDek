@@ -18,6 +18,24 @@ namespace Core
             _playerInput.actions = _inputActions;
         }
 
+        private void OnEnable()
+        {
+            GlobalServices.EventBus.Subscribe<ConsoleToggledEvent>(OnConsoleToggled);
+        }
+
+        private void OnDisable()
+        {
+            GlobalServices.EventBus.Unsubscribe<ConsoleToggledEvent>(OnConsoleToggled);
+        }
+
+        private void OnConsoleToggled(ConsoleToggledEvent evt)
+        {
+            if (evt.IsOpen)
+                _inputActions.Disable();
+            else
+                _inputActions.Enable();
+        }
+
         public void EnableCombatMap() => _playerInput.SwitchCurrentActionMap(CombatMap);
         public void EnableExplorationMap() => _playerInput.SwitchCurrentActionMap(ExplorationMap);
         public void EnableUIMap() => _playerInput.SwitchCurrentActionMap(UIMap);
