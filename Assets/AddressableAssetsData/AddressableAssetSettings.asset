@@ -15,7 +15,7 @@ MonoBehaviour:
   m_DefaultGroup: c77554e8b8c196a47acaddfd7f305184
   m_currentHash:
     serializedVersion: 2
-    Hash: 92ce5838207a6df0cbb2b1295314d689
+    Hash: f1a34eae93d4c8aecfd119ba26453f28
   m_OptimizeCatalogSize: 0
   m_BuildRemoteCatalog: 0
   m_CatalogRequestsTimeout: 0
@@ -62,6 +62,7 @@ MonoBehaviour:
   m_overridePlayerVersion: '[UnityEditor.PlayerSettings.bundleVersion]'
   m_GroupAssets:
   - {fileID: 11400000, guid: bbc317caa5d4b0544a85db075effb866, type: 2}
+  - {fileID: 11400000, guid: 2a04142396c859c44bd77b396c89c204, type: 2}
   - {fileID: 11400000, guid: 1598376184bb272409adc266d86d0f61, type: 2}
   m_BuildSettings:
     m_LogResourceManagerExceptions: 1
@@ -104,6 +105,7 @@ MonoBehaviour:
     - default
     - Enchantments
     - Cards
+    - BaseScenes
   m_SchemaTemplates: []
   m_GroupTemplateObjects:
   - {fileID: 11400000, guid: c0e2dac5ab6b76c449236452242eaab7, type: 2}

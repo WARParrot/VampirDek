@@ -2,6 +2,7 @@ using Core;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer;
+using Definitions;
 
 namespace Exploration
 {
@@ -16,20 +17,28 @@ namespace Exploration
 
         private void Start()
         {
-            _progression = GlobalServices.Resolver?.Resolve<IProgressionService>();
+            _progression = GlobalServices.Progression;
         }
 
         public async void Interact(ExplorationController player)
         {
-            if (_progression == null || _targetWorld == null) return;
+            if (_targetWorld == null) return;
 
-            if (!_progression.CanAccessWorld(_targetWorld))
+            var progression = GlobalServices.Progression;
+            var stateService = GlobalServices.GameStateService;
+
+            Debug.Log($"[WorldPortal] progression: {progression == null}; stateService: {stateService == null}.");
+
+            if (progression == null || stateService == null) return;
+
+            if (!progression.CanAccessWorld(_targetWorld.SceneId))
             {
                 Debug.Log("Cannot access yet.");
                 return;
             }
 
-            var stateService = GlobalServices.Resolver.Resolve<IGameStateService>();
+            Debug.Log("[WorldPortal] accessing world.");
+
             var state = stateService.State;
             state.PlayerPosition = _spawnPoint != null ? _spawnPoint.position : player.transform.position;
             state.PlayerRotation = _spawnPoint != null ? _spawnPoint.rotation : player.transform.rotation;

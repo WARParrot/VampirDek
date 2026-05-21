@@ -10,29 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
-  m_Name: Scenes
+  m_Name: SceneInfos
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
-  m_GroupName: Scenes
-  m_GUID: 03707ea46837b8c4abc990c1de3f295b
+  m_GroupName: SceneInfos
+  m_GUID: 3fe8ddf3042b2804d816a87da9f66648
   m_SerializeEntries:
-  - m_GUID: 28fab8c211bf64640b67b51b4ae53a1a
-    m_Address: DefaultWorld
+  - m_GUID: 0dc5825e876c28e40836becfed13e200
+    m_Address: Assets/_Project/Data/SceneInfos/SecondWorldSceneInfo.asset
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - BaseScenes
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 55e34f62fb380a541b32937cf28561d8
-    m_Address: SecondWorld
+  - m_GUID: 7016f2e0c8b554b49aad3039a5b04bcb
+    m_Address: Assets/_Project/Data/SceneInfos/TestWorldSceneInfo.asset
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - BaseScenes
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5a6050c62f77eca428f6c6bd526692f1
-    m_Address: TestDuel
+  - m_GUID: 7707e673be8bf3044b413b5e282d3b7c
+    m_Address: Assets/_Project/Data/SceneInfos/TestDuelSceneInfo.asset
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - BaseScenes
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 921a5cfb71642824e9b87814cbad2285, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: fbb29f77580fbe843bac4603f9cfe071, type: 2}
-    - {fileID: 11400000, guid: 4cefb00ca4802a34fbfc61c17d122787, type: 2}
+    - {fileID: 11400000, guid: 667ef5f8867d70b4c979f59163ea1cfd, type: 2}
+    - {fileID: 11400000, guid: 6dcf2406a12c93c41bb6623d2b305c47, type: 2}

@@ -174,9 +174,23 @@ namespace Exploration
             if (Physics.Raycast(_camera.transform.position, _camera.transform.forward,
                 out RaycastHit hit, _interactRange, _interactMask))
             {
+                Debug.Log($"Hit interactable: {hit.collider.name}.");
                 var interactable = hit.collider.GetComponent<IInteractable>();
                 interactable?.Interact(this);
             }
+            else
+            {
+                Debug.Log("No interactable hit.");
+            }
+        }
+
+        public void SetPosition(Vector3 position, Quaternion rotation)
+        {
+            var cc = GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+            transform.position = position;
+            transform.rotation = rotation;
+            if (cc != null) cc.enabled = true;
         }
     }
 }

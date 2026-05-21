@@ -8,12 +8,11 @@ namespace Core
 {
     public class ModManager
     {
-        private readonly SceneRegistry _sceneRegistry;
+        public List<ModInfo> LoadedMods { get; private set; } = new();
         private readonly string _modsPath;
 
-        public ModManager(SceneRegistry sceneRegistry)
+        public ModManager()
         {
-            _sceneRegistry = sceneRegistry;
             _modsPath = Path.Combine(Application.dataPath, "../Mods");
         }
 
@@ -50,32 +49,7 @@ namespace Core
                 await Addressables.LoadContentCatalogAsync(catalogPath).Task;
                 Debug.Log($"[ModManager] Loaded catalog: {modInfo.Name}");
 
-                if (modInfo.Scenes != null)
-                {
-                    foreach (var entry in modInfo.Scenes)
-                    {
-                        switch (entry.Type)
-                        {
-                            case "world":
-                                _sceneRegistry.WorldScenes.Add(new WorldSceneInfo
-                                {
-                                    SceneId = entry.Id,
-                                    AddressableKey = entry.AddressKey,
-                                    DisplayName = entry.DisplayName
-                                });
-                                break;
-                            case "duel":
-                                _sceneRegistry.DuelScenes.Add(new DuelSceneInfo
-                                {
-                                    SceneId = entry.Id,
-                                    AddressableKey = entry.AddressKey,
-                                    DisplayName = entry.DisplayName
-                                });
-                                break;
-                        }
-                    }
-                }
-
+                LoadedMods.Add(modInfo);
                 loadedDirs.Add(modDir);
             }
 
