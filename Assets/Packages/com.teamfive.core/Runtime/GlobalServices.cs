@@ -12,5 +12,6 @@ namespace Core
         public static PersistentPlayerData PlayerData { get; set; }
         public static IProgressionService Progression { get; set; }
         public static IGameStateService GameStateService { get; set; }
+        public static bool IsMenuOpen { get; set; }
     }
 }

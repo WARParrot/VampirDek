@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using Exploration;
 using System.Numerics;
+using System.Linq;
 
 
 namespace Bootstrap
@@ -17,6 +18,7 @@ namespace Bootstrap
     {
         [SerializeField] private GameSettings _gameSettings;
         [SerializeField] private HintUI _hintUIPrefab;
+        [SerializeField] private GameObject _escapeMenuPrefab;
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -58,6 +60,10 @@ namespace Bootstrap
             DontDestroyOnLoad(hintUIInstance.gameObject);
             Container.Inject(hintUIInstance);
             Debug.Log("[Bootstrap] HintUI instantiated.");
+
+            var escapeMenuInstance = Instantiate(_escapeMenuPrefab);
+            DontDestroyOnLoad(escapeMenuInstance);
+            Debug.Log("[Bootstrap] EscapeMenu instantiated.");
 
             var hintManager = Container.Resolve<HintManager>();
             hintManager.SetHintUI(hintUIInstance);
@@ -135,9 +141,24 @@ namespace Bootstrap
             var player = Object.FindObjectOfType<ExplorationController>();
             if (player != null)
             {
-                player.SetPosition(state.PlayerPosition + UnityEngine.Vector3.up, state.PlayerRotation);
+                player.SetPosition(state.PlayerPosition, state.PlayerRotation);
             }
             Debug.Log("[Bootstrap] Set player position from save.");
+
+            if (!string.IsNullOrEmpty(state.ActiveDuelTableId))
+            {
+                var points = Object.FindObjectsOfType<EncounterPoint>();
+                var point = points.FirstOrDefault(p => p.UniqueTableId == state.ActiveDuelTableId);
+                if (point != null)
+                {
+                    Debug.Log($"[Bootstrap] Resuming duel at table {state.ActiveDuelTableId}");
+                    await point.StartDuelAsync(true);
+                }
+                else
+                {
+                    Debug.LogWarning($"[Bootstrap] Could not find EncounterPoint with ID {state.ActiveDuelTableId}");
+                }
+            }
         }
 
         private async UniTask<PersistentPlayerData> LoadPlayerDataAsync(ISaveSystem saveSystem)

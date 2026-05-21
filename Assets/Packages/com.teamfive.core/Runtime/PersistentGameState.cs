@@ -8,6 +8,7 @@ namespace Core
     public class PersistentGameState
     {
         public string CurrentWorldSceneAddress;
+        public string ActiveDuelTableId;
         public Vector3 PlayerPosition;
         public Quaternion PlayerRotation;
         public List<string> CompletedEncounterIds = new();

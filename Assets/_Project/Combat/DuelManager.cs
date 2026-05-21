@@ -26,6 +26,7 @@ namespace Combat
         private InputAction _leaveAction;
 
         public DuelState CurrentDuelState => _duelState;
+        public string TableId => _tableId;
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
         private bool _duelFinished = false;
@@ -132,6 +133,7 @@ namespace Combat
 
         private void OnLeaveDuel(InputAction.CallbackContext ctx)
         {
+            if (GlobalServices.IsMenuOpen) return;
             GlobalServices.Director.PopModeAsync().Forget();
         }
 
@@ -476,6 +478,17 @@ namespace Combat
                     foreach (var e in slot.Occupant.Enchantments) e.OnDetach();
             if (side.Board.TownSlot.Occupant != null)
                 foreach (var e in side.Board.TownSlot.Occupant.Enchantments) e.OnDetach();
+        }
+
+        public void SaveCurrentDuel()
+        {
+            if (_duelState != null && _encounter != null)
+            {
+                var dto = MatchStateDTO.FromDuelState(_duelState);
+                string json = JsonUtility.ToJson(dto);
+                GlobalServices.SaveSystem.SaveActiveBattle(_tableId, json);
+                Debug.Log($"[DuelManager] Duel saved for table {_tableId}");
+            }
         }
 
         private enum CombatState

@@ -16,6 +16,8 @@ namespace Exploration
         private string _worldSceneAddress;
         private AsyncOperationHandle<SceneInstance> _sceneHandle;
 
+        public string CurrentWorldAddress => _worldSceneAddress;
+
         public ExplorationMode(string worldSceneAddress)
         {
             _worldSceneAddress = worldSceneAddress;
@@ -47,7 +49,16 @@ namespace Exploration
             SceneTransitionManager.Instance.SaveCameraState();
 
             if (_player != null)
+            {
+                var state = GlobalServices.GameStateService?.State;
+                if (state != null)
+                {
+                    state.PlayerPosition = _player.transform.position;
+                    state.PlayerRotation = _player.transform.rotation;
+                    state.CurrentWorldSceneAddress = _worldSceneAddress;
+                }
                 _player.Deactivate();
+            }
         }
 
         public async UniTask OnResumeAsync()

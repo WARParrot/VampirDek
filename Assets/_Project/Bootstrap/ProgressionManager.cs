@@ -42,6 +42,9 @@ namespace Bootstrap
             else if (!e.PlayerWon && !string.IsNullOrEmpty(e.LoseFlag))
                 state.Flags[e.LoseFlag] = true;
 
+            if (!string.IsNullOrEmpty(state.ActiveDuelTableId))
+                state.ActiveDuelTableId = null;
+
             await _stateService.SaveAsync();
         }
 
