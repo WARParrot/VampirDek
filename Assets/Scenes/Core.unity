@@ -200,6 +200,7 @@ MonoBehaviour:
   _gameSettings: {fileID: 11400000, guid: d17942c568783ca4d9c843d7bb57ae1b, type: 2}
   _hintUIPrefab: {fileID: -6028483130054826313, guid: 87e7dffc38c3ccd44b97c0fa1d04896e, type: 3}
   _escapeMenuPrefab: {fileID: 4802675793130557859, guid: 95fbb5d04e7c9a246b8b1af99933bbda, type: 3}
+  _defaultPlayerDeck: {fileID: 11400000, guid: b3db4b073aad97845bbbd487d81653c1, type: 2}
 --- !u!114 &386073558
 MonoBehaviour:
   m_ObjectHideFlags: 0

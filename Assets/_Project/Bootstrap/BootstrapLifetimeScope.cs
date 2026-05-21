@@ -20,6 +20,9 @@ namespace Bootstrap
         [SerializeField] private HintUI _hintUIPrefab;
         [SerializeField] private GameObject _escapeMenuPrefab;
 
+        [Header("Default Deck")]
+        [SerializeField] private DeckData _defaultPlayerDeck;
+
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
@@ -52,7 +55,29 @@ namespace Bootstrap
             await stateService.LoadAsync();
 
             var saveSystem = Container.Resolve<ISaveSystem>();
-            var playerData = await LoadPlayerDataAsync(saveSystem);
+            var playerData = await LoadPlayerDataAsync(saveSystem) ?? new PersistentPlayerData();
+            if (playerData.ActiveDeckCardIds == null || playerData.ActiveDeckCardIds.Count == 0)
+            {
+                if (_defaultPlayerDeck != null && _defaultPlayerDeck.Cards.Count > 0)
+                {
+                    playerData.ActiveDeckCardIds = _defaultPlayerDeck.Cards
+                        .Where(c => c != null)
+                        .Select(c => c.CardName)
+                        .ToList();
+                    Debug.Log($"[Bootstrap] Assigned default deck from '{_defaultPlayerDeck.name}'.");
+                }
+                else
+                {
+                    playerData.ActiveDeckCardIds = new List<string>
+                    {
+                        "Town"
+                    };
+                    Debug.LogWarning("[Bootstrap] No default deck asset found - using hardcoded fallback with only town.");
+                }
+
+                var json = JsonUtility.ToJson(playerData);
+                await saveSystem.SaveAsync("playerdata.json", System.Text.Encoding.UTF8.GetBytes(json));
+            }
             GlobalServices.PlayerData = playerData;
             Debug.Log("[Bootstrap] SaveSystem instantiated.");
 
