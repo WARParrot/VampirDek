@@ -119,6 +119,10 @@ namespace Combat
                 _leaveAction.Dispose();
             }
 
+            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            if (switcher != null)
+                switcher.enabled = false;
+
             GlobalServices.EventBus.Publish(new DuelEndedEvent());
             Destroy(gameObject);
         }

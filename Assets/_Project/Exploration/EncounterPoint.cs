@@ -9,6 +9,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
+using Combat.UI;
 
 namespace Exploration
 {
@@ -62,6 +63,21 @@ namespace Exploration
             {
                 var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
                 await UniTask.WhenAll(duelLoadUniTask, camMoveTask);
+            }
+
+            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            if (switcher != null)
+            {
+                var seat = GameObject.Find("SeatView")?.transform;
+                var overhead = GameObject.Find("OverheadView")?.transform;
+                if (seat != null && overhead != null)
+                {
+                    switcher.SeatView = seat;
+                    switcher.OverheadView = overhead;
+                    switcher.enabled = true;
+                }
+                else
+                    Debug.LogWarning("[EncounterPoint] Could not find SeatView or OverheadView in the duel scene.");
             }
 
             var playerDeck = await GetPlayerDeckAsync();

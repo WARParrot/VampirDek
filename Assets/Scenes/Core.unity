@@ -200,7 +200,7 @@ MonoBehaviour:
   _gameSettings: {fileID: 11400000, guid: d17942c568783ca4d9c843d7bb57ae1b, type: 2}
   _hintUIPrefab: {fileID: -6028483130054826313, guid: 87e7dffc38c3ccd44b97c0fa1d04896e, type: 3}
   _escapeMenuPrefab: {fileID: 4802675793130557859, guid: 95fbb5d04e7c9a246b8b1af99933bbda, type: 3}
-  _defaultPlayerDeck: {fileID: 0}
+  _defaultPlayerDeck: {fileID: 11400000, guid: b3db4b073aad97845bbbd487d81653c1, type: 2}
 --- !u!114 &386073558
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,6 +229,7 @@ GameObject:
   - component: {fileID: 929528600}
   - component: {fileID: 929528599}
   - component: {fileID: 929528598}
+  - component: {fileID: 929528601}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -354,6 +355,23 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!114 &929528601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 929528596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02f9a181dad56d44882b750fa16697c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Combat::Combat.UI.DuelCameraSwitcher
+  SeatView: {fileID: 0}
+  OverheadView: {fileID: 0}
+  _topThreshold: 0.78
+  _bottomThreshold: 0.22
+  _transitionSpeed: 5
 --- !u!1 &1125033225
 GameObject:
   m_ObjectHideFlags: 0
