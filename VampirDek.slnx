@@ -3,8 +3,8 @@
   <Project Path="Novel.csproj" />
   <Project Path="Shared.csproj" />
   <Project Path="Definitions.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Core.csproj" />
   <Project Path="Exploration.csproj" />
+  <Project Path="Bootstrap.csproj" />
   <Project Path="Core.Editor.csproj" />
 </Solution>

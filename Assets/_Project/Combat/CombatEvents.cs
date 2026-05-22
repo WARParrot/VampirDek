@@ -35,4 +35,20 @@ namespace Combat
     public struct TownPlacedEvent : IGameEvent { public BoardCard Town; public Board Board; public TownPlacedEvent(BoardCard t, Board b) { Town = t; Board = b; }
     }
     public struct DuelEndedEvent : IGameEvent { }
+    public struct DeckCountChangedEvent : IGameEvent
+    {
+        public IPlayerSide Side;
+        public int RemainingCards;
+        public DeckCountChangedEvent(IPlayerSide side, int remaining)
+        {
+            Side = side;
+            RemainingCards = remaining;
+        }
+    }
+
+    public struct EmptyDeckEvent : IGameEvent
+    {
+        public IPlayerSide Side;
+        public EmptyDeckEvent(IPlayerSide side) => Side = side;
+    }
 }

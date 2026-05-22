@@ -1,14 +1,35 @@
-using Cysharp.Threading.Tasks;
+using Core;
 using Definitions;
+using Cysharp.Threading.Tasks;
 
-namespace Combat
+namespace Combat.GameActions
 {
     public class DrawCardsAction : IGameAction
     {
-        private readonly IPlayerSide _side;
+        private readonly SideState _side;
         private readonly int _count;
-        public string Description => $"Draw {_count} card(s)";
-        public DrawCardsAction(IPlayerSide side, int count) { _side = side; _count = count; }
-        public async UniTask ExecuteAsync() => _side.DrawCards(_count);
+
+        public DrawCardsAction(IPlayerSide side, int count)
+        {
+            _side = (SideState)side;
+            _count = count;
+        }
+
+        public string Description => $"Взять {_count} карт";
+
+        public async UniTask ExecuteAsync()
+        {
+            for (int i = 0; i < _count; i++)
+            {
+                if (_side.Hand.Count >= SideState.MaxHandSize)
+                    break;
+
+                var card = _side.Deck.Draw();
+                if (card != null)
+                    _side.AddCardToHand(card);
+                else
+                    break;
+            }
+        }
     }
 }

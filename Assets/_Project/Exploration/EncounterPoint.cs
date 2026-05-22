@@ -57,6 +57,7 @@ namespace Exploration
             {
                 Encounter = Encounter,
                 PlayerDeck = playerDeck,
+                PlayerPersistentDeck = DefaultPlayerDeck,
                 TableId = UniqueTableId,
                 SavedMatchJson = savedJson,
                 DuelSceneHandle = loadHandle

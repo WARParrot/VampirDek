@@ -22,8 +22,8 @@ namespace Combat
             OpponentSide = new SideState(encounter.OpponentBoardLayout);
 
             int nextId = 0;
-            PlayerSide.Deck = playerDeck.Select(d => new Card(d, nextId++)).ToList();
-            OpponentSide.Deck = opponentDeck.Select(d => new Card(d, nextId++)).ToList();
+            PlayerSide.Deck = new Deck(PlayerSide, playerDeck.Select(d => new Card(d, nextId++)));
+            OpponentSide.Deck = new Deck(OpponentSide, opponentDeck.Select(d => new Card(d, nextId++)));
 
             PlayerSide.InitializeTown();
             OpponentSide.InitializeTown();

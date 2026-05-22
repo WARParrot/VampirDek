@@ -12,6 +12,7 @@ namespace Combat
         public string TableId;
         public MatchStateDTO SavedMatchState;
         public string SavedMatchJson;
+        public DeckData PlayerPersistentDeck;
         public AsyncOperationHandle<SceneInstance> DuelSceneHandle;
     }
 }

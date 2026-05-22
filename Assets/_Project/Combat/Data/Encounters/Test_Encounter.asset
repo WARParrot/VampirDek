@@ -27,3 +27,7 @@ MonoBehaviour:
   StartingWeather:
     Weather: {fileID: 0}
   OpponentDeck: {fileID: 11400000, guid: 469347e2fe177fd49b902bdb3af6fa05, type: 2}
+  RewardCardPool:
+  - {fileID: 11400000, guid: 77267488830e80047ad4f64a9490f67e, type: 2}
+  - {fileID: 11400000, guid: 0e4e0c3b5a0af664f80d8883e81aff9b, type: 2}
+  - {fileID: 11400000, guid: 062e786ceab23ee48a1e2120157f0328, type: 2}

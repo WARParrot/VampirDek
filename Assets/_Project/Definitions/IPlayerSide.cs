@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Definitions
 {
+
     public interface IPlayerSide
     {
         int Mana { get; }

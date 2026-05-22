@@ -10,19 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a8c0a6cba1807548826f8758dc39c88, type: 3}
-  m_Name: EndOfTurn
+  m_Name: LootSelection
   m_EditorClassIdentifier: Definitions::Definitions.PhaseNode
-  PhaseId: EndOfTurn
+  PhaseId: LootSelection
   Tags:
-  - EndOfTurn
+  - Loot
   Transitions:
-  - Target: {fileID: 11400000, guid: cfe84c65498847c47b488d88bdf3a51e, type: 2}
+  - Target: {fileID: 11400000, guid: 5c5b79c97b077d64ba856b3106c822da, type: 2}
     Condition:
       Type: 0
       Threshold: 0
       TagTrigger: 
-  - Target: {fileID: 11400000, guid: ba606d8e964c9b543a3a8daaf77091cc, type: 2}
-    Condition:
-      Type: 3
-      Threshold: 0
-      TagTrigger: WinConditionMet

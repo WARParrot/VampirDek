@@ -10,6 +10,8 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.InputSystem;
 using UnityEngine.AddressableAssets;
+using Combat.GameActions;
+using Combat.UI;
 
 namespace Combat
 {
@@ -25,6 +27,7 @@ namespace Combat
 
         private InputAction _leaveAction;
 
+        public DeckData _playerPersistentDeck;
         public DuelState CurrentDuelState => _duelState;
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
@@ -38,6 +41,7 @@ namespace Combat
         public async UniTask EnterAsync(object context)
         {
             var ctx = (DuelStartContext) context;
+            _playerPersistentDeck = ctx.PlayerPersistentDeck;
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
             _duelLoadHandle = ctx.DuelSceneHandle;
@@ -152,7 +156,11 @@ namespace Combat
 
                 if (_encounter.WinCondition.Check(_duelState))
                 {
-                    await TransitionToPhaseWithTagAsync("WinConditionMet");
+                    bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
+                    if (playerWon)
+                        await TransitionToPhaseWithTagAsync("WinConditionMet");
+                    else
+                        await TransitionToPhaseWithTagAsync("Defeat");
                     return;
                 }
             }
@@ -235,6 +243,18 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.PlayerSide.Board));
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
+            }
+            else if (targetNode.Tags.Contains("Loot"))
+            {
+                Debug.Log("[Phase] Loot phase entered");
+                await ShowLootSelectionAsync();
+            }
+
+            else if (targetNode.Tags.Contains("DuelEnd"))
+            {
+                Debug.Log("[Phase] DuelEnd – завершаем дуэль.");
+                await GlobalServices.Director.PopModeAsync();
+                return;
             }
 
             await CheckAutoTransitionsAsync();
@@ -435,6 +455,40 @@ namespace Combat
                 }
             }
             await UniTask.Yield();
+        }
+        private async UniTask ShowLootSelectionAsync()
+        {
+            bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
+            if (!playerWon)
+                return;
+
+            var rewardPool = _encounter.RewardCardPool;
+            if (rewardPool == null || rewardPool.Count < 3)
+            {
+                Debug.LogError("RewardCardPool должен содержать хотя бы 3 карты!");
+                return;
+            }
+
+            var rng = new System.Random();
+            var selected = rewardPool.OrderBy(x => rng.Next()).Take(3).ToList();
+
+            var cardSelectionUI = FindObjectOfType<CardSelectionUI>(true);
+            if (cardSelectionUI == null)
+            {
+                Debug.LogError("CardSelectionUI не найден в сцене!");
+                return;
+            }
+            CardDef chosen = await cardSelectionUI.ShowAsync(selected);
+
+            if (_playerPersistentDeck != null)
+            {
+                _playerPersistentDeck.Cards.Add(chosen);
+                Debug.Log($"Карта {chosen.CardName} добавлена в колоду игрока.");
+            }
+            else
+            {
+                Debug.LogError("PlayerPersistentDeck не задан в DuelManager!");
+            }
         }
 
         private void DetachAllEnchantments(SideState side)
