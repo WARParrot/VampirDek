@@ -2,6 +2,7 @@ using System.Linq;
 using UnityEditor;
 using Definitions;
 using UnityEngine;
+using Combat;
 
 namespace Core.Editor
 {
@@ -36,7 +37,7 @@ namespace Core.Editor
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var enc = AssetDatabase.LoadAssetAtPath<CombatEncounter>(path);
-                if (enc.OpponentDeck.Cards.Count(c => c.Type == CardType.Town) != 1)
+                if (DeckDatabase.GetDeck(enc.OpponentDeckId)?.Cards.Count(c => c.Type == CardType.Town) != 1)
                 {
                     Debug.LogError($"Encounter {enc.EncounterId}: Opponent deck must have exactly one Town.", enc);
                     errors++;

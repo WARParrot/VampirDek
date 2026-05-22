@@ -18,8 +18,8 @@ namespace Combat
         public DuelState(CombatEncounter encounter, List<CardDef> playerDeck, List<CardDef> opponentDeck)
         {
             Encounter = encounter;
-            PlayerSide = new SideState(encounter.PlayerBoardLayout);
-            OpponentSide = new SideState(encounter.OpponentBoardLayout);
+            PlayerSide = new SideState(BoardLayoutDatabase.GetLayout(encounter.PlayerBoardLayoutId));
+            OpponentSide = new SideState(BoardLayoutDatabase.GetLayout(encounter.OpponentBoardLayoutId));
 
             int nextId = 0;
             PlayerSide.Deck = new Deck(PlayerSide, playerDeck.Select(d => new Card(d, nextId++)));
@@ -28,7 +28,7 @@ namespace Combat
             PlayerSide.InitializeTown();
             OpponentSide.InitializeTown();
 
-            PhaseGraph = encounter.PhaseGraph;
+            PhaseGraph = PhaseGraphDatabase.GetPhaseGraph(encounter.PhaseGraphId);
             CurrentPhase = PhaseGraph.StartingNode;
             TurnNumber = 1;
         }

@@ -56,7 +56,7 @@ namespace Combat
             state.OpponentSide.Graveyard.Clear();
             state.OpponentSide.Graveyard.AddRange(RebuildCardList(OpponentSide.GraveyardCardIds));
 
-            state.CurrentPhase = encounter.PhaseGraph.Nodes.Find(n => n.PhaseId == CurrentPhaseId);
+            state.CurrentPhase = PhaseGraphDatabase.GetPhaseGraph(encounter.PhaseGraphId).Nodes.Find(n => n.PhaseId == CurrentPhaseId);
             state.TurnNumber = TurnNumber;
 
             return state;
@@ -109,7 +109,7 @@ namespace Combat
 
                     foreach (var enchSnap in slotSnap.Enchantments)
                     {
-                        var enchData = EnchantmentDatabase.Get(enchSnap.EnchantmentDataId);
+                        var enchData = EnchantmentDatabase.GetEnchantment(enchSnap.EnchantmentDataId);
                         if (enchData != null)
                         {
                             var runtime = EnchantmentFactory.Create(enchData, card);

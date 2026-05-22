@@ -13,13 +13,13 @@ namespace Combat.UI
 
         private UniTaskCompletionSource<CardDef> _tcs;
 
-        public async UniTask<CardDef> ShowAsync(List<CardDef> choices)
+        public async UniTask<CardDef> ShowAsync(List<string> choices)
         {
             panelRoot.SetActive(true);
             _tcs = new UniTaskCompletionSource<CardDef>();
 
             for (int i = 0; i < choiceButtons.Count && i < choices.Count; i++)
-                choiceButtons[i].Setup(choices[i], OnCardChosen);
+                choiceButtons[i].Setup(CardDatabase.GetCard(choices[i]), OnCardChosen);
 
             return await _tcs.Task;
         }

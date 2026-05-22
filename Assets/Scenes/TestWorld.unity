@@ -654,7 +654,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b6ba0dc1259f0c45be3cde1708542f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Exploration::Exploration.EncounterPoint
-  Encounter: {fileID: 11400000, guid: d6f9808d523bb3647a75a645d5f6dc88, type: 2}
+  EncounterId: TestEncounter
   UniqueTableId: Table00
   DefaultPlayerDeck: {fileID: 11400000, guid: b3db4b073aad97845bbbd487d81653c1, type: 2}
   _worldTableVisual: {fileID: 364241278}

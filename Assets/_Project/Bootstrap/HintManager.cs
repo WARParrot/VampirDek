@@ -40,8 +40,14 @@ namespace Core
 
         public void LoadEncounterHints(CombatEncounter encounter)
         {
-            if (encounter.Hints == null || encounter.Hints.Count == 0) return;
-            _encounterHints[encounter.EncounterId] = new List<HintData>(encounter.Hints);
+            if (encounter.HintIds == null || encounter.HintIds.Count == 0) return;
+            var hints = new List<HintData>();
+            foreach (var id in encounter.HintIds)
+            {
+                var hint = HintDatabase.GetHint(id);
+                if (hint != null) hints.Add(hint);
+            }
+            _encounterHints[encounter.EncounterId] = hints;
         }
 
         private void OnDuelStarted(DuelStartedEvent e)

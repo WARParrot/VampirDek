@@ -15,7 +15,7 @@ MonoBehaviour:
   m_DefaultGroup: c77554e8b8c196a47acaddfd7f305184
   m_currentHash:
     serializedVersion: 2
-    Hash: 341695c1538acbf915e2f261ad147be3
+    Hash: e50ce73b4d775109147c46975bc9a9ab
   m_OptimizeCatalogSize: 0
   m_BuildRemoteCatalog: 0
   m_CatalogRequestsTimeout: 0
@@ -62,8 +62,15 @@ MonoBehaviour:
   m_overridePlayerVersion: '[UnityEditor.PlayerSettings.bundleVersion]'
   m_GroupAssets:
   - {fileID: 11400000, guid: bbc317caa5d4b0544a85db075effb866, type: 2}
+  - {fileID: 11400000, guid: 37fd2627296499747b920bb28efb4648, type: 2}
+  - {fileID: 11400000, guid: 94d810bf28f97674b878c4746f173134, type: 2}
   - {fileID: 11400000, guid: 2a04142396c859c44bd77b396c89c204, type: 2}
+  - {fileID: 11400000, guid: 2d5608204039daf49a5003267f5147c0, type: 2}
+  - {fileID: 11400000, guid: e5e1b30b10d510841a1bb27c648bf23e, type: 2}
+  - {fileID: 11400000, guid: 031cfe93a639b9b40b86f7f9d7e51082, type: 2}
+  - {fileID: 11400000, guid: 6b79d3035a502284fb605cd04def1a56, type: 2}
   - {fileID: 11400000, guid: 1598376184bb272409adc266d86d0f61, type: 2}
+  - {fileID: 11400000, guid: 797b96502f5a57d40a8f9bf23e3f251c, type: 2}
   m_BuildSettings:
     m_LogResourceManagerExceptions: 1
     m_BundleBuildPath: Temp/com.unity.addressables/AssetBundles
@@ -106,6 +113,12 @@ MonoBehaviour:
     - Enchantments
     - Cards
     - BaseScenes
+    - Decks
+    - Encounters
+    - Layouts
+    - WinConditions
+    - Hints
+    - PhaseGraphs
   m_SchemaTemplates: []
   m_GroupTemplateObjects:
   - {fileID: 11400000, guid: c0e2dac5ab6b76c449236452242eaab7, type: 2}

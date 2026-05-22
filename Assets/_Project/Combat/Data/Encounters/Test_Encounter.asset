@@ -13,23 +13,21 @@ MonoBehaviour:
   m_Name: Test_Encounter
   m_EditorClassIdentifier: Definitions::Definitions.CombatEncounter
   EncounterId: TestEncounter
+  PlayerBoardLayoutId: Standard_BoardLayout
+  OpponentBoardLayoutId: Standard_BoardLayout
+  PhaseGraphId: Standard_Phases
+  WinConditionId: Standard_TakeTownWinCondition
+  OpponentDeckId: TestOpponentDeck
+  HintIds: []
+  RewardCardPool:
+  - Vampire
+  - Human
+  - Building
   DuelScene:
     m_AssetGUID: 5a6050c62f77eca428f6c6bd526692f1
     m_SubObjectName: 
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
-  PlayerBoardLayout: {fileID: 11400000, guid: cc3871db6e844764bb91a2983284a759, type: 2}
-  OpponentBoardLayout: {fileID: 11400000, guid: cc3871db6e844764bb91a2983284a759, type: 2}
-  PhaseGraph: {fileID: 11400000, guid: 943d0785e935cb443b367e0d551da40c, type: 2}
-  WinCondition: {fileID: 11400000, guid: 3c887e6a3e8b69a419370f7b4504cde7, type: 2}
-  PermanentGlobalEnchantments: []
-  StartingWeather:
-    Weather: {fileID: 0}
-  OpponentDeck: {fileID: 11400000, guid: 469347e2fe177fd49b902bdb3af6fa05, type: 2}
-  RewardCardPool:
-  - {fileID: 11400000, guid: 77267488830e80047ad4f64a9490f67e, type: 2}
-  - {fileID: 11400000, guid: 0e4e0c3b5a0af664f80d8883e81aff9b, type: 2}
-  - {fileID: 11400000, guid: 062e786ceab23ee48a1e2120157f0328, type: 2}
-  Hints:
-  - {fileID: 11400000, guid: 4852330ef5da94443902cc051e2eda61, type: 2}
+  WinFlag: 
+  LoseFlag: 

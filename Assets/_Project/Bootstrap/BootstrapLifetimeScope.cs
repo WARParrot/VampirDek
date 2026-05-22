@@ -11,7 +11,6 @@ using Exploration;
 using System.Numerics;
 using System.Linq;
 
-
 namespace Bootstrap
 {
     public class BootstrapLifetimeScope : GameLifetimeScope
@@ -53,6 +52,86 @@ namespace Bootstrap
             Debug.Log("[Bootstrap] ProgressionManager initialized.");
             
             await stateService.LoadAsync();
+
+            var cardHandle = Addressables.LoadAssetsAsync<CardDef>("Cards", null);
+            await cardHandle.Task;
+            if (cardHandle.Result != null)
+            {
+                foreach (var card in cardHandle.Result)
+                    CardDatabase.RegisterCard(card);
+            }
+
+            // Load base game enchantments
+            var enchHandle = Addressables.LoadAssetsAsync<EnchantmentData>("Enchantments", null);
+            await enchHandle.Task;
+            if (enchHandle.Result != null)
+            {
+                foreach (var ench in enchHandle.Result)
+                    EnchantmentDatabase.RegisterEnchantment(ench);
+            }
+
+            // Load base game decks
+            var deckHandle = Addressables.LoadAssetsAsync<DeckData>("Decks", null);
+            await deckHandle.Task;
+            if (deckHandle.Result != null)
+            {
+                foreach (var deck in deckHandle.Result)
+                {
+                    deck.Cards.Clear();
+                    foreach (var name in deck.CardNames)
+                    {
+                        var def = CardDatabase.GetCard(name);
+                        if (def != null) deck.Cards.Add(def);
+                    }
+                    DeckDatabase.RegisterDeck(deck);
+                }
+            }
+
+            // Hints
+            var hintHandle = Addressables.LoadAssetsAsync<HintData>("Hints", null);
+            await hintHandle.Task;
+            if (hintHandle.Result != null)
+                foreach (var h in hintHandle.Result) HintDatabase.RegisterHint(h);
+
+            var encHandle = Addressables.LoadAssetsAsync<CombatEncounter>("Encounters", null);
+            await encHandle.Task;
+            if (encHandle.Result != null)
+            {
+                foreach (var enc in encHandle.Result)
+                    EncounterDatabase.RegisterEncounter(enc);
+            }
+
+            var layoutHandle = Addressables.LoadAssetsAsync<BoardLayoutData>("Layouts", null);
+            await layoutHandle.Task;
+            if (layoutHandle.Result != null)
+            {
+                foreach (var layout in layoutHandle.Result)
+                    BoardLayoutDatabase.RegisterLayout(layout);
+            }
+
+            var graphHandle = Addressables.LoadAssetsAsync<PhaseGraph>("PhaseGraphs", null);
+            await graphHandle.Task;
+            if (graphHandle.Result != null)
+            {
+                foreach (var graph in graphHandle.Result)
+                {
+                    // Resolve internal node references
+                    foreach (var node in graph.Nodes)
+                    {
+                        foreach (var trans in node.Transitions)
+                            trans.Target = graph.Nodes.Find(n => n.PhaseId == trans.Target?.PhaseId);
+                    }
+                    PhaseGraphDatabase.RegisterPhaseGraph(graph);
+                }
+            }
+
+            var winHandle = Addressables.LoadAssetsAsync<WinCondition>("WinConditions", null);
+            await winHandle.Task;
+            if (winHandle.Result != null)
+            {
+                foreach (var cond in winHandle.Result)
+                    WinConditionDatabase.RegisterWinCondition(cond);
+            }
 
             var saveSystem = Container.Resolve<ISaveSystem>();
             var playerData = await LoadPlayerDataAsync(saveSystem) ?? new PersistentPlayerData();
