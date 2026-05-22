@@ -20,16 +20,25 @@ namespace Core
 
         private void OnEnable()
         {
-            GlobalServices.EventBus.Subscribe<ConsoleToggledEvent>(OnConsoleToggled);
+            try
+            {
+                GlobalServices.EventBus?.Subscribe<ConsoleToggledEvent>(OnConsoleToggled);
+            }
+            catch { }
         }
 
         private void OnDisable()
         {
-            GlobalServices.EventBus.Unsubscribe<ConsoleToggledEvent>(OnConsoleToggled);
+            try
+            {
+                GlobalServices.EventBus?.Unsubscribe<ConsoleToggledEvent>(OnConsoleToggled);
+            }
+            catch { }
         }
 
         private void OnConsoleToggled(ConsoleToggledEvent evt)
         {
+            if (_inputActions == null) return;
             if (evt.IsOpen)
                 _inputActions.Disable();
             else
