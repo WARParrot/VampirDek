@@ -193,6 +193,12 @@ namespace Combat
 
         private async UniTask TransitionToPhaseAsync(PhaseNode targetNode)
         {
+            if (targetNode == null)
+            {
+                Debug.LogError("TransitionToPhaseAsync: targetNode is null");
+                return;
+            }
+
             if (_duelState.CurrentPhase != null)
                 GlobalServices.EventBus.Publish(new PhaseExitEvent(_duelState.CurrentPhase.PhaseId));
 
@@ -224,6 +230,27 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("BuildingPhase"))
             {
+                var enemySide = _duelState.OpponentSide;
+                var playable = enemySide.Hand
+                    .Where(c => c.Def.Costs.Any(cost => cost is ManaCost mc && mc.Amount <= enemySide.Mana))
+                    .ToList();
+
+                if (playable.Count > 0)
+                {
+                    var rng = new System.Random();
+                    var card = playable[rng.Next(playable.Count)];
+                    var board = enemySide.Board;
+                    var row = board.GetRow(card.Def.RowType);
+                    var slot = row?.FirstOrDefault(s => s.IsEmpty);
+                    if (slot != null)
+                    {
+                        QueueAction(new PlaceCardIntoSlotAction(board, card.Def, slot));
+                        Debug.Log($"[AI] Opponent plays {card.Def.CardName} in {card.Def.RowType}[{slot.Index}]");
+                    }
+                }
+
+                await ProcessActionsAsync();
+
                 Debug.Log("[Phase] Waiting for player confirmation...");
                 _playerConfirmedPhase = false;
                 while (!_playerConfirmedPhase)
@@ -478,15 +505,45 @@ namespace Combat
         private async UniTask SimulatePlanningAsync()
         {
             var rng = new System.Random();
-            foreach (var slot in _duelState.OpponentSide.Board.VanguardRow)
+            var enemyVanguard = _duelState.OpponentSide.Board.VanguardRow
+                .Where(s => s.Occupant != null && s.Occupant.IsAlive).ToArray();
+            var playerVanguard = _duelState.PlayerSide.Board.VanguardRow
+                .Where(s => s.Occupant != null && s.Occupant.IsAlive).ToArray();
+            var playerTown = _duelState.PlayerSide.Board.TownSlot?.Occupant;
+
+            foreach (var slot in enemyVanguard)
             {
-                if (slot.Occupant != null)
+                var card = slot.Occupant;
+                if (card == null || !card.IsAlive) continue;
+
+                bool smartPlay = rng.NextDouble() < 0.7;
+
+                if (smartPlay)
                 {
-                    var playerVanguard = _duelState.PlayerSide.Board.VanguardRow
-                        .Where(s => s.Occupant != null && s.Occupant.IsAlive)
-                        .ToArray();
+                    bool pathToTownClear = !playerVanguard.Any();
+                    if (pathToTownClear && playerTown != null && playerTown.IsAlive)
+                    {
+                        card.PlannedTarget = playerTown;
+                        continue;
+                    }
+
                     if (playerVanguard.Length > 0)
-                        slot.Occupant.PlannedTarget = playerVanguard[rng.Next(playerVanguard.Length)].Occupant;
+                    {
+                        var weakest = playerVanguard.OrderBy(v => v.Occupant.Health).First();
+                        card.PlannedTarget = weakest.Occupant;
+                        continue;
+                    }
+                }
+                else
+                {
+                    var allTargets = new List<IGameEntity>();
+                    if (playerTown != null && playerTown.IsAlive) allTargets.Add(playerTown);
+                    foreach (var v in playerVanguard)
+                        if (v.Occupant != null && v.Occupant.IsAlive)
+                            allTargets.Add(v.Occupant);
+
+                    if (allTargets.Count > 0)
+                        card.PlannedTarget = allTargets[rng.Next(allTargets.Count)];
                 }
             }
             await UniTask.Yield();

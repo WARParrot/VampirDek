@@ -130,7 +130,7 @@ namespace Combat
             yield return TownSlot;
         }
 
-        private BoardSlot[] GetRow(Definitions.RowType rowType) => rowType switch
+        public BoardSlot[] GetRow(Definitions.RowType rowType) => rowType switch
         {
             Definitions.RowType.Vanguard => VanguardRow,
             Definitions.RowType.Building => BuildingRow,
