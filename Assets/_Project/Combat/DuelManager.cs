@@ -6,6 +6,7 @@ using Core;
 using Definitions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Text;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.InputSystem;
@@ -299,14 +300,13 @@ namespace Combat
                 if (WinConditionDatabase.GetWinCondition(_encounter.WinConditionId).Check(_duelState))
                 {
                     _duelFinished = true;
-                    await TransitionToPhaseWithTagAsync("WinConditionMet");
-                    return;
                 }
             }
             else if (targetNode.Tags.Contains("Loot"))
             {
                 Debug.Log("[Phase] Loot phase entered");
                 await ShowLootSelectionAsync();
+                return;
             }
 
             else if (targetNode.Tags.Contains("DuelEnd"))
@@ -336,17 +336,17 @@ namespace Combat
 
         private async UniTask CheckAutoTransitionsAsync()
         {
-            var node = _duelState.CurrentPhase;
-            if (node == null) return;
-            
+            var node = _duelState?.CurrentPhase;
+            if (node?.Transitions == null) return;
+
             foreach (var trans in node.Transitions)
             {
-                if (trans.Condition.Type == ConditionType.None)
-                {
-                    if (trans.Target != null)
-                        await TransitionToPhaseAsync(trans.Target);
-                    return;
-                }
+                if (trans == null || trans.Target == null) continue;
+                if (trans.Condition.Type != ConditionType.None) continue;
+                if (trans.Target == node) continue;
+
+                await TransitionToPhaseAsync(trans.Target);
+                return;
             }
         }
 
@@ -575,7 +575,28 @@ namespace Combat
             if (_playerPersistentDeck != null)
             {
                 _playerPersistentDeck.Cards.Add(chosen);
-                Debug.Log($"Card {chosen.CardName} added into player's deck.");
+                if (GlobalServices.PlayerData != null && _playerPersistentDeck != null)
+                {
+
+                    var cardIds = _playerPersistentDeck.Cards
+                        .Select(c => c.CardName)
+                        .ToList();
+
+                    GlobalServices.PlayerData.ActiveDeckCardIds = cardIds;
+
+                    var saveSystem = GlobalServices.SaveSystem;
+                    if (saveSystem != null)
+                    {
+                        string json = JsonUtility.ToJson(GlobalServices.PlayerData);
+                        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                        await saveSystem.SaveAsync("playerdata.json", bytes);
+                        Debug.Log($"[Loot] Колода сохранена: {cardIds.Count} карт");
+                    }
+                    else
+                    {
+                        Debug.LogError("[Loot] SaveSystem недоступен!");
+                    }
+                }
             }
             else
             {
@@ -597,7 +618,7 @@ namespace Combat
             if (side.Board.TownSlot.Occupant != null)
                 foreach (var e in side.Board.TownSlot.Occupant.Enchantments) e.OnDetach();
         }
-
+            
         public void SaveCurrentDuel()
         {
             if (_duelState != null && _encounter != null)

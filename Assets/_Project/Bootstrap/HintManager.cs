@@ -40,18 +40,20 @@ namespace Core
 
         public void LoadEncounterHints(CombatEncounter encounter)
         {
-            if (encounter.HintIds == null || encounter.HintIds.Count == 0) return;
-            var hints = new List<HintData>();
-            foreach (var id in encounter.HintIds)
+            if (encounter == null) return;
+            //if (encounter.Hints == null || encounter.Hints.Count == 0) return;
+            if (string.IsNullOrEmpty(encounter.EncounterId))
             {
-                var hint = HintDatabase.GetHint(id);
-                if (hint != null) hints.Add(hint);
+                Debug.LogWarning("[HintManager] EncounterId is null or empty - skipping hints.");
+                return;
             }
-            _encounterHints[encounter.EncounterId] = hints;
+
+            _encounterHints[encounter.EncounterId] = new List<HintData>();
         }
 
         private void OnDuelStarted(DuelStartedEvent e)
         {
+            if (e.Encounter == null) return;
             LoadEncounterHints(e.Encounter);
         }
 
