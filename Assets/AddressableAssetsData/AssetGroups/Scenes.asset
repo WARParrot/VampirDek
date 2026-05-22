@@ -16,7 +16,12 @@ MonoBehaviour:
   m_GUID: 03707ea46837b8c4abc990c1de3f295b
   m_SerializeEntries:
   - m_GUID: 28fab8c211bf64640b67b51b4ae53a1a
-    m_Address: TestWorld
+    m_Address: DefaultWorld
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 55e34f62fb380a541b32937cf28561d8
+    m_Address: SecondWorld
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

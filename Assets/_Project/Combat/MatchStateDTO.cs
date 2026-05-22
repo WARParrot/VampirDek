@@ -31,9 +31,11 @@ namespace Combat
             var state = new DuelState(encounter, playerDeckDefinitions, opponentDeckDefinitions);
 
             state.PlayerSide.Mana = PlayerSide.Mana;
+            state.PlayerSide.HumanResources = PlayerSide.HumanResources;
             RestoreBoard(PlayerSide, state.PlayerSide.Board);
 
             state.OpponentSide.Mana = OpponentSide.Mana;
+            state.OpponentSide.HumanResources = OpponentSide.HumanResources;
             RestoreBoard(OpponentSide, state.OpponentSide.Board);
 
             state.PlayerSide.Hand.Clear();
@@ -131,6 +133,7 @@ namespace Combat
     public class SideSnapshot
     {
         public int Mana;
+        public int HumanResources;
         public List<string> DeckCardIds;
         public List<string> HandCardIds;
         public List<string> GraveyardCardIds;
@@ -141,6 +144,7 @@ namespace Combat
             return new SideSnapshot
             {
                 Mana = side.Mana,
+                HumanResources = side.HumanResources,
                 DeckCardIds = side.Deck.Select(c => c.Def.CardName).ToList(),
                 HandCardIds = side.Hand.Select(c => c.Def.CardName).ToList(),
                 GraveyardCardIds = side.Graveyard.Select(c => c.Def.CardName).ToList(),
@@ -157,10 +161,15 @@ namespace Combat
         public static BoardSnapshot FromBoard(Board board)
         {
             var snap = new BoardSnapshot();
-            foreach (var slot in board.AllSlots())
-            {
-                snap.Slots.Add(SlotSnapshot.FromSlot(slot));
-            }
+
+            for (int i = 0; i < board.VanguardRow.Length; i++)
+                snap.Slots.Add(SlotSnapshot.FromSlot(board.VanguardRow[i], i));
+            for (int i = 0; i < board.BuildingRow.Length; i++)
+                snap.Slots.Add(SlotSnapshot.FromSlot(board.BuildingRow[i], i));
+            for (int i = 0; i < board.HumanRow.Length; i++)
+                snap.Slots.Add(SlotSnapshot.FromSlot(board.HumanRow[i], i));
+            snap.Slots.Add(SlotSnapshot.FromSlot(board.TownSlot, 0));
+
             return snap;
         }
     }
@@ -178,11 +187,11 @@ namespace Combat
         public int OccupantAttack;
         public List<EnchantmentSnapshot> Enchantments;
 
-        public static SlotSnapshot FromSlot(BoardSlot slot)
+        public static SlotSnapshot FromSlot(BoardSlot slot, int rowSlotIndex)
         {
             return new SlotSnapshot
             {
-                Index = slot.Index,
+                Index = rowSlotIndex,
                 RowType = slot.AllowedRow,
                 OccupantCardId = slot.Occupant?.SourceCard?.CardName ?? "",
                 OccupantHealth = slot.Occupant?.Health ?? 0,

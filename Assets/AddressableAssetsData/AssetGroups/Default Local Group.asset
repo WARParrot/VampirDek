@@ -27,6 +27,11 @@ MonoBehaviour:
     m_SerializedLabels:
     - Cards
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 07a52f246be6d834ca13b8eef289cc3f
+    m_Address: Assets/_Project/Data/HintConditions/HandContainsVanguardRowCondition.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0e4e0c3b5a0af664f80d8883e81aff9b
     m_Address: Assets/_Project/Data/Cards/VampireFodder.asset
     m_ReadOnly: 0
@@ -73,6 +78,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4852330ef5da94443902cc051e2eda61
+    m_Address: Assets/_Project/Data/Hints/VanguardInHandHint.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5c5b79c97b077d64ba856b3106c822da
     m_Address: Assets/_Project/Data/PhaseNodes/DuelEnd.asset
     m_ReadOnly: 0
@@ -84,8 +94,18 @@ MonoBehaviour:
     m_SerializedLabels:
     - Cards
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7f8de97da7b4622468f86aeac29c7fed
+    m_Address: TestNovel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 943d0785e935cb443b367e0d551da40c
     m_Address: Assets/_Project/Data/PhaseGraphs/Standard_Phases.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af4902a7374014a44a5cda5899e775f0
+    m_Address: Assets/_Project/Combat/Data/ActionDefs/SacrificeHumanActionDef.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -105,6 +125,11 @@ MonoBehaviour:
     m_SerializedLabels:
     - Enchantments
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc15bc8810ceeb446a0d4ac0c60adcb1
+    m_Address: Assets/_Project/Combat/Data/Costs/HumanSacrifice.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cc3871db6e844764bb91a2983284a759
     m_Address: Assets/_Project/Data/BoardLayouts/Standard_BoardLayout.asset
     m_ReadOnly: 0
@@ -112,6 +137,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cfe84c65498847c47b488d88bdf3a51e
     m_Address: Assets/_Project/Data/PhaseNodes/StartOfTurn.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d17942c568783ca4d9c843d7bb57ae1b
+    m_Address: Assets/_Project/Data/BaseGameSettings.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

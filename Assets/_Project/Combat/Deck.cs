@@ -50,7 +50,10 @@ namespace Combat
             _cards.Remove(card);
             Shuffle();
         }
-
+        public void AddCard(Card card)
+        {
+            _cards.Add(card);
+        }
         public void AddRange(IEnumerable<Card> cards) => _cards.AddRange(cards);
         public void Clear() => _cards.Clear();
 

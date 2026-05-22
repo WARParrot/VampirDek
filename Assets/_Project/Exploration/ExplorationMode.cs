@@ -1,4 +1,3 @@
-// Assets/_Project/Exploration/ExplorationMode.cs
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Core;
@@ -17,6 +16,8 @@ namespace Exploration
         private string _worldSceneAddress;
         private AsyncOperationHandle<SceneInstance> _sceneHandle;
 
+        public string CurrentWorldAddress => _worldSceneAddress;
+
         public ExplorationMode(string worldSceneAddress)
         {
             _worldSceneAddress = worldSceneAddress;
@@ -24,8 +25,10 @@ namespace Exploration
 
         public async UniTask EnterAsync(object context)
         {
+            Debug.Log($"[ExplorationMode] Loading scene: {_worldSceneAddress}");
             _sceneHandle = Addressables.LoadSceneAsync(_worldSceneAddress, LoadSceneMode.Additive);
             await _sceneHandle.Task;
+            Debug.Log($"[ExplorationMode] Scene loaded successfully.");
 
             _player = Object.FindAnyObjectByType<ExplorationController>();
             if (_player != null)
@@ -46,7 +49,16 @@ namespace Exploration
             SceneTransitionManager.Instance.SaveCameraState();
 
             if (_player != null)
+            {
+                var state = GlobalServices.GameStateService?.State;
+                if (state != null)
+                {
+                    state.PlayerPosition = _player.transform.position;
+                    state.PlayerRotation = _player.transform.rotation;
+                    state.CurrentWorldSceneAddress = _worldSceneAddress;
+                }
                 _player.Deactivate();
+            }
         }
 
         public async UniTask OnResumeAsync()

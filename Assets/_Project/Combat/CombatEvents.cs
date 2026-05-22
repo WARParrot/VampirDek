@@ -4,6 +4,8 @@ using Definitions;
 
 namespace Combat
 {
+    public struct DuelStartedEvent : IGameEvent { public CombatEncounter Encounter; public DuelStartedEvent(CombatEncounter encounter) => Encounter = encounter;
+    }
     public struct DamageDealtEvent : IGameEvent { public IGameEntity Target; public int Amount; public DamageDealtEvent(IGameEntity t, int a) { Target=t; Amount=a; }
     }
     public struct DamagePreventedEvent : IGameEvent { public IGameEntity Target; public IGameEntity Source; public DamagePreventedEvent(IGameEntity t, IGameEntity s) { Target=t; Source=s; } 

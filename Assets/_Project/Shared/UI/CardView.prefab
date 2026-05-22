@@ -149,6 +149,7 @@ GameObject:
   - component: {fileID: 8998709658202808559}
   - component: {fileID: 3745461154792623060}
   - component: {fileID: 96207979168898360}
+  - component: {fileID: 3745802271785776497}
   m_Layer: 5
   m_Name: CardView
   m_TagString: Untagged
@@ -259,6 +260,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3745802271785776497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6915257046056393758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e02ce447bcdf369488c349a9f202e539, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Shared::Shared.UI.CardView
+  _nameText: {fileID: 1558857790643698807}
+  _costText: {fileID: 1438756338749540670}
+  _artwork: {fileID: 3745461154792623060}
 --- !u!1 &8579934737481422268
 GameObject:
   m_ObjectHideFlags: 0

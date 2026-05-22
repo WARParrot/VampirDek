@@ -17,6 +17,9 @@ namespace Definitions
         public WeatherEntry StartingWeather;
         public DeckData OpponentDeck;
         public List<CardDef> RewardCardPool;
+        public List<HintData> Hints;
+        public string WinFlag;
+        public string LoseFlag;
     }
 
     [System.Serializable]

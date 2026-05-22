@@ -26,7 +26,7 @@ namespace Exploration
         [Header("Camera Seat")]
         [SerializeField] private Transform _cameraSeat;
 
-        public async UniTask StartDuelAsync()
+        public async UniTask StartDuelAsync(bool instant = false)
         {
             Debug.Log($"[EncounterPoint] Starting duel at table {UniqueTableId}");
 
@@ -36,14 +36,33 @@ namespace Exploration
             if (_worldTableVisual != null)
                 _worldTableVisual.SetActive(false);
 
-            SceneTransitionManager.Instance.SaveCameraState();
+            if (!instant)
+                SceneTransitionManager.Instance.SaveCameraState();
 
             var loadHandle = Addressables.LoadSceneAsync(Encounter.DuelScene, LoadSceneMode.Additive);
             var duelLoadUniTask = loadHandle.Task.AsUniTask();
 
-            var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
+            if (instant)
+            {
+                var mainCam = Camera.main;
+                if (mainCam != null)
+                    mainCam.enabled = false;
 
-            await UniTask.WhenAll(duelLoadUniTask, camMoveTask);
+                await duelLoadUniTask;
+                
+                if (mainCam != null)
+                    mainCam.enabled = true;
+                if (mainCam != null && _cameraSeat != null)
+                {
+                    mainCam.transform.position = _cameraSeat.position;
+                    mainCam.transform.rotation = _cameraSeat.rotation;
+                }
+            }
+            else
+            {
+                var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
+                await UniTask.WhenAll(duelLoadUniTask, camMoveTask);
+            }
 
             var playerDeck = await GetPlayerDeckAsync();
 
@@ -68,14 +87,20 @@ namespace Exploration
 
         private async UniTask<List<CardDef>> GetPlayerDeckAsync()
         {
-            var dataBytes = await GlobalServices.SaveSystem.LoadAsync("playerdata.json");
-            if (dataBytes == null)
+            if (GlobalServices.PlayerData?.ActiveDeckCardIds?.Count > 0)
             {
-                Debug.LogWarning("No player data found - returning fallback deck.");
-                return new List<CardDef>(DefaultPlayerDeck.Cards);
+                var deck = new List<CardDef>();
+                foreach (var cardId in GlobalServices.PlayerData.ActiveDeckCardIds)
+                {
+                    var cardDef = await CardDatabase.GetCardAsync(cardId);
+                    if (cardDef != null) deck.Add(cardDef);
+                }
+                if (deck.Count > 0) return deck;
             }
+            Debug.LogWarning("No player data found - returning fallback deck.");
+            return new List<CardDef>(DefaultPlayerDeck.Cards);
 
-            string json = System.Text.Encoding.UTF8.GetString(dataBytes);
+           /* string json = System.Text.Encoding.UTF8.GetString(dataBytes);
             var playerData = JsonUtility.FromJson<PersistentPlayerData>(json);
             if (playerData == null || playerData.ActiveDeckCardIds == null)
                 return new List<CardDef>(DefaultPlayerDeck.Cards);
@@ -89,7 +114,7 @@ namespace Exploration
                 else
                     Debug.LogWarning($"Card '{cardId}' not found in database.");
             }
-            return deck;
+            return deck;*/
         }
 
         void OnEnable() => GlobalServices.EventBus.Subscribe<DuelEndedEvent>(OnDuelEnded);

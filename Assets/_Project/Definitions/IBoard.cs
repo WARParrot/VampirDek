@@ -14,6 +14,7 @@ namespace Definitions
         void PlaceTownCard(CardDef townDef);
         void RemoveCard(IBoardCard card);
         IBoardCard GetFirstAliveCardInRow(RowType rowType);
+        IBoardSlot[] GetCardsRow(Definitions.RowType rowType);
     }
 
     public interface IBoardSlot

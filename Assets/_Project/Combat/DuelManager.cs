@@ -29,8 +29,10 @@ namespace Combat
 
         public DeckData _playerPersistentDeck;
         public DuelState CurrentDuelState => _duelState;
+        public string TableId => _tableId;
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
+        private bool _duelFinished = false;
 
         public void ConfirmCurrentPhase()
         {
@@ -76,10 +78,24 @@ namespace Combat
                 _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
                 await TransitionToPhaseAsync(_duelState.CurrentPhase);
             }
+
+            GlobalServices.EventBus.Publish(new DuelStartedEvent(_encounter));
         }
 
         public async UniTask ExitAsync()
         {
+            if (_duelFinished)
+            {
+                bool playerWon = !_duelState.OpponentSide.Town.IsAlive;
+                GlobalServices.EventBus.Publish(new DuelResultEvent
+                {
+                    PlayerWon = playerWon,
+                    EncounterId = _encounter.EncounterId,
+                    WinFlag = _encounter.WinFlag,
+                    LoseFlag = _encounter.LoseFlag
+                });
+            }
+
             if (!_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
@@ -121,6 +137,7 @@ namespace Combat
 
         private void OnLeaveDuel(InputAction.CallbackContext ctx)
         {
+            if (GlobalServices.IsMenuOpen) return;
             GlobalServices.Director.PopModeAsync().Forget();
         }
 
@@ -140,6 +157,9 @@ namespace Combat
             handUI?.RefreshHandImmediately();
 
             await TransitionToPhaseAsync(_duelState.CurrentPhase);
+
+            boardView?.RefreshAllSlots();
+            handUI?.RefreshHandImmediately();
         }
 
         public void QueueAction(IGameAction action) => _actionQueue.Enqueue(action);
@@ -173,6 +193,7 @@ namespace Combat
 
             _duelState.CurrentPhase = targetNode;
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(targetNode.PhaseId, targetNode.Tags));
+            GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
             Debug.Log($"[Phase] Entered {targetNode.PhaseId} with tags: {string.Join(", ", targetNode.Tags)}");
 
             if (targetNode.Tags.Contains("DuelStart"))
@@ -243,6 +264,13 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.PlayerSide.Board));
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
+
+                if (_encounter.WinCondition.Check(_duelState))
+                {
+                    _duelFinished = true;
+                    await TransitionToPhaseWithTagAsync("WinConditionMet");
+                    return;
+                }
             }
             else if (targetNode.Tags.Contains("Loot"))
             {
@@ -504,6 +532,17 @@ namespace Combat
                     foreach (var e in slot.Occupant.Enchantments) e.OnDetach();
             if (side.Board.TownSlot.Occupant != null)
                 foreach (var e in side.Board.TownSlot.Occupant.Enchantments) e.OnDetach();
+        }
+
+        public void SaveCurrentDuel()
+        {
+            if (_duelState != null && _encounter != null)
+            {
+                var dto = MatchStateDTO.FromDuelState(_duelState);
+                string json = JsonUtility.ToJson(dto);
+                GlobalServices.SaveSystem.SaveActiveBattle(_tableId, json);
+                Debug.Log($"[DuelManager] Duel saved for table {_tableId}");
+            }
         }
 
         private enum CombatState

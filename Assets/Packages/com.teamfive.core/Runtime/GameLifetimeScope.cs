@@ -13,7 +13,6 @@ namespace Core
             builder.Register<DevConsole>(Lifetime.Singleton);
             builder.Register<GameDirector>(Lifetime.Singleton);
             builder.Register<InputController>(Lifetime.Singleton);
-            builder.Register<SceneRegistry>(Lifetime.Singleton);
             builder.Register<ModManager>(Lifetime.Singleton);
         }
 

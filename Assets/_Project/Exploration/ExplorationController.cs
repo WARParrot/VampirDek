@@ -129,7 +129,7 @@ namespace Exploration
 
         private void Update()
         {
-            if (!_isActive) return;
+            if (!_isActive || GlobalServices.IsMenuOpen) return;
             ApplyMovement();
         }
 
@@ -157,6 +157,8 @@ namespace Exploration
 
         private async void OnStartDuel(InputAction.CallbackContext ctx)
         {
+            if (GlobalServices.IsMenuOpen) return;
+            
             var hits = Physics.OverlapSphere(transform.position, _encounterStartRange, _encounterMask);
             foreach (var hit in hits)
             {
@@ -171,12 +173,28 @@ namespace Exploration
 
         private void TryInteract()
         {
+            if (GlobalServices.IsMenuOpen) return;
+
             if (Physics.Raycast(_camera.transform.position, _camera.transform.forward,
                 out RaycastHit hit, _interactRange, _interactMask))
             {
+                Debug.Log($"Hit interactable: {hit.collider.name}.");
                 var interactable = hit.collider.GetComponent<IInteractable>();
                 interactable?.Interact(this);
             }
+            else
+            {
+                Debug.Log("No interactable hit.");
+            }
+        }
+
+        public void SetPosition(Vector3 position, Quaternion rotation)
+        {
+            var cc = GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+            transform.position = position;
+            transform.rotation = rotation;
+            if (cc != null) cc.enabled = true;
         }
     }
 }
