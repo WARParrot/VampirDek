@@ -12,7 +12,7 @@ namespace Exploration
 
         [Header("Camera")]
         [SerializeField] private float _mouseSensitivity = 0.1f;
-        [SerializeField] private float _eyeHeight = 0.8f;
+        [SerializeField] private float _eyeHeight = 1.6f;
         [SerializeField] private float _minPitch = -80f;
         [SerializeField] private float _maxPitch = 80f;
 
@@ -226,16 +226,28 @@ namespace Exploration
             }
         }
 
+        // Временный метод с отладкой – выводит объект, в который попал луч
         private void TryInteract()
         {
             if (GlobalServices.IsMenuOpen) return;
 
+            // Визуализация луча в Scene View (красный)
+            Debug.DrawRay(_camera.transform.position, _camera.transform.forward * _interactRange, Color.red, 1f);
+
             if (Physics.Raycast(_camera.transform.position, _camera.transform.forward,
                 out RaycastHit hit, _interactRange, _interactMask))
             {
-                Debug.Log($"Hit interactable: {hit.collider.name}.");
+                Debug.Log($"Hit object: {hit.collider.gameObject.name} (layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)})");
                 var interactable = hit.collider.GetComponent<IInteractable>();
-                interactable?.Interact(this);
+                if (interactable != null)
+                {
+                    Debug.Log($"Interactable found: {hit.collider.gameObject.name}");
+                    interactable.Interact(this);
+                }
+                else
+                {
+                    Debug.Log($"Object '{hit.collider.gameObject.name}' does not implement IInteractable.");
+                }
             }
             else
             {

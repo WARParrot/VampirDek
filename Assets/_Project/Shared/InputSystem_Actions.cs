@@ -1282,7 +1282,7 @@ namespace Shared
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": "";Keyboard&Mouse;Gamepad"",
                     ""action"": ""StartDuel"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
