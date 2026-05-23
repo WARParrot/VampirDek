@@ -12,19 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bff3548a4e05534697da2aa8c54634a, type: 3}
   m_Name: FallbackDeck
   m_EditorClassIdentifier: Definitions::Definitions.DeckData
-<<<<<<< HEAD
   CardNames:
   - Town
   - Human
   - Human
   - Building
   - Vampire
-=======
-  Cards:
-  - {fileID: 11400000, guid: f07f6756f740eb645a54c0c1a875c616, type: 2}
-  - {fileID: 11400000, guid: 77267488830e80047ad4f64a9490f67e, type: 2}
-  - {fileID: 11400000, guid: 77267488830e80047ad4f64a9490f67e, type: 2}
-  - {fileID: 11400000, guid: 062e786ceab23ee48a1e2120157f0328, type: 2}
-  - {fileID: 11400000, guid: 0e4e0c3b5a0af664f80d8883e81aff9b, type: 2}
-  - {fileID: 11400000, guid: 0e4e0c3b5a0af664f80d8883e81aff9b, type: 2}
->>>>>>> c087d7c
