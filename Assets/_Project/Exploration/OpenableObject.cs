@@ -9,6 +9,9 @@ namespace Exploration
         [SerializeField] private Vector3 _openRotation = new Vector3(0f, -90f, 0f);
         [SerializeField] private float _animationTime = 0.5f;
 
+        [Header("Contents")]
+        [SerializeField] private GameObject _contents;   // шкатулка или другой объект внутри
+
         [Header("Prompts")]
         [SerializeField] private string _promptOpen = "Open";
         [SerializeField] private string _promptClose = "Close";
@@ -22,6 +25,8 @@ namespace Exploration
         {
             if (_door != null)
                 _closedRotation = _door.localRotation;
+            if (_contents != null)
+                _contents.SetActive(false);   // изначально скрыто
         }
 
         public void Interact(ExplorationController player)
@@ -33,12 +38,14 @@ namespace Exploration
                 ? Quaternion.Euler(_openRotation)
                 : _closedRotation;
 
-            // Если DOTween подключён — будет плавно, иначе мгновенно
 #if DOTWEEN
             _door.DOLocalRotateQuaternion(targetRotation, _animationTime);
 #else
             _door.localRotation = targetRotation;
 #endif
+
+            if (_contents != null)
+                _contents.SetActive(_isOpen);
         }
     }
 }
