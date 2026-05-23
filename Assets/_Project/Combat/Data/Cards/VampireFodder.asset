@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61a4a12ae61775146864e3f75733293b, type: 3}
+  m_Name: VampireFodder
+  m_EditorClassIdentifier: Definitions::Definitions.CardDef
+  CardName: Vampire
+  Artwork:
+    m_AssetGUID: 
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  Type: 0
+  RowType: 0
+  MinSpeed: 1
+  MaxSpeed: 3
+  Health: 2
+  Attack: 1
+  Costs:
+  - {fileID: 11400000, guid: cc15bc8810ceeb446a0d4ac0c60adcb1, type: 2}
+  Effects: []
+  InnateEnchantments:
+  - {fileID: 11400000, guid: 0373980d6ef3b4043ae8885512cf570d, type: 2}
+  - {fileID: 11400000, guid: ca78c32cb6a273440a611cabd33b3df8, type: 2}

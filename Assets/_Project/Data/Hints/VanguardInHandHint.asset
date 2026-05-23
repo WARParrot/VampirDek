@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d18cbeb03ce0304593252a6d37423f4, type: 3}
+  m_Name: VanguardInHandHint
+  m_EditorClassIdentifier: Definitions::Definitions.HintData
+  Message: Vanguard card in hand
+  EventTag: PhaseEnter
+  Condition: {fileID: 11400000, guid: 07a52f246be6d834ca13b8eef289cc3f, type: 2}
+  ShownOncePerGame: 1
+  AllowedMode: 1

@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Default Local Group
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Default Local Group
+  m_GUID: c77554e8b8c196a47acaddfd7f305184
+  m_SerializeEntries:
+  - m_GUID: 07a52f246be6d834ca13b8eef289cc3f
+    m_Address: Assets/_Project/Data/HintConditions/HandContainsVanguardRowCondition.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 12757641de249a64faefbc67f1bc491b
+    m_Address: Assets/_Project/Data/PhaseNodes/ClashingPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a17e0981796d70489472a369b4242b2
+    m_Address: Assets/_Project/Combat/Data/Enchantments/IncreaseHumanResource1.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1d442dd9512ae574290771ed3c301702
+    m_Address: Assets/_Project/Art/polnotsenka_khitraya.png
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 24535bac36f8d3d49aa5cf25698cf1d2
+    m_Address: Assets/_Project/Data/PhaseNodes/EndOfTurn.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 38ff5444e19258740bea1d272a6dc51d
+    m_Address: Assets/_Project/Data/PhaseNodes/PlanningPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3a63db47d756e784e90f453b85cc0854
+    m_Address: Assets/_Project/Data/PhaseNodes/BuildingPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 43385d1020cc08a46b90253dfe05c004
+    m_Address: Assets/_Project/Art/polnotsenka_khitraya 1.png
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4852330ef5da94443902cc051e2eda61
+    m_Address: Assets/_Project/Data/Hints/VanguardInHandHint.asset
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Hints
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5c5b79c97b077d64ba856b3106c822da
+    m_Address: Assets/_Project/Data/PhaseNodes/DuelEnd.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7f8de97da7b4622468f86aeac29c7fed
+    m_Address: TestNovel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af4902a7374014a44a5cda5899e775f0
+    m_Address: Assets/_Project/Combat/Data/ActionDefs/SacrificeHumanActionDef.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b87cad2ab5e321b4c8c0852d29dac269
+    m_Address: Assets/_Project/Data/PhaseNodes/OneSidedAttackPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc15bc8810ceeb446a0d4ac0c60adcb1
+    m_Address: Assets/_Project/Combat/Data/Costs/HumanSacrifice.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cfe84c65498847c47b488d88bdf3a51e
+    m_Address: Assets/_Project/Data/PhaseNodes/StartOfTurn.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d17942c568783ca4d9c843d7bb57ae1b
+    m_Address: Assets/_Project/Data/BaseGameSettings.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d4af3181975a4104c99762414066d5a5
+    m_Address: Assets/_Project/Art/devushka_vampir_polnotsenka.jpg
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dfcdab09cda31684fa68f04c9067488e
+    m_Address: Assets/_Project/Data/ActionDefs/Standard_HumanResourcePay.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f2469e6f16486a248966d06805d4cdda
+    m_Address: Assets/_Project/Data/Costs/One_HumanResourceCost.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 921a5cfb71642824e9b87814cbad2285, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: dbc715e23d5624141ad0e505885d34e0, type: 2}
+    - {fileID: 11400000, guid: 775a20418f5b97b42b4de4d5afb1ea46, type: 2}

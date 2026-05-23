@@ -1,0 +1,20 @@
+{
+  "name": "Novel",
+  "rootNamespace": "",
+  "references": [
+    "Core",
+    "Definitions",
+    "Shared",
+    "UniTask",
+    "Unity.Addressables",
+    "Unity.TextMeshPro",
+    "Unity.ResourceManager",
+    "VContainer"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "autoReferenced": true,
+  "defineConstraints": []
+}

@@ -1,0 +1,24 @@
+{
+    "name": "Combat",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Definitions",
+        "Shared",
+        "UniTask",
+        "VContainer",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

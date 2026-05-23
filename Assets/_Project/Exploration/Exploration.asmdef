@@ -1,0 +1,25 @@
+{
+    "name": "Exploration",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Definitions",
+        "Shared",
+        "UniTask",
+        "DOTween",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.InputSystem",
+        "Combat",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
