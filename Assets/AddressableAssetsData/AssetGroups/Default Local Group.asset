@@ -25,6 +25,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a17e0981796d70489472a369b4242b2
+    m_Address: Assets/_Project/Combat/Data/Enchantments/IncreaseHumanResource1.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1d442dd9512ae574290771ed3c301702
     m_Address: Assets/_Project/Art/polnotsenka_khitraya.png
     m_ReadOnly: 0

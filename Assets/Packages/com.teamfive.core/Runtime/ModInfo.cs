@@ -6,18 +6,27 @@ namespace Core
     [Serializable]
     public class ModInfo
     {
-        public string Name;
-        public string Version;
-        public string CatalogPath;
-        public List<SceneEntry> Scenes;
+        public string name;
+        public string version;
+        public string catalogPath;
+        public List<SceneEntry> scenes;
+
+        public List<string> cards;
+        public List<string> decks;
+        public List<string> encounters;
+        public List<string> enchantments;
+        public List<string> layouts;
+        public List<string> phasegraphs;
+        public List<string> winconditions;
+        public List<string> hints;
     }
 
     [Serializable]
     public class SceneEntry
     {
-        public string Type;
-        public string Id;
-        public string AddressKey;
-        public string DisplayName;
+        public string type;
+        public string id;
+        public string addressKey;
+        public string displayName;
     }
 }

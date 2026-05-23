@@ -193,7 +193,7 @@ namespace Core
             sb.AppendLine("  duel deck          - Cards in player deck");
             sb.AppendLine("  duel mana          - Mana for both sides");
             sb.AppendLine("  duel resources     - Human resources");
-            sb.AppendLine("  duel listcards     - List available card names");
+            sb.AppendLine("  duel cardslist     - List available card names");
             sb.AppendLine();
             sb.AppendLine("<color=#00CCFF>BOARD MANIPULATION</color>");
             sb.AppendLine("  duel kill <slot>   - Kill card in slot (vanguard_0, building_1, town)");

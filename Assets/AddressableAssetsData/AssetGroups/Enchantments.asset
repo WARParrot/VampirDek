@@ -21,6 +21,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Enchantments
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0664d573b8de80b4aa573af83a360658
+    m_Address: Assets/_Project/Combat/Data/Enchantments/IncreaseHREnchantment.asset
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Enchantments
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ca78c32cb6a273440a611cabd33b3df8
     m_Address: Assets/_Project/Combat/Data/Enchantments/EnchantmentAttack.asset
     m_ReadOnly: 0

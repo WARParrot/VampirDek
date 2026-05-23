@@ -149,7 +149,11 @@ namespace Bootstrap
                 {
                     playerData.ActiveDeckCardIds = new List<string>
                     {
-                        "Town"
+                        "Town",
+                        "Human",
+                        "Human",
+                        "Building",
+                        "Vampire"
                     };
                     Debug.LogWarning("[Bootstrap] No default deck asset found - using hardcoded fallback with only town.");
                 }
@@ -194,6 +198,10 @@ namespace Bootstrap
             var modDirs = await modManager.LoadModsAsync();
             Debug.Log($"[Bootstrap] Mods loaded: {modDirs.Count} directories.");
 
+            var dataLoader = new ModDataLoader();
+            await dataLoader.LoadAllDataAsync(modDirs);
+            Debug.Log("[Bootstrap] Mod data loader initialized...");
+
             var importer = new ModContentImporter();
             foreach (var dir in modDirs)
             {
@@ -204,24 +212,24 @@ namespace Bootstrap
             Debug.Log("[Bootstrap] Loading mod scenes...");
             foreach (var modInfo in modManager.LoadedMods)
             {
-                if (modInfo.Scenes != null)
+                if (modInfo.scenes != null)
                 {
-                    foreach (var entry in modInfo.Scenes)
+                    foreach (var entry in modInfo.scenes)
                     {
-                        if (entry.Type == "world")
+                        if (entry.type == "world")
                         {
                             var info = ScriptableObject.CreateInstance<WorldSceneInfo>();
-                            info.SceneId = entry.Id;
-                            info.AddressableKey = entry.AddressKey;
-                            info.DisplayName = entry.DisplayName;
+                            info.SceneId = entry.id;
+                            info.AddressableKey = entry.addressKey;
+                            info.DisplayName = entry.displayName;
                             sceneRegistry.WorldScenes.Add(info);
                         }
-                        else if (entry.Type == "duel")
+                        else if (entry.type == "duel")
                         {
                             var info = ScriptableObject.CreateInstance<DuelSceneInfo>();
-                            info.SceneId = entry.Id;
-                            info.AddressableKey = entry.AddressKey;
-                            info.DisplayName = entry.DisplayName;
+                            info.SceneId = entry.id;
+                            info.AddressableKey = entry.addressKey;
+                            info.DisplayName = entry.displayName;
                             sceneRegistry.DuelScenes.Add(info);
                         }
                     }

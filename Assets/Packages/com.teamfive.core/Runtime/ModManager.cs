@@ -39,15 +39,20 @@ namespace Core
                     continue;
                 }
 
-                string catalogPath = Path.Combine(modDir, modInfo.CatalogPath);
-                if (!File.Exists(catalogPath))
+                if (!string.IsNullOrEmpty(modInfo.catalogPath))
                 {
-                    Debug.LogWarning($"[ModManager] Catalog not found: {catalogPath}");
-                    continue;
+                    string catalogPath = Path.Combine(modDir, modInfo.catalogPath);
+                    if (File.Exists(catalogPath))
+                    {
+                        await Addressables.LoadContentCatalogAsync(catalogPath).Task;
+                        Debug.Log($"[ModManager] Loaded catalog: {modInfo.name}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[ModManager] Catalog not found: {catalogPath}");
+                    }
                 }
-
-                await Addressables.LoadContentCatalogAsync(catalogPath).Task;
-                Debug.Log($"[ModManager] Loaded catalog: {modInfo.Name}");
+                Debug.Log($"[ModManager] Loaded catalog: {modInfo.name}");
 
                 LoadedMods.Add(modInfo);
                 loadedDirs.Add(modDir);

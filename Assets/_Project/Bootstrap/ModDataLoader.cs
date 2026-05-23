@@ -18,14 +18,33 @@ namespace Bootstrap
 
         public async UniTask LoadAllDataAsync(List<string> modDirs)
         {
-            await LoadFolderAsync(_coreDataPath);
+            if (!string.IsNullOrEmpty(_coreDataPath) && Directory.Exists(_coreDataPath))
+                await LoadFolderAsync(_coreDataPath);
+
+            if (modDirs == null) return;
             foreach (var dir in modDirs)
+            {
+                if (string.IsNullOrEmpty(dir))
+                {
+                    Debug.LogWarning("[ModDataLoader] Skipping null or empty mod directory.");
+                    continue;
+                }
+                if (!Directory.Exists(dir))
+                {
+                    Debug.LogWarning($"[ModDataLoader] Mod directory does not exist: {dir}");
+                    continue;
+                }
                 await LoadFolderAsync(dir);
+            }
         }
 
         private async UniTask LoadFolderAsync(string folderPath)
         {
-            if (!Directory.Exists(folderPath)) return;
+            if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
+            {
+                Debug.LogWarning($"[ModDataLoader] Invalid folder path: {folderPath}");
+                return;
+            }
 
             string cardsDir = Path.Combine(folderPath, "cards");
             if (Directory.Exists(cardsDir))
