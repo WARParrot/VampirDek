@@ -31,10 +31,12 @@ public class PhaseConfirmationButton : MonoBehaviour
 
     void Update()
     {
-        if (_duelManager == null)
-            return;
+        if (_duelManager == null) return;
+        if (_button == null) return;
         
-        var phase = _duelManager.CurrentDuelState.CurrentPhase;
+        var phase = _duelManager.CurrentDuelState?.CurrentPhase;
+        if (phase == null) return;
+        
         bool show = phase.Tags.Contains("BuildingPhase") ||
                     phase.Tags.Contains("PlanningPhase");
         _button.gameObject.SetActive(show);

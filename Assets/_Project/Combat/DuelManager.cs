@@ -97,7 +97,7 @@ namespace Combat
                 });
             }
 
-            if (!_encounter.WinCondition.Check(_duelState))
+            if (_encounter.WinCondition != null && !_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
                 string json = JsonUtility.ToJson(dto);
@@ -167,19 +167,36 @@ namespace Combat
             handUI?.RefreshHandImmediately();
         }
 
-        public void QueueAction(IGameAction action) => _actionQueue.Enqueue(action);
-
+        public void QueueAction(IGameAction action)
+        {
+            if (action != null)
+                _actionQueue.Enqueue(action);
+            else
+                Debug.LogError("[DuelManager] Attempted to queue null action!");
+        }
         private async UniTask ProcessActionsAsync()
         {
             while (_actionQueue.Count > 0)
             {
                 if (_state == CombatState.Paused) break;
                 var action = _actionQueue.Dequeue();
+                if (action == null)
+                {
+                    Debug.LogError("[DuelManager] Dequeued null action!");
+                    continue;
+                }
                 Debug.Log($"[DuelManager] Processing action: {action.Description}");
-                await action.ExecuteAsync();
+                try
+                {
+                    await action.ExecuteAsync();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
+                }
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                if (_encounter.WinCondition.Check(_duelState))
+                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
                 {
                     bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
                     if (playerWon)
@@ -239,34 +256,24 @@ namespace Combat
                 {
                     var rng = new System.Random();
                     var card = playable[rng.Next(playable.Count)];
-                    var board = enemySide.Board;
-                    var row = board.GetRow(card.Def.RowType);
+                    var row = enemySide.Board.GetRow(card.Def.RowType);
                     var slot = row?.FirstOrDefault(s => s.IsEmpty);
                     if (slot != null)
                     {
-                        QueueAction(new PlaceCardIntoSlotAction(board, card.Def, slot));
+                        QueueAction(new PlaceCardIntoSlotAction(enemySide.Board, card.Def, slot));
                         Debug.Log($"[AI] Opponent plays {card.Def.CardName} in {card.Def.RowType}[{slot.Index}]");
                     }
                 }
-
-                await ProcessActionsAsync();
 
                 Debug.Log("[Phase] Waiting for player confirmation...");
                 _playerConfirmedPhase = false;
                 while (!_playerConfirmedPhase)
                 {
                     if (_actionQueue.Count > 0)
-                    {
-                        Debug.Log($"[Phase] Loop iteration - queue count: {_actionQueue.Count}");
-                        Debug.Log("[Phase] Processing actions...");
                         await ProcessActionsAsync();
-                        Debug.Log("[Phase] Actions processed.");
-                    }
                     else
-                    {
                         await UniTask.Yield();
-                    }
-                };
+                }
                 Debug.Log("[Phase] Confirmed - advancing.");
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
@@ -297,7 +304,7 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
 
-                if (_encounter.WinCondition.Check(_duelState))
+                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
                 {
                     _duelFinished = true;
                 }
@@ -505,45 +512,38 @@ namespace Combat
         private async UniTask SimulatePlanningAsync()
         {
             var rng = new System.Random();
-            var enemyVanguard = _duelState.OpponentSide.Board.VanguardRow
-                .Where(s => s.Occupant != null && s.Occupant.IsAlive).ToArray();
-            var playerVanguard = _duelState.PlayerSide.Board.VanguardRow
-                .Where(s => s.Occupant != null && s.Occupant.IsAlive).ToArray();
-            var playerTown = _duelState.PlayerSide.Board.TownSlot?.Occupant;
+            var opponentSide = _duelState.OpponentSide;
+            var playerSide = _duelState.PlayerSide;
 
-            foreach (var slot in enemyVanguard)
+            var attackers = opponentSide.Board.VanguardRow
+                .Where(s => s.Occupant != null && s.Occupant.IsAlive)
+                .Select(s => s.Occupant).ToList();
+
+            var playerTown = playerSide.Board.TownSlot?.Occupant;
+            var playerVanguard = playerSide.Board.VanguardRow
+                .Where(s => s.Occupant != null && s.Occupant.IsAlive)
+                .Select(s => s.Occupant).ToList();
+
+            foreach (var attacker in attackers)
             {
-                var card = slot.Occupant;
-                if (card == null || !card.IsAlive) continue;
+                var targets = new List<BoardCard>();
+                bool pathToTownClear = !playerVanguard.Any();
+                if (pathToTownClear && playerTown != null && playerTown.IsAlive)
+                    targets.Add((BoardCard)playerTown);
+                targets.AddRange(playerVanguard);
 
-                bool smartPlay = rng.NextDouble() < 0.7;
+                if (targets.Count == 0) { attacker.PlannedTarget = null; continue; }
 
-                if (smartPlay)
+                if (rng.NextDouble() < 0.7)
                 {
-                    bool pathToTownClear = !playerVanguard.Any();
                     if (pathToTownClear && playerTown != null && playerTown.IsAlive)
-                    {
-                        card.PlannedTarget = playerTown;
-                        continue;
-                    }
-
-                    if (playerVanguard.Length > 0)
-                    {
-                        var weakest = playerVanguard.OrderBy(v => v.Occupant.Health).First();
-                        card.PlannedTarget = weakest.Occupant;
-                        continue;
-                    }
+                        attacker.PlannedTarget = playerTown;
+                    else
+                        attacker.PlannedTarget = targets.OrderBy(t => t.Health).First();
                 }
                 else
                 {
-                    var allTargets = new List<IGameEntity>();
-                    if (playerTown != null && playerTown.IsAlive) allTargets.Add(playerTown);
-                    foreach (var v in playerVanguard)
-                        if (v.Occupant != null && v.Occupant.IsAlive)
-                            allTargets.Add(v.Occupant);
-
-                    if (allTargets.Count > 0)
-                        card.PlannedTarget = allTargets[rng.Next(allTargets.Count)];
+                    attacker.PlannedTarget = targets[rng.Next(targets.Count)];
                 }
             }
             await UniTask.Yield();
