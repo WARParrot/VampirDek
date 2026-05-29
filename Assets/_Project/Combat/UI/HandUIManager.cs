@@ -27,6 +27,13 @@ public class HandUIManager : MonoBehaviour
     private DragHandler _currentlyDragging;
     private int _lastHandCount = -1;
     private bool _lastDragAllowed = false;
+    [Header("HR Animation")]
+    [SerializeField] private TextMeshProUGUI _hrDeltaText;
+    [SerializeField] private float _hrDeltaDuration = 0.5f;
+    [SerializeField] private Color _hrPositiveColor = Color.green;
+    [SerializeField] private Color _hrNegativeColor = Color.red;
+
+    private int _displayedHR;
 
     void Update()
     {
@@ -38,8 +45,15 @@ public class HandUIManager : MonoBehaviour
 
         PlayerTownHPText.text = $"Town HP: {side.Town?.Health}";
         OpponentTownHPText.text = $"Opp Town HP: {state.OpponentSide.Town?.Health}";
-        PlayerHumanResText.text = $"HR: {side.HumanResources}";
         PhaseText.text = $"Phase: {state.CurrentPhase.PhaseId}";
+
+        if (_displayedHR != side.HumanResources)
+        {
+            int delta = side.HumanResources - _displayedHR;
+            StartCoroutine(AnimateHRDelta(delta));
+            _displayedHR = side.HumanResources;
+        }
+        PlayerHumanResText.text = $"HR: {side.HumanResources}";
 
         if (side.Hand.Count != _lastHandCount)
             RefreshHand(side);
@@ -51,6 +65,30 @@ public class HandUIManager : MonoBehaviour
                 kv.Value.enabled = allowDrag;
             _lastDragAllowed = allowDrag;
         }
+    }
+
+    private IEnumerator AnimateHRDelta(int delta)
+    {
+        if (_hrDeltaText == null) yield break;
+
+        _hrDeltaText.text = delta > 0 ? $"+{delta}" : $"{delta}";
+        _hrDeltaText.color = delta >= 0 ? _hrPositiveColor : _hrNegativeColor;
+        _hrDeltaText.gameObject.SetActive(true);
+        _hrDeltaText.alpha = 1f;
+
+        float elapsed = 0f;
+        float duration = _hrDeltaDuration;
+        Vector2 fixedPos = new Vector2(30, 20);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            _hrDeltaText.rectTransform.anchoredPosition = fixedPos;
+            _hrDeltaText.alpha = 1f - (elapsed / duration);
+            yield return null;
+        }
+
+        _hrDeltaText.gameObject.SetActive(false);
     }
 
     void RefreshHand(IPlayerSide side)
@@ -78,6 +116,8 @@ public class HandUIManager : MonoBehaviour
         var state = _duelManager?.CurrentDuelState;
         if (state != null)
             RefreshHand(state.PlayerSide);
+        if (_duelManager?.CurrentDuelState != null)
+            _displayedHR = _duelManager.CurrentDuelState.PlayerSide.HumanResources;
     }
 
     public void OnCardDragStarted(DragHandler handler)
@@ -128,8 +168,7 @@ public class HandUIManager : MonoBehaviour
                     StartCoroutine(ResetCardHighlight(cardImage));
                 }
                 
-                BoardView.HighlightRow(Definitions.RowType.Human, new Color(1f, 0.5f, 0f, 0.3f));
-                BoardView.StartCoroutine(BoardView.ResetRowHighlight(Definitions.RowType.Human, 1.5f));
+                StartCoroutine(HighlightHRText());
                 
                 ResetDragState(handler);
                 return;
@@ -150,8 +189,7 @@ public class HandUIManager : MonoBehaviour
                     StartCoroutine(ResetCardHighlight(cardImage));
                 }
                 
-                BoardView.HighlightRow(Definitions.RowType.Human, new Color(1f, 0.5f, 0f, 0.3f));
-                BoardView.StartCoroutine(BoardView.ResetRowHighlight(Definitions.RowType.Human, 1.5f));
+                StartCoroutine(HighlightHRText());
                 
                 ResetDragState(handler);
                 return;
@@ -177,6 +215,18 @@ public class HandUIManager : MonoBehaviour
 
         _duelManager.QueueAction(new PlaceCardIntoSlotAction(board, def, targetSlot));
         BoardView.HideAllHighlights();
+    }
+
+    private IEnumerator HighlightHRText()
+    {
+        if (PlayerHumanResText == null) yield break;
+        
+        Color originalColor = PlayerHumanResText.color;
+        PlayerHumanResText.color = new Color(1f, 0.5f, 0f, 1f); // оранжевый
+        
+        yield return new WaitForSeconds(1.5f);
+        
+        PlayerHumanResText.color = originalColor;
     }
 
     private IEnumerator ResetCardHighlight(Image cardImage)
