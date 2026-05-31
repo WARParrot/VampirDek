@@ -90,6 +90,12 @@ namespace Combat.UI
                         _boardView.SetCardHighlight(enemySlot.Occupant, TargetHighlight);
                     }
                 }
+
+                var tutorial = FindObjectOfType<Combat.TutorialSystem>(true);
+                if (tutorial != null && tutorial.IsTutorialActive)
+                {
+                    tutorial.OnAttackerCardSelected();
+                }
             }
             else if (isOpponentSide && _selectedAttacker != null)
             {
@@ -97,6 +103,13 @@ namespace Combat.UI
                 _selectedAttacker.PlannedTarget = card;
                 ClearSelection();
                 _selectedAttacker = null;
+
+                var tutorial = FindObjectOfType<Combat.TutorialSystem>(true);
+                Debug.Log($"[Planner→Tutorial] tutorial={(tutorial != null ? "OK" : "NULL")}, active={tutorial?.IsTutorialActive}, step={tutorial?.CurrentStepIndex}");
+                if (tutorial != null && tutorial.IsTutorialActive)
+                {
+                    tutorial.OnTargetSelected();
+                }
             }
             else
             {

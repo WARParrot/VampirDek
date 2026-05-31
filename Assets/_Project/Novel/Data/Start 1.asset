@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31d008bdcacead04491ac0d4650685d2, type: 3}
   m_Name: Start 1
   m_EditorClassIdentifier: Novel::DialogueNode
-  Text: xd
-  SpeakerName: xd
+  Text: Walking up to a table and pressing E starts the duel
+  SpeakerName: viven
   SpeakerPortraitName: 
   BackgroundName: 
   Choices: []
-  NextNode: {fileID: 0}
+  NextNode: {fileID: 11400000, guid: 6d2f7caaef2e1c14b83d03531f66d2a0, type: 2}

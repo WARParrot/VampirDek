@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31d008bdcacead04491ac0d4650685d2, type: 3}
   m_Name: Start
   m_EditorClassIdentifier: Novel::DialogueNode
-  Text: Rise....Rise....Rise....
+  Text: Press E to interact
   SpeakerName: Viven
   SpeakerPortraitName: Portraits/polnotsenka_khitraya
   BackgroundName: devushka_vampir_polnotsenka

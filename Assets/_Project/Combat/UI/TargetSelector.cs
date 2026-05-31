@@ -10,6 +10,8 @@ namespace Combat.UI
 {
     public class TargetSelector : MonoBehaviour
     {
+        [SerializeField] private TutorialSystem _tutorialSystem;
+
         private DuelManager _duelManager;
         private BoardCard _selectedFriendly;
 
@@ -23,6 +25,11 @@ namespace Combat.UI
         {
             _duelManager = DuelManagerProxy.Instance;
             _boardView = FindObjectOfType<BoardView>(true);
+
+            if (_tutorialSystem == null)
+            {
+                _tutorialSystem = FindObjectOfType<TutorialSystem>();
+            }
         }
 
         void Update()
@@ -59,6 +66,16 @@ namespace Combat.UI
                     _selectedFriendly.PlannedTarget = card;
                     ClearSelection();
                     _selectedFriendly = null;
+
+                    if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)
+                    {
+                        Debug.Log("[TargetSelector] Calling OnTargetSelected for tutorial");
+                        _tutorialSystem.OnTargetSelected();
+                    }
+                    else
+                    {
+                        Debug.Log($"[TargetSelector] Tutorial not notified. _tutorialSystem={(_tutorialSystem != null ? "OK" : "NULL")}, IsActive={_tutorialSystem?.IsTutorialActive}");
+                    }
                 }
             }
         }

@@ -133,8 +133,29 @@ namespace Exploration
             return deck;*/
         }
 
-        void OnEnable() => GlobalServices.EventBus.Subscribe<DuelEndedEvent>(OnDuelEnded);
-        void OnDisable() => GlobalServices.EventBus.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
+        void OnEnable()
+        {
+            try
+            {
+                GlobalServices.EventBus?.Subscribe<DuelEndedEvent>(OnDuelEnded);
+            }
+            catch (System.Exception)
+            {
+                // EventBus not initialized yet, skip subscription
+            }
+        }
+
+        void OnDisable()
+        {
+            try
+            {
+                GlobalServices.EventBus?.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
+            }
+            catch (System.Exception)
+            {
+                // EventBus not available, skip unsubscription
+            }
+        }
 
         void OnDuelEnded(DuelEndedEvent e)
         {

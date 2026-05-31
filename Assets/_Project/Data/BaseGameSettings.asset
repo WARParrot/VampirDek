@@ -14,3 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Data::GameSettings
   GlobalHints:
   - {fileID: 11400000, guid: 4852330ef5da94443902cc051e2eda61, type: 2}
+  - {fileID: 11400000, guid: 90b4e0e8a2ab5f4458399e67adeaf22a, type: 2}
+  - {fileID: 11400000, guid: 39a9296cf65b2fc43bd32e930419144d, type: 2}
+  - {fileID: 11400000, guid: 718317cceeb9fee498df0445ec9f163e, type: 2}
+  - {fileID: 11400000, guid: 7377834b63effbd4bb449445bea9f4f0, type: 2}

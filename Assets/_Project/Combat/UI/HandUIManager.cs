@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
+using Cysharp.Threading.Tasks;
 
 public class HandUIManager : MonoBehaviour
 {
@@ -21,6 +22,12 @@ public class HandUIManager : MonoBehaviour
 
     [Header("Status Texts")]
     public TextMeshProUGUI PlayerTownHPText, OpponentTownHPText, PlayerManaText, PlayerHumanResText, PhaseText;
+
+    [Header("Warnings")]
+    public ResourceWarningUI ResourceWarningUI;
+
+    [Header("Tutorial")]
+    public TutorialSystem TutorialSystem;
 
     private DuelManager _duelManager;
     private Dictionary<ICard, DragHandler> _cardViews = new();
@@ -40,7 +47,7 @@ public class HandUIManager : MonoBehaviour
         OpponentTownHPText.text = $"Opp Town HP: {state.OpponentSide.Town?.Health}";
         //PlayerManaText.text = $"Mana: {side.Mana}";
         PlayerHumanResText.text = $"HR: {side.HumanResources}";
-        PhaseText.text = $"Phase: {state.CurrentPhase.PhaseId}";
+        PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
 
         if (side.Hand.Count != _lastHandCount)
             RefreshHand(side);
@@ -52,6 +59,30 @@ public class HandUIManager : MonoBehaviour
                 kv.Value.enabled = allowDrag;
             _lastDragAllowed = allowDrag;
         }
+    }
+
+    private string GetPhaseDisplayText(PhaseNode phase)
+    {
+        if (phase == null) return "";
+
+        if (phase.Tags.Contains("BuildingPhase"))
+            return "Фаза строительства\nПеретащите карту на поле или подтвердите фазу";
+        if (phase.Tags.Contains("PlanningPhase"))
+            return "Фаза планирования\nВыберите цели для атаки";
+        if (phase.Tags.Contains("ClashingPhase"))
+            return "Фаза столкновений";
+        if (phase.Tags.Contains("OneSidedAttackPhase"))
+            return "Фаза атак";
+        if (phase.Tags.Contains("StartOfTurn"))
+            return "Начало хода";
+        if (phase.Tags.Contains("EndOfTurn"))
+            return "Конец хода";
+        if (phase.Tags.Contains("DuelStart"))
+            return "Начало дуэли";
+        if (phase.Tags.Contains("Loot"))
+            return "Награда";
+
+        return phase.PhaseId;
     }
 
     void RefreshHand(IPlayerSide side)
@@ -85,6 +116,11 @@ public class HandUIManager : MonoBehaviour
     {
         _currentlyDragging = handler;
         BoardView.ShowValidDropZones(handler.GetCard().Def.RowType);
+
+        if (TutorialSystem != null && TutorialSystem.IsTutorialActive)
+        {
+            TutorialSystem.OnCardDragStarted();
+        }
     }
 
     public void OnCardDragEnded(DragHandler handler, PointerEventData eventData)
@@ -102,6 +138,19 @@ public class HandUIManager : MonoBehaviour
             Debug.Log("[Drag] Not BuildingPhase - ignoring drop");
             BoardView.HideAllHighlights();
             return;
+        }
+
+        var def = card.Def;
+        foreach (var cost in def.Costs)
+        {
+            var ctx = new CostContext { PlayerSide = side, Amount = cost.GetAmount() };
+            if (!cost.CanPay(ctx))
+            {
+                Debug.Log($"[Drag] Cannot pay cost: {cost.GetCostText()}");
+                ShowResourceWarning(cost, side);
+                BoardView.HideAllHighlights();
+                return;
+            }
         }
 
         var results = new List<RaycastResult>();
@@ -124,18 +173,6 @@ public class HandUIManager : MonoBehaviour
             Debug.Log("[Drag] Slot is not a valid drop target");
             BoardView.HideAllHighlights();
             return;
-        }
-
-        var def = card.Def;
-        foreach (var cost in def.Costs)
-        {
-            var ctx = new CostContext { PlayerSide = side, Amount = cost.GetAmount() };
-            if (!cost.CanPay(ctx))
-            {
-                Debug.Log($"[Drag] Cannot pay cost: {cost.GetCostText()}");
-                BoardView.HideAllHighlights();
-                return;
-            }
         }
 
         foreach (var cost in def.Costs)
@@ -177,5 +214,27 @@ public class HandUIManager : MonoBehaviour
         Debug.Log($"[Drag] Card removed from hand, placement action queued.");
 
         BoardView.HideAllHighlights();
+    }
+
+    private void ShowResourceWarning(CardCost cost, IPlayerSide side)
+    {
+        if (ResourceWarningUI == null) return;
+
+        string warningMessage = "";
+
+        if (cost is ManaCost manaCost)
+        {
+            warningMessage = $"Нельзя использовать - не хватает маны\nТребуется: {manaCost.Amount}, Доступно: {side.Mana}";
+        }
+        else if (cost is HumanResourceCost hrCost)
+        {
+            warningMessage = $"Нельзя использовать - не хватает людей\nТребуется: {hrCost.Amount}, Доступно: {side.HumanResources}";
+        }
+        else
+        {
+            warningMessage = $"Нельзя использовать - недостаточно ресурсов\n{cost.GetCostText()}";
+        }
+
+        ResourceWarningUI.ShowWarningAsync(warningMessage).Forget();
     }
 }

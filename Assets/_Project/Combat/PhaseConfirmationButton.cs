@@ -6,6 +6,8 @@ using System.Collections;
 
 public class PhaseConfirmationButton : MonoBehaviour
 {
+    [SerializeField] private TutorialSystem _tutorialSystem;
+
     private Button _button;
     private DuelManager _duelManager;
 
@@ -27,14 +29,26 @@ public class PhaseConfirmationButton : MonoBehaviour
 
         _button = GetComponent<Button>();
         _button.onClick.AddListener(OnClick);
+
+        if (_tutorialSystem == null)
+        {
+            _tutorialSystem = FindObjectOfType<TutorialSystem>();
+        }
     }
 
     void Update()
     {
         if (_duelManager == null)
             return;
-        
-        var phase = _duelManager.CurrentDuelState.CurrentPhase;
+
+        var state = _duelManager.CurrentDuelState;
+        var phase = state?.CurrentPhase;
+        if (phase == null)
+        {
+            if (_button != null) _button.gameObject.SetActive(false);
+            return;
+        }
+
         bool show = phase.Tags.Contains("BuildingPhase") ||
                     phase.Tags.Contains("PlanningPhase");
         _button.gameObject.SetActive(show);
@@ -43,5 +57,10 @@ public class PhaseConfirmationButton : MonoBehaviour
     void OnClick()
     {
         DuelManagerProxy.Instance?.ConfirmCurrentPhase();
+
+        if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)
+        {
+            _tutorialSystem.OnPhaseConfirmed();
+        }
     }
 }

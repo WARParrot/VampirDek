@@ -30,6 +30,9 @@ namespace Exploration
         [Header("Visuals")]
         [SerializeField] private GameObject _visualRoot;
 
+        [Header("UI")]
+        [SerializeField] private InteractionPromptUI _interactionPromptUI;
+
         private InputController _input;
         private CharacterController _cc;
         private Camera _camera;
@@ -50,7 +53,7 @@ namespace Exploration
             _input = Object.FindAnyObjectByType<InputController>();
             if (_input == null)
             {
-                Debug.LogError("[ExplorationController] InputController not found in scene. Disabling.");
+                Debug.LogWarning("[ExplorationController] InputController not found in scene. Controller will be disabled until InputController is available.");
                 enabled = false;
                 return;
             }
@@ -191,6 +194,7 @@ namespace Exploration
         {
             if (!_isActive || GlobalServices.IsMenuOpen) return;
             ApplyMovement();
+            CheckInteractableInView();
         }
 
         private void ApplyMovement()
@@ -262,6 +266,31 @@ namespace Exploration
             transform.position = position;
             transform.rotation = rotation;
             if (cc != null) cc.enabled = true;
+        }
+
+        /// <summary>
+        /// Проверяет наличие интерактивного объекта в поле зрения и показывает подсказку
+        /// </summary>
+        private void CheckInteractableInView()
+        {
+            if (_interactionPromptUI == null) return;
+
+            if (Physics.Raycast(_camera.transform.position, _camera.transform.forward,
+                out RaycastHit hit, _interactRange, _interactMask))
+            {
+                var interactable = hit.collider.GetComponent<IInteractable>();
+                if (interactable != null)
+                {
+                    string promptText = string.IsNullOrEmpty(interactable.PromptText)
+                        ? "Нажмите [E] для взаимодействия"
+                        : interactable.PromptText;
+
+                    _interactionPromptUI.Show(promptText);
+                    return;
+                }
+            }
+
+            _interactionPromptUI.Hide();
         }
     }
 }
