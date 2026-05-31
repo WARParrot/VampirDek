@@ -169,3 +169,7 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# FMOD
+Assets/Plugins/FMOD/**/*.bundle text eol=lf
+Assets/Plugins/FMOD/**/Info.plist text eol=lf

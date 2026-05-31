@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
+using FMODUnity;
 
 public class HandUIManager : MonoBehaviour
 {
@@ -85,6 +86,8 @@ public class HandUIManager : MonoBehaviour
     {
         _currentlyDragging = handler;
         BoardView.ShowValidDropZones(handler.GetCard().Def.RowType);
+
+        RuntimeManager.PlayOneShot("event:/Duel/Cards/SelectCard", _currentlyDragging.transform.position);
     }
 
     public void OnCardDragEnded(DragHandler handler, PointerEventData eventData)
