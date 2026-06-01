@@ -38,14 +38,13 @@ public class PhaseConfirmationButton : MonoBehaviour
 
     void Update()
     {
-        if (_duelManager == null)
-            return;
+        if (_duelManager == null) return;
+        if (_button == null) return;
 
-        var state = _duelManager.CurrentDuelState;
-        var phase = state?.CurrentPhase;
+        var phase = _duelManager.CurrentDuelState?.CurrentPhase;
         if (phase == null)
         {
-            if (_button != null) _button.gameObject.SetActive(false);
+            _button.gameObject.SetActive(false);
             return;
         }
 

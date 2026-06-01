@@ -23,7 +23,16 @@ public class PlaceCardIntoSlotAction : IGameAction
     {
         Debug.Log($"[Action] Trying to place {_cardDef.CardName} into slot {_slot.AllowedRow}[{_slot.Index}]");
         bool success = _board.TryPlaceCardIntoSlot(_cardDef, _slot);
-        if (!success)
+        if (success)
+        {
+            var duelManager = Object.FindObjectOfType<DuelManager>();
+            var side = _board == duelManager.CurrentDuelState.PlayerSide.Board 
+                ? duelManager.CurrentDuelState.PlayerSide 
+                : duelManager.CurrentDuelState.OpponentSide;
+            var card = side.Hand.Find(c => c.Def == _cardDef);
+            if (card != null) side.Hand.Remove(card);
+        }
+        else
             GlobalServices.EventBus.Publish(new PlaceFailedEvent(_cardDef.CardName, "Placement failed"));
     }
 }

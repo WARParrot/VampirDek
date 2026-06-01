@@ -230,7 +230,7 @@ public class BoardView : MonoBehaviour
             bool empty = IsSlotEmpty(_duelManager.CurrentDuelState.PlayerSide.Board, slotRow, index);
             kv.Value.IsValidDropTarget = empty;
             kv.Value.SetHighlight(empty);
-            if (empty) Debug.Log($"[BoardView] Highlighted {kv.Key}");
+            if (empty) Debug.Log($"[BoardView] SetHighlight called for {kv.Key}, HighlightImage enabled={kv.Value.HighlightImage.enabled}, color={kv.Value.HighlightImage.color}");
         }
     }
 
@@ -329,4 +329,32 @@ public class BoardView : MonoBehaviour
             if (statsText != null) statsText.text = $"{card.Health}/{card.MaxHealth} ATK{card.Attack}";
         }
     }
+
+    public void HighlightRow(Definitions.RowType row, Color color)
+    {
+        string prefix = "P_"; // игрок
+        foreach (var kv in _slotUIs)
+        {
+            if (kv.Key.StartsWith(prefix) && kv.Key.Contains($"_{row}_"))
+            {
+                kv.Value.HighlightImage.color = color;
+                kv.Value.HighlightImage.enabled = true;
+            }
+        }
+    }
+
+    public IEnumerator ResetRowHighlight(Definitions.RowType row, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        string prefix = "P_";
+        foreach (var kv in _slotUIs)
+        {
+            if (kv.Key.StartsWith(prefix) && kv.Key.Contains($"_{row}_"))
+            {
+                kv.Value.HighlightImage.enabled = false;
+            }
+        }
+    }
+
+    public IEnumerable<BoardSlotUI> GetSlotUIs() => _slotUIs.Values;
 }

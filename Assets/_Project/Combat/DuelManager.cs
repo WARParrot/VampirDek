@@ -102,7 +102,7 @@ namespace Combat
                 });
             }
 
-            if (!_encounter.WinCondition.Check(_duelState))
+            if (_encounter.WinCondition != null && !_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
                 string json = JsonUtility.ToJson(dto);
@@ -194,10 +194,17 @@ namespace Combat
                     continue;
                 }
                 Debug.Log($"[DuelManager] Processing action: {action.Description}");
-                await action.ExecuteAsync();
+                try
+                {
+                    await action.ExecuteAsync();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
+                }
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                if (_encounter.WinCondition.Check(_duelState))
+                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
                 {
                     bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
                     if (playerWon)
@@ -259,17 +266,10 @@ namespace Combat
                 while (!_playerConfirmedPhase)
                 {
                     if (_actionQueue.Count > 0)
-                    {
-                        Debug.Log($"[Phase] Loop iteration - queue count: {_actionQueue.Count}");
-                        Debug.Log("[Phase] Processing actions...");
                         await ProcessActionsAsync();
-                        Debug.Log("[Phase] Actions processed.");
-                    }
                     else
-                    {
                         await UniTask.Yield();
-                    }
-                };
+                }
                 Debug.Log("[Phase] Confirmed - advancing.");
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
@@ -304,7 +304,7 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
 
-                if (_encounter.WinCondition.Check(_duelState))
+                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
                 {
                     _duelFinished = true;
                 }
@@ -546,7 +546,6 @@ namespace Combat
                 .Select(s => s.Occupant)
                 .ToArray();
 
-            // Используем AI для выбора целей
             foreach (var card in enemyVanguard)
             {
                 if (card == null || !card.IsAlive) continue;
