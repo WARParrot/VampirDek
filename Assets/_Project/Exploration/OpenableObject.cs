@@ -38,8 +38,8 @@ namespace Exploration
                 ? Quaternion.Euler(_openRotation)
                 : _closedRotation;
 
-#if DOTWEEN
-            _door.DOLocalRotateQuaternion(targetRotation, _animationTime);
+#if DOTWEEN && DOTWEEN_IMPORTED
+            _door.DOLocalRotate(targetRotation.eulerAngles, _animationTime);
 #else
             _door.localRotation = targetRotation;
 #endif

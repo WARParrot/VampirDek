@@ -7,9 +7,8 @@ namespace Definitions
     {
         public override bool Check(IDuelState state)
         {
-            if (!state.OpponentTown.IsAlive) return true;
-            if (!state.PlayerTown.IsAlive) return true;
-            return false;
+            return state?.OpponentTown?.IsAlive == false
+                || state?.PlayerTown?.IsAlive == false;
         }
     }
 }

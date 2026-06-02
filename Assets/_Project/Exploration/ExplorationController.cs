@@ -10,6 +10,7 @@ namespace Exploration
     {
         [Header("Movement")]
         [SerializeField] private float _walkSpeed = 5f;
+        [SerializeField] private float _rotationSpeed = 10f;
 
         [Header("Camera")]
         [SerializeField] private float _mouseSensitivity = 0.1f;

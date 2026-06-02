@@ -9,6 +9,10 @@ namespace Definitions
     [CreateAssetMenu(menuName = "Encounter")]
     public class CombatEncounter : ScriptableObject
     {
+        [SerializeField] private WinCondition winCondition;
+
+        public WinCondition WinCondition => winCondition;
+
         public string EncounterId;
 
         public string PlayerBoardLayoutId;

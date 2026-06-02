@@ -46,7 +46,11 @@ namespace Combat
 
         public async UniTask EnterAsync(object context)
         {
-            var ctx = (DuelStartContext) context;
+            if (context is not DuelStartContext ctx)
+            {
+                Debug.LogError($"Duel requires {nameof(DuelStartContext)} but got {context?.GetType().Name ?? "null"}.");
+                return;
+            }
             _playerPersistentDeck = ctx.PlayerPersistentDeck;
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
@@ -58,8 +62,51 @@ namespace Combat
                 ctx.SavedMatchState = savedDto;
             }
 
+            if (_encounter == null)
+            {
+                Debug.LogError("Cannot initialize duel: encounter is missing from the duel start context.");
+                return;
+            }
+
             List<CardDef> opponentDeckList = DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
             var playerDeckList = ctx.PlayerDeck;
+            if (playerDeckList == null || opponentDeckList == null)
+            {
+                Debug.LogError($"Cannot initialize duel: {(playerDeckList == null ? "player deck is missing" : "opponent deck is missing")}.");
+                return;
+            }
+
+            _opponentAI = new OpponentAI(AIStrategy.Balanced, 0.7f);
+
+            if (ctx.SavedMatchState != null)
+            {
+                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, playerDeckList, opponentDeckList);
+                await ResumeFromSaveAsync();
+            }
+            else
+            {
+                try
+                {
+                    _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
+                    await TransitionToPhaseAsync(_duelState.CurrentPhase);
+                }
+                catch (System.InvalidOperationException ex)
+                {
+                    Debug.LogError($"Failed to initialize duel: {ex.Message}");
+                    if (_leaveAction != null)
+                    {
+                        _leaveAction.performed -= OnLeaveDuel;
+                        _leaveAction.Disable();
+                        _leaveAction = null;
+                    }
+                    var director = GlobalServices.Director;
+                    if (director != null)
+                    {
+                        director.PopModeAsync().Forget();
+                    }
+                    return;
+                }
+            }
 
             var input = FindObjectOfType<InputController>();
             if (input != null)
@@ -72,25 +119,12 @@ namespace Combat
                 }
             }
 
-            _opponentAI = new OpponentAI(AIStrategy.Balanced, 0.7f);
-
-            if (ctx.SavedMatchState != null)
-            {
-                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, playerDeckList, opponentDeckList);
-                await ResumeFromSaveAsync();
-            }
-            else
-            {
-                _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
-                await TransitionToPhaseAsync(_duelState.CurrentPhase);
-            }
-
             GlobalServices.EventBus.Publish(new DuelStartedEvent(_encounter));
         }
 
         public async UniTask ExitAsync()
         {
-            if (_duelFinished)
+            if (_duelFinished && _duelState?.OpponentSide?.Town != null)
             {
                 bool playerWon = !_duelState.OpponentSide.Town.IsAlive;
                 GlobalServices.EventBus.Publish(new DuelResultEvent
@@ -148,7 +182,15 @@ namespace Combat
         private void OnLeaveDuel(InputAction.CallbackContext ctx)
         {
             if (GlobalServices.IsMenuOpen) return;
-            GlobalServices.Director.PopModeAsync().Forget();
+
+            var director = GlobalServices.Director;
+            if (director == null)
+            {
+                Debug.LogWarning("Cannot leave duel: GameDirector service is not available.");
+                return;
+            }
+
+            director.PopModeAsync().Forget();
         }
 
         private void OnDestroy()
