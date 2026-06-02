@@ -1,38 +1,22 @@
 using System.Collections.Generic;
 using Definitions;
-using UnityEngine;
-using UnityEngine.AddressableAssets;
 
 namespace Combat
 {
     public static class EnchantmentDatabase
     {
-        private static Dictionary<string, EnchantmentData> _cache = new();
+        private static readonly Dictionary<string, EnchantmentData> _cache = new();
 
-        [RuntimeInitializeOnLoadMethod]
-        public static void Warmup()
+        public static void RegisterEnchantment(EnchantmentData ench)
         {
-            var handle = Addressables.LoadAssetsAsync<EnchantmentData>("Enchantments", null);
-            handle.Completed += result =>
-            {
-                foreach (var ench in result.Result)
-                    _cache[ench.DisplayName] = ench;
-            };
+            if (ench != null && !string.IsNullOrEmpty(ench.DisplayName))
+                _cache[ench.DisplayName] = ench;
         }
 
-        public static void RegisterEnchantment(EnchantmentData enchantment)
+        public static EnchantmentData GetEnchantment(string displayName)
         {
-            if (!string.IsNullOrEmpty(enchantment?.DisplayName))
-                _cache[enchantment.DisplayName] = enchantment;
-        }
-
-        public static EnchantmentData Get(string displayName)
-        {
-            if (_cache.TryGetValue(displayName, out var data))
-                return data;
-            var handle = Addressables.LoadAssetAsync<EnchantmentData>(displayName);
-            handle.WaitForCompletion();
-            return handle.Result;
+            _cache.TryGetValue(displayName, out var ench);
+            return ench;
         }
     }
 }

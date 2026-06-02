@@ -1,6 +1,7 @@
 using Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using FMODUnity;
 
 namespace Exploration
 {
@@ -208,6 +209,16 @@ namespace Exploration
 
             Vector3 desiredMove = camForward * _moveInput.y + camRight * _moveInput.x;
             _cc.Move(desiredMove * (_walkSpeed * Time.deltaTime));
+
+            if (desiredMove.sqrMagnitude > 0.01f && _moveInput.y >= 0)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(desiredMove);
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation, targetRotation, _rotationSpeed * Time.deltaTime);
+            }
+
+            if (desiredMove.sqrMagnitude > 0.01f)
+                RuntimeManager.PlayOneShot("event:/Exploration/Player/Footsteps", _camera.transform.position);
         }
 
         private void OnMove(InputAction.CallbackContext ctx) => _moveInput = ctx.ReadValue<Vector2>();

@@ -15,7 +15,7 @@ namespace Exploration
 {
     public class EncounterPoint : MonoBehaviour
     {
-        public CombatEncounter Encounter;
+        public string EncounterId;
         public string UniqueTableId;
 
         [Header("Fallback Deck")]
@@ -40,7 +40,20 @@ namespace Exploration
             if (!instant)
                 SceneTransitionManager.Instance.SaveCameraState();
 
-            var loadHandle = Addressables.LoadSceneAsync(Encounter.DuelScene, LoadSceneMode.Additive);
+            var encounter = EncounterDatabase.GetEncounter(EncounterId);
+            if (encounter == null)
+            {
+                Debug.LogError($"[EncounterPoint] Encounter '{EncounterId}' not found in database.");
+                return;
+            }
+
+            if (encounter.DuelScene == null || !encounter.DuelScene.RuntimeKeyIsValid())
+            {
+                Debug.LogError($"[EncounterPoint] Encounter '{EncounterId}' has no valid DuelScene.");
+                return;
+            }
+
+            var loadHandle = encounter.DuelScene.LoadSceneAsync(LoadSceneMode.Additive);
             var duelLoadUniTask = loadHandle.Task.AsUniTask();
 
             if (instant)
@@ -90,7 +103,7 @@ namespace Exploration
 
             var context = new DuelStartContext
             {
-                Encounter = Encounter,
+                Encounter = encounter,
                 PlayerDeck = playerDeck,
                 PlayerPersistentDeck = DefaultPlayerDeck,
                 TableId = UniqueTableId,
@@ -108,7 +121,7 @@ namespace Exploration
                 var deck = new List<CardDef>();
                 foreach (var cardId in GlobalServices.PlayerData.ActiveDeckCardIds)
                 {
-                    var cardDef = await CardDatabase.GetCardAsync(cardId);
+                    var cardDef = CardDatabase.GetCard(cardId);
                     if (cardDef != null) deck.Add(cardDef);
                 }
                 if (deck.Count > 0) return deck;

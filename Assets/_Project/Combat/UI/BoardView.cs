@@ -41,8 +41,8 @@ public class BoardView : MonoBehaviour
         _duelManager = DuelManagerProxy.Instance;
         var encounter = _duelManager.CurrentDuelState.Encounter;
 
-        InitializeLayout(encounter.PlayerBoardLayout, PlayerBoardContainer, true);
-        InitializeLayout(encounter.OpponentBoardLayout, OpponentBoardContainer, false);
+        InitializeLayout(BoardLayoutDatabase.GetLayout(encounter.PlayerBoardLayoutId), PlayerBoardContainer, true);
+        InitializeLayout(BoardLayoutDatabase.GetLayout(encounter.OpponentBoardLayoutId), OpponentBoardContainer, false);
 
         if (!_subscribed)
         {

@@ -58,7 +58,7 @@ namespace Combat
                 ctx.SavedMatchState = savedDto;
             }
 
-            List<CardDef> opponentDeckList = _encounter.OpponentDeck?.Cards;
+            List<CardDef> opponentDeckList = DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
             var playerDeckList = ctx.PlayerDeck;
 
             var input = FindObjectOfType<InputController>();
@@ -102,7 +102,7 @@ namespace Combat
                 });
             }
 
-            if (_encounter.WinCondition != null && !_encounter.WinCondition.Check(_duelState))
+            if ((_encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId))?.Check(_duelState) != true)
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
                 string json = JsonUtility.ToJson(dto);
@@ -204,7 +204,7 @@ namespace Combat
                 }
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
+                if ((_encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId))?.Check(_duelState) == true)
                 {
                     bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
                     if (playerWon)
@@ -304,7 +304,7 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
 
-                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
+                if ((_encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId))?.Check(_duelState) == true)
                 {
                     _duelFinished = true;
                 }
@@ -569,7 +569,7 @@ namespace Combat
             var rewardPool = _encounter.RewardCardPool;
             if (rewardPool == null || rewardPool.Count < 3)
             {
-                Debug.LogError("RewardCardPool должен содержать хотя бы 3 карты!");
+                Debug.LogError("RewardCardPool must contain at least 3 cards.");
                 return;
             }
 
@@ -579,7 +579,7 @@ namespace Combat
             var cardSelectionUI = FindObjectOfType<CardSelectionUI>(true);
             if (cardSelectionUI == null)
             {
-                Debug.LogError("CardSelectionUI не найден в сцене!");
+                Debug.LogError("CardSelectionUI not found in scene.");
                 return;
             }
             CardDef chosen = await cardSelectionUI.ShowAsync(selected);
@@ -612,7 +612,7 @@ namespace Combat
             }
             else
             {
-                Debug.LogError("PlayerPersistentDeck не задан в DuelManager!");
+                Debug.LogError("PlayerPersistentDeck not found in DuelManager.");
             }
         }
 

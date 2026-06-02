@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BoardLayout
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: BoardLayout
+  m_GUID: f5cb8abf21bcf9445b2df7299c206638
+  m_SerializeEntries:
+  - m_GUID: cc3871db6e844764bb91a2983284a759
+    m_Address: Assets/_Project/Data/BoardLayouts/Standard_BoardLayout.asset
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Layouts
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 921a5cfb71642824e9b87814cbad2285, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: f0b33afd09e24a14082c30fe89076fb7, type: 2}
+    - {fileID: 11400000, guid: 6d6be136761d8da47835f8759a2ff724, type: 2}

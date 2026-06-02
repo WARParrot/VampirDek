@@ -10,6 +10,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using Cysharp.Threading.Tasks;
+using FMODUnity;
 
 public class HandUIManager : MonoBehaviour
 {
@@ -160,6 +161,8 @@ public class HandUIManager : MonoBehaviour
         {
             TutorialSystem.OnCardDragStarted();
         }
+
+        RuntimeManager.PlayOneShot("event:/Duel/Cards/SelectCard", _currentlyDragging.transform.position);
     }
 
     public void OnCardDragEnded(DragHandler handler, PointerEventData eventData)

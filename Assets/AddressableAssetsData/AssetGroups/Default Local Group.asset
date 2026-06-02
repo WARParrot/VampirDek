@@ -15,31 +15,18 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: c77554e8b8c196a47acaddfd7f305184
   m_SerializeEntries:
-  - m_GUID: 0373980d6ef3b4043ae8885512cf570d
-    m_Address: Assets/_Project/Combat/Data/Enchantments/EnchantmentShileld.asset
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Enchantments
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 062e786ceab23ee48a1e2120157f0328
-    m_Address: Assets/_Project/Data/Cards/UsualBuilding.asset
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Cards
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 07a52f246be6d834ca13b8eef289cc3f
     m_Address: Assets/_Project/Data/HintConditions/HandContainsVanguardRowCondition.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 0e4e0c3b5a0af664f80d8883e81aff9b
-    m_Address: Assets/_Project/Data/Cards/VampireFodder.asset
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Cards
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 12757641de249a64faefbc67f1bc491b
     m_Address: Assets/_Project/Data/PhaseNodes/ClashingPhase.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a17e0981796d70489472a369b4242b2
+    m_Address: Assets/_Project/Combat/Data/Enchantments/IncreaseHumanResource1.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -63,44 +50,24 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 3c887e6a3e8b69a419370f7b4504cde7
-    m_Address: Assets/_Project/Data/WinConditions/Standard_TakeTownWinCondition.asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 43385d1020cc08a46b90253dfe05c004
     m_Address: Assets/_Project/Art/polnotsenka_khitraya 1.png
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 469347e2fe177fd49b902bdb3af6fa05
-    m_Address: Assets/_Project/Combat/Data/Decks/TestOpponentDeck.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4852330ef5da94443902cc051e2eda61
     m_Address: Assets/_Project/Data/Hints/VanguardInHandHint.asset
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - Hints
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5c5b79c97b077d64ba856b3106c822da
     m_Address: Assets/_Project/Data/PhaseNodes/DuelEnd.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 77267488830e80047ad4f64a9490f67e
-    m_Address: Assets/_Project/Data/Cards/Human.asset
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Cards
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7f8de97da7b4622468f86aeac29c7fed
     m_Address: TestNovel
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 943d0785e935cb443b367e0d551da40c
-    m_Address: Assets/_Project/Data/PhaseGraphs/Standard_Phases.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -109,29 +76,13 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: b3db4b073aad97845bbbd487d81653c1
-    m_Address: Assets/_Project/Combat/Data/Decks/FallbackDeck.asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b87cad2ab5e321b4c8c0852d29dac269
     m_Address: Assets/_Project/Data/PhaseNodes/OneSidedAttackPhase.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ca78c32cb6a273440a611cabd33b3df8
-    m_Address: Assets/_Project/Combat/Data/Enchantments/EnchantmentAttack.asset
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Enchantments
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cc15bc8810ceeb446a0d4ac0c60adcb1
     m_Address: Assets/_Project/Combat/Data/Costs/HumanSacrifice.asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: cc3871db6e844764bb91a2983284a759
-    m_Address: Assets/_Project/Data/BoardLayouts/Standard_BoardLayout.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -150,21 +101,10 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: d6f9808d523bb3647a75a645d5f6dc88
-    m_Address: TestEncounter
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: dfcdab09cda31684fa68f04c9067488e
     m_Address: Assets/_Project/Data/ActionDefs/Standard_HumanResourcePay.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: f07f6756f740eb645a54c0c1a875c616
-    m_Address: Assets/_Project/Data/Cards/BaseTown.asset
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Cards
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f2469e6f16486a248966d06805d4cdda
     m_Address: Assets/_Project/Data/Costs/One_HumanResourceCost.asset

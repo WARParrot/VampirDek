@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BaseDecks
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: BaseDecks
+  m_GUID: 14cc3db0b9f25d844bf48118d9e844e3
+  m_SerializeEntries:
+  - m_GUID: 469347e2fe177fd49b902bdb3af6fa05
+    m_Address: Assets/_Project/Combat/Data/Decks/TestOpponentDeck.asset
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Decks
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b3db4b073aad97845bbbd487d81653c1
+    m_Address: Assets/_Project/Combat/Data/Decks/FallbackDeck.asset
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Decks
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 921a5cfb71642824e9b87814cbad2285, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 4c073b0312a90b1468945c4a51584b71, type: 2}
+    - {fileID: 11400000, guid: 0028babaf1f612d46a06af19dc17339c, type: 2}
