@@ -772,6 +772,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 282908115}
+  - {fileID: 897195892}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &379841486
@@ -790,7 +791,7 @@ MonoBehaviour:
   UniqueTableId: Table00
   DefaultPlayerDeck: {fileID: 11400000, guid: b3db4b073aad97845bbbd487d81653c1, type: 2}
   _worldTableVisual: {fileID: 282908112}
-  _cameraSeat: {fileID: 1559869530}
+  _cameraSeat: {fileID: 897195892}
 --- !u!65 &379841487
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1098,6 +1099,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0071546678, y: 0.0016000004, z: 0.007299997}
   m_Center: {x: 8.1490725e-10, y: 0.0000000061118035, z: 0.0017833321}
+--- !u!1 &897195891
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 897195892}
+  m_Layer: 0
+  m_Name: SeatView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &897195892
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897195891}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.24818268, y: -0, z: -0, w: 0.9687133}
+  m_LocalPosition: {x: -0.389, y: 1.93, z: -2.5199995}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 379841485}
+  m_LocalEulerAnglesHint: {x: 28.74, y: 0, z: 0}
 --- !u!1 &946018289
 GameObject:
   m_ObjectHideFlags: 0
@@ -2170,37 +2202,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1534032361}
   m_CullTransparentMesh: 1
---- !u!1 &1559869529
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1559869530}
-  m_Layer: 0
-  m_Name: CameraDuelPivot
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1559869530
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1559869529}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.24818268, y: 0, z: 0, w: 0.9687133}
-  m_LocalPosition: {x: 0.091, y: 2.284, z: 6.042}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 28.74, y: 0, z: 0}
 --- !u!1 &1569034345
 GameObject:
   m_ObjectHideFlags: 0
@@ -2664,7 +2665,6 @@ SceneRoots:
   - {fileID: 354013813}
   - {fileID: 287642678}
   - {fileID: 379841485}
-  - {fileID: 1559869530}
   - {fileID: 113980692}
   - {fileID: 204056656}
   - {fileID: 1122461688}
