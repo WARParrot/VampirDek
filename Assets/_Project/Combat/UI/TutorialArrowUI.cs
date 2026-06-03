@@ -29,6 +29,7 @@ namespace Combat
 
             if (_arrowImage != null)
             {
+                _arrowImage.raycastTarget = false;
                 Hide();
             }
         }
@@ -89,7 +90,11 @@ namespace Combat
             _targetUIElement = null;
             _isVisible = true;
             _pulseTime = 0f;
-            if (_arrowImage != null) _arrowImage.enabled = true;
+            if (_arrowImage != null)
+            {
+                _arrowImage.raycastTarget = false;
+                _arrowImage.enabled = true;
+            }
         }
 
         /// <summary>
@@ -101,7 +106,11 @@ namespace Combat
             _targetObject = null;
             _isVisible = true;
             _pulseTime = 0f;
-            if (_arrowImage != null) _arrowImage.enabled = true;
+            if (_arrowImage != null)
+            {
+                _arrowImage.raycastTarget = false;
+                _arrowImage.enabled = true;
+            }
             Debug.Log($"[TutorialArrowUI] PointToUI: target={target?.name ?? "NULL"}, _arrowTransform={(_arrowTransform != null ? "OK" : "NULL")}, _arrowImage={(_arrowImage != null ? "OK" : "NULL")}");
         }
 

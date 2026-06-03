@@ -38,6 +38,12 @@ namespace Combat.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            if (_handManager != null && !_handManager.CanStartCardDrag())
+            {
+                IsDragging = false;
+                return;
+            }
+
             _canvasGroup.alpha = 0.6f;
             _canvasGroup.blocksRaycasts = false;
             IsDragging = true;
@@ -45,11 +51,16 @@ namespace Combat.UI
             _handManager.OnCardDragStarted(this);
         }
 
-        public void OnDrag(PointerEventData eventData) =>
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (!IsDragging) return;
             _rectTransform.anchoredPosition += eventData.delta / _canvas.scaleFactor;
+        }
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (!IsDragging) return;
+
             _canvasGroup.alpha = 1f;
             _canvasGroup.blocksRaycasts = true;
             IsDragging = false;

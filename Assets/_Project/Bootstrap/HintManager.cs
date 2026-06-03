@@ -28,6 +28,11 @@ namespace Core
         public void SetHintUI(HintUI hintUI)
         {
             _hintUI = hintUI;
+            if (_hintUI != null)
+            {
+                // Legacy hint popups are disabled; TutorialSystem owns onboarding copy.
+                _hintUI.gameObject.SetActive(false);
+            }
         }
 
         public void Initialize()
@@ -53,8 +58,14 @@ namespace Core
 
         private void OnDuelStarted(DuelStartedEvent e)
         {
-            if (e.Encounter == null) return;
-            LoadEncounterHints(e.Encounter);
+            // Combat uses TutorialSystem now. Legacy HintUI popups/placeholders can cover the board
+            // and steal raycasts, so keep them out of duel scenes entirely.
+            if (_hintUI != null)
+            {
+                _hintUI.gameObject.SetActive(false);
+            }
+            _hintQueue.Clear();
+            _isShowing = false;
         }
 
         private void OnDuelEnded()
@@ -64,6 +75,11 @@ namespace Core
 
         private void OnHintEvent(HintEvent evt)
         {
+            if (evt.Mode == GameMode.Combat)
+            {
+                return;
+            }
+
             Debug.Log($"[HintManager] Received event: {evt.Tag}, Mode: {evt.Mode}, Context: {evt.Context != null}");
 
             GameMode currentMode = evt.Mode;

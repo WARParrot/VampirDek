@@ -51,10 +51,17 @@ public class PhaseConfirmationButton : MonoBehaviour
         bool show = phase.Tags.Contains("BuildingPhase") ||
                     phase.Tags.Contains("PlanningPhase");
         _button.gameObject.SetActive(show);
+        _button.interactable = !show || _tutorialSystem == null || !_tutorialSystem.IsTutorialActive || _tutorialSystem.AllowsPhaseConfirmation();
     }
 
     void OnClick()
     {
+        if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive && !_tutorialSystem.AllowsPhaseConfirmation())
+        {
+            Debug.Log("[PhaseCButton] Tutorial blocked phase confirmation until the current tutorial step is completed.");
+            return;
+        }
+
         DuelManagerProxy.Instance?.ConfirmCurrentPhase();
 
         if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)

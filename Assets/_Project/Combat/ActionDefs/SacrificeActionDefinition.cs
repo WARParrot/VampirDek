@@ -10,11 +10,18 @@ namespace Combat
 
         public override IGameAction CreateAction(ICostContext context)
         {
-            var board = context.PlayerSide.Board;
-            var target = board.GetFirstAliveCardInRow(_requiredRowType);
-            if (target == null) return null;
+            if (context?.PlayerSide?.Board == null) return null;
 
-            return new SacrificeAction(target, board);
+            var rowType = _requiredRowType;
+            var amount = context.Amount;
+            if (context is SacrificeCostContext sacrificeContext && sacrificeContext.Cost != null)
+            {
+                rowType = sacrificeContext.RequiredRowType;
+                amount = sacrificeContext.RequiredAmount;
+            }
+
+            if (amount <= 0) return null;
+            return new SacrificeAction(context.PlayerSide.Board, rowType, amount);
         }
     }
 }

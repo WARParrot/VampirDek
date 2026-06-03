@@ -54,14 +54,22 @@ namespace Combat.UI
                 var slotUI = GetBoardSlotUnderMouse();
                 if (slotUI == null) return;
 
+                // Forward polling/raycast clicks into the same controller used by BoardSlotUI.OnPointerClick.
+                // This preserves a robust click fallback without keeping a second selected-attacker state.
+                if (PlanningPhaseController.Instance != null)
+                {
+                    PlanningPhaseController.Instance.HandleSlotClick(slotUI);
+                    return;
+                }
+
                 var board = slotUI.Board;
                 var card = slotUI.Occupant;
 
-                if (board == state.PlayerSide.Board && card != null && card.IsAlive && card.TypeOfRow == Definitions.RowType.Vanguard)
+                if (board == state.PlayerSide.Board && IsAttackCapable(card))
                 {
                     SelectFriendly(card);
                 }
-                else if (board == state.OpponentSide.Board && _selectedFriendly != null)
+                else if (board == state.OpponentSide.Board && _selectedFriendly != null && card != null && card.IsAlive)
                 {
                     _selectedFriendly.PlannedTarget = card;
                     ClearSelection();
@@ -82,10 +90,60 @@ namespace Combat.UI
 
         private BoardSlotUI GetBoardSlotUnderMouse()
         {
-            var pointer = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
-            var results = new List<RaycastResult>();
-            EventSystem.current.RaycastAll(pointer, results);
-            return results.Select(r => r.gameObject.GetComponent<BoardSlotUI>()).FirstOrDefault(s => s != null);
+            var mousePosition = Input.mousePosition;
+
+            if (EventSystem.current != null)
+            {
+                var pointer = new PointerEventData(EventSystem.current) { position = mousePosition };
+                var results = new List<RaycastResult>();
+                EventSystem.current.RaycastAll(pointer, results);
+                var raycastSlot = results
+                    .Select(r => r.gameObject.GetComponentInParent<BoardSlotUI>())
+                    .FirstOrDefault(s => s != null);
+                if (raycastSlot != null) return raycastSlot;
+            }
+
+            // Some tutorial/global UI can still sit above the board in the GraphicRaycaster even
+            // when it is visually transparent. When that happens, fall back to the authored slot
+            // rectangles instead of making the player click repeatedly until a raycast slips through.
+            return FindSlotByRect(mousePosition);
+        }
+
+        private static BoardSlotUI FindSlotByRect(Vector2 screenPosition)
+        {
+            var candidates = FindObjectsOfType<BoardSlotUI>(false);
+            BoardSlotUI best = null;
+            var bestArea = float.MaxValue;
+
+            foreach (var slot in candidates)
+            {
+                if (slot == null || !slot.gameObject.activeInHierarchy) continue;
+                var rect = slot.transform as RectTransform;
+                if (rect == null) continue;
+
+                var canvas = slot.GetComponentInParent<Canvas>();
+                var camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                    ? canvas.worldCamera
+                    : null;
+
+                if (!RectTransformUtility.RectangleContainsScreenPoint(rect, screenPosition, camera)) continue;
+
+                var corners = new Vector3[4];
+                rect.GetWorldCorners(corners);
+                var area = Mathf.Abs((corners[2].x - corners[0].x) * (corners[2].y - corners[0].y));
+                if (area < bestArea)
+                {
+                    best = slot;
+                    bestArea = area;
+                }
+            }
+
+            return best;
+        }
+
+        private static bool IsAttackCapable(BoardCard card)
+        {
+            return card != null && card.IsAlive && card.Attack > 0;
         }
 
         private void SelectFriendly(BoardCard card)
@@ -93,6 +151,15 @@ namespace Combat.UI
             if (_selectedFriendly != null) ClearSelection();
             _selectedFriendly = card;
             _boardView.SetCardHighlight(card, FriendlyColor);
+
+            if (_tutorialSystem == null)
+            {
+                _tutorialSystem = FindObjectOfType<TutorialSystem>(true);
+            }
+            if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)
+            {
+                _tutorialSystem.OnAttackerCardSelected();
+            }
 
             foreach (var slot in _duelManager.CurrentDuelState.OpponentSide.Board.AllSlots())
             {

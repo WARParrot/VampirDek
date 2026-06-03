@@ -5,7 +5,6 @@ using Core;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 using System;
-
 namespace Combat
 {
     /// <summary>
@@ -18,55 +17,49 @@ namespace Combat
         [SerializeField] private bool _isTutorialEncounter = false;
         [SerializeField] private bool _forceShowAlways = false;
         [SerializeField] private List<TutorialStep> _tutorialSteps = new List<TutorialStep>();
-
         [Header("UI References")]
         [SerializeField] private TutorialArrowUI _arrowUI;
         [SerializeField] private TutorialMessageUI _messageUI;
         [SerializeField] private CanvasGroup _screenDimmer;
         [SerializeField] private HandUIManager _handUIManager;
-
         private int _currentStepIndex = 0;
         private bool _tutorialActive = false;
+        private bool _tutorialCompletedThisSession = false;
         private DuelManager _duelManager;
         private EventBus _eventBus;
         private CancellationTokenSource _cts;
-
         private bool _cardDragged = false;
         private bool _cardPlaced = false;
         private bool _targetSelected = false;
         private bool _phaseConfirmed = false;
-
+        private bool _waitingForRequiredPhase = false;
+        private bool _advancePending = false;
+        private float _stepShownAt = 0f;
+        private const float MinimumInteractiveReadSeconds = 2.5f;
         private void Start()
         {
             if (!_isTutorialEncounter) return;
-
             if (!_forceShowAlways && PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1)
             {
                 Debug.Log("[TutorialSystem] Tutorial already completed, skipping.");
                 return;
             }
-
             if (_handUIManager == null)
             {
                 _handUIManager = FindObjectOfType<HandUIManager>();
             }
-
             _eventBus = GlobalServices.EventBus;
             if (_eventBus == null)
             {
                 Debug.LogError("[TutorialSystem] EventBus not found!");
                 return;
             }
-
             SubscribeToEvents();
         }
-
         private const string TutorialCompletedKey = "combat_tutorial_completed";
-
         private void Update()
         {
             if (!_isTutorialEncounter) return;
-
             if (_tutorialActive)
             {
                 var step = GetCurrentStep();
@@ -76,88 +69,124 @@ namespace Combat
                 }
                 return;
             }
-
+            // _forceShowAlways means "show on every tutorial duel even if PlayerPrefs says completed".
+            // It must not restart the tutorial in a loop after it completed in the same duel scene.
+            if (_tutorialCompletedThisSession) return;
             if (!_forceShowAlways && PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1) return;
-
             if (_duelManager == null)
             {
                 _duelManager = FindObjectOfType<DuelManager>();
             }
-
             if (_duelManager != null && _duelManager.CurrentDuelState != null && !_tutorialActive)
             {
                 StartTutorial();
             }
         }
-
         private void OnDestroy()
         {
             UnsubscribeFromEvents();
             _cts?.Cancel();
             _cts?.Dispose();
         }
-
         private void SubscribeToEvents()
         {
             _eventBus.Subscribe<PhaseEnterEvent>(OnPhaseEnter);
             _eventBus.Subscribe<ActionExecutedEvent>(OnActionExecuted);
         }
-
         private void UnsubscribeFromEvents()
         {
             if (_eventBus == null) return;
-
             _eventBus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
             _eventBus.Unsubscribe<ActionExecutedEvent>(OnActionExecuted);
         }
-
         private void OnPhaseEnter(PhaseEnterEvent evt)
         {
             if (!_tutorialActive) return;
-
             var step = GetCurrentStep();
             if (step == null) return;
-
             if (step.CompletionCondition == TutorialStepCondition.PhaseEntered)
             {
                 if (string.IsNullOrEmpty(step.RequiredPhaseTag) ||
                     evt.Tags.Contains(step.RequiredPhaseTag))
                 {
-                    NextStep();
+                    AdvanceAfterReadTime().Forget();
                 }
             }
         }
-
         private void OnActionExecuted(ActionExecutedEvent evt)
         {
             if (!_tutorialActive) return;
-
             var step = GetCurrentStep();
             if (step == null) return;
-
             if (evt.Action is PlaceCardIntoSlotAction)
             {
                 _cardPlaced = true;
                 if (step.CompletionCondition == TutorialStepCondition.CardPlaced)
                 {
-                    NextStep();
+                    AdvanceAfterReadTime().Forget();
                 }
             }
-
             if (step.CompletionCondition == TutorialStepCondition.ActionExecuted)
             {
-                NextStep();
+                AdvanceAfterReadTime().Forget();
             }
         }
-
         private void StartTutorial()
         {
+            // Keep tutorial content data-driven from TutorialStepsData instead of stale scene-serialized lists.
+            // Older scene overrides are easy to forget and were the reason dynamic arrows silently disappeared.
+            var defaultSteps = TutorialStepsData.CreateDefaultSteps();
+            _tutorialSteps = defaultSteps;
+            EnsureTutorialOpeningHand();
             _tutorialActive = true;
+            _tutorialCompletedThisSession = false;
             _currentStepIndex = 0;
             _cts = new CancellationTokenSource();
-
             Debug.Log("[TutorialSystem] Tutorial started!");
             ShowCurrentStep();
+        }
+        private int _tutorialCardInstanceId = -100000;
+        private void EnsureTutorialOpeningHand()
+        {
+            var side = _duelManager?.CurrentDuelState?.PlayerSide;
+            if (side == null) return;
+            EnsureCardInHand(side, "Human");
+            EnsureCardInHand(side, "Vampire");
+            _handUIManager?.RefreshHandImmediately();
+        }
+
+        private void EnsureCardInHand(SideState side, string cardName)
+        {
+            if (side == null || string.IsNullOrEmpty(cardName)) return;
+            foreach (var card in side.Hand)
+            {
+                if (card?.Def != null && card.Def.CardName == cardName) return;
+            }
+            if (side.Hand.Count >= SideState.MaxHandSize)
+            {
+                for (int i = side.Hand.Count - 1; i >= 0; i--)
+                {
+                    var existingName = side.Hand[i]?.Def?.CardName;
+                    if (existingName != "Human" && existingName != "Vampire")
+                    {
+                        side.Hand.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+            if (side.Hand.Count >= SideState.MaxHandSize)
+            {
+                Debug.LogWarning($"[TutorialSystem] Cannot add tutorial card '{cardName}': hand is full of protected tutorial cards.");
+                return;
+            }
+            var def = CardDatabase.GetCard(cardName);
+            if (def == null)
+            {
+                Debug.LogWarning($"[TutorialSystem] Cannot add tutorial card '{cardName}': card definition was not found.");
+                return;
+            }
+            side.AddCardToHand(new Card(def, _tutorialCardInstanceId--));
+            Debug.Log($"[TutorialSystem] Added guaranteed tutorial card to hand: {cardName}");
         }
 
         private void ShowCurrentStep()
@@ -167,25 +196,38 @@ namespace Combat
                 EndTutorial();
                 return;
             }
-
             var step = _tutorialSteps[_currentStepIndex];
-
+            if (ShouldSkipStepForCurrentState(step))
+            {
+                Debug.Log($"[TutorialSystem] Skipping irrelevant step {_currentStepIndex}: {step.CompletionCondition}");
+                _currentStepIndex++;
+                ShowCurrentStep();
+                return;
+            }
+            if (!IsStepPhaseReady(step))
+            {
+                WaitForRequiredPhaseThenShow(_currentStepIndex, step.RequiredPhaseTag).Forget();
+                return;
+            }
+            _stepShownAt = Time.unscaledTime;
+            _advancePending = false;
             Debug.Log($"[TutorialSystem] Showing step {_currentStepIndex}: {step.Message}");
-
             if (_screenDimmer != null)
             {
                 _screenDimmer.alpha = step.DimScreen ? 0.5f : 0f;
+                // The dimmer is only visual. If it blocks raycasts, tutorial-highlighted
+                // board cards/buttons feel randomly unclickable depending on overlay order.
+                _screenDimmer.blocksRaycasts = false;
+                _screenDimmer.interactable = false;
             }
-
             if (_messageUI != null)
             {
-                _messageUI.ShowMessage(step.Message);
+                _messageUI.ShowMessage(BuildContextualMessage(step));
             }
             else
             {
                 Debug.LogWarning("[TutorialSystem] MessageUI is not assigned!");
             }
-
             if (_arrowUI != null)
             {
                 if (step.DynamicArrow != DynamicArrowTarget.None)
@@ -205,39 +247,98 @@ namespace Combat
                     _arrowUI.Hide();
                 }
             }
-
             ResetStepFlags();
             ProcessStepCondition(step).Forget();
         }
-
+        private bool IsStepPhaseReady(TutorialStep step)
+        {
+            if (step == null || string.IsNullOrEmpty(step.RequiredPhaseTag)) return true;
+            var tags = _duelManager?.CurrentDuelState?.CurrentPhase?.Tags;
+            return tags != null && tags.Contains(step.RequiredPhaseTag);
+        }
+        private async UniTaskVoid WaitForRequiredPhaseThenShow(int stepIndex, string requiredPhaseTag)
+        {
+            if (_waitingForRequiredPhase) return;
+            _waitingForRequiredPhase = true;
+            try
+            {
+                while (_tutorialActive && _currentStepIndex == stepIndex)
+                {
+                    var step = GetCurrentStep();
+                    if (step == null || string.IsNullOrEmpty(requiredPhaseTag) || IsStepPhaseReady(step))
+                    {
+                        break;
+                    }
+                    await UniTask.Yield(PlayerLoopTiming.Update, _cts?.Token ?? this.GetCancellationTokenOnDestroy());
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            finally
+            {
+                _waitingForRequiredPhase = false;
+            }
+            if (_tutorialActive && _currentStepIndex == stepIndex)
+            {
+                ShowCurrentStep();
+            }
+        }
         private void RefreshDynamicArrow(TutorialStep step)
         {
             if (_arrowUI == null || _duelManager?.CurrentDuelState == null) return;
             var state = _duelManager.CurrentDuelState;
+            switch (step.DynamicArrow)
+            {
+                case DynamicArrowTarget.PlayerPlayableHandCard:
+                {
+                    var target = _handUIManager != null ? _handUIManager.FindFirstPlayableCardViewForTutorial() : null;
+                    if (target != null) _arrowUI.PointToUI(target);
+                    else _arrowUI.Hide();
+                    return;
+                }
+                case DynamicArrowTarget.PlayerPlayableBoardSlot:
+                {
+                    var target = _handUIManager != null ? _handUIManager.FindFirstPlayableBoardSlotForTutorial() : null;
+                    if (target != null) _arrowUI.PointToUI(target);
+                    else _arrowUI.Hide();
+                    return;
+                }
+                case DynamicArrowTarget.PlayerHumanResourcesText:
+                {
+                    var target = _handUIManager != null ? _handUIManager.FindHumanResourcesTextForTutorial() : null;
+                    if (target != null) _arrowUI.PointToUI(target);
+                    else _arrowUI.Hide();
+                    return;
+                }
+                case DynamicArrowTarget.PhaseConfirmationButton:
+                {
+                    var button = FindObjectOfType<global::PhaseConfirmationButton>(true);
+                    var target = button != null ? button.transform as RectTransform : null;
+                    if (target != null && target.gameObject.activeInHierarchy) _arrowUI.PointToUI(target);
+                    else _arrowUI.Hide();
+                    return;
+                }
+            }
             Board board = null;
             System.Func<BoardCard, bool> filter = null;
-
             switch (step.DynamicArrow)
             {
                 case DynamicArrowTarget.PlayerVanguardCard:
                     board = state.PlayerSide.Board;
-                    filter = c => c != null && c.IsAlive && c.TypeOfRow == Definitions.RowType.Vanguard;
+                    filter = IsAttackCapable;
                     break;
                 case DynamicArrowTarget.EnemyAnyAliveCard:
                     board = state.OpponentSide.Board;
                     filter = c => c != null && c.IsAlive;
                     break;
             }
-
-            if (board == null) { _arrowUI.Hide(); return; }
-
-            BoardSlotUI matched = null;
-            foreach (var slotUI in FindObjectsOfType<BoardSlotUI>(true))
-            {
-                if (slotUI.Board != board) continue;
-                if (filter(slotUI.Occupant)) { matched = slotUI; break; }
-            }
-
+            if (board == null || filter == null) { _arrowUI.Hide(); return; }
+            var boardView = FindObjectOfType<BoardView>(true);
+            var matched = boardView != null
+                ? boardView.FindFirstOccupiedSlot(board, filter)
+                : null;
             if (matched != null)
             {
                 _arrowUI.PointToUI(matched.transform as RectTransform);
@@ -247,7 +348,64 @@ namespace Combat
                 _arrowUI.Hide();
             }
         }
+        private string BuildContextualMessage(TutorialStep step)
+        {
+            if (step == null) return string.Empty;
+            var message = step.Message ?? string.Empty;
+            if (message.Contains("{PlayableCardHint}"))
+            {
+                var hint = _handUIManager != null
+                    ? _handUIManager.GetTutorialPlayableCardHint()
+                    : "Туториал ожидает инициализацию руки.";
+                message = message.Replace("{PlayableCardHint}", hint);
+            }
+            return message;
+        }
+        private bool ShouldSkipStepForCurrentState(TutorialStep step)
+        {
+            if (step == null) return false;
+            if (step.CompletionCondition == TutorialStepCondition.CardDragged ||
+                step.CompletionCondition == TutorialStepCondition.CardPlaced)
+            {
+                return _handUIManager != null && _handUIManager.GetFirstTutorialPlayableCardDef() == null;
+            }
+            if (step.CompletionCondition == TutorialStepCondition.AttackerCardSelected ||
+                step.DynamicArrow == DynamicArrowTarget.PlayerVanguardCard)
+            {
+                return !HasAttackCapableCard(_duelManager?.CurrentDuelState?.PlayerSide?.Board);
+            }
+            if (step.CompletionCondition == TutorialStepCondition.TargetSelected ||
+                step.DynamicArrow == DynamicArrowTarget.EnemyAnyAliveCard)
+            {
+                var state = _duelManager?.CurrentDuelState;
+                return !HasAttackCapableCard(state?.PlayerSide?.Board) ||
+                       !HasAnyAliveCard(state?.OpponentSide?.Board);
+            }
+            return false;
+        }
+        private static bool HasAttackCapableCard(Board board)
+        {
+            if (board == null) return false;
+            foreach (var slot in board.AllSlots())
+            {
+                if (IsAttackCapable(slot?.Occupant)) return true;
+            }
+            return false;
+        }
 
+        private static bool IsAttackCapable(BoardCard card)
+        {
+            return card != null && card.IsAlive && card.Attack > 0;
+        }
+        private static bool HasAnyAliveCard(Board board)
+        {
+            if (board == null) return false;
+            foreach (var slot in board.AllSlots())
+            {
+                if (slot?.Occupant != null && slot.Occupant.IsAlive) return true;
+            }
+            return false;
+        }
         private void ResetStepFlags()
         {
             _cardDragged = false;
@@ -255,7 +413,6 @@ namespace Combat
             _targetSelected = false;
             _phaseConfirmed = false;
         }
-
         private async UniTaskVoid ProcessStepCondition(TutorialStep step)
         {
             try
@@ -266,9 +423,8 @@ namespace Combat
                         await UniTask.Delay(TimeSpan.FromSeconds(step.TimeToWait), cancellationToken: _cts.Token);
                         NextStep();
                         break;
-
                     case TutorialStepCondition.None:
-                        await UniTask.Delay(TimeSpan.FromSeconds(2f), cancellationToken: _cts.Token);
+                        await UniTask.Delay(TimeSpan.FromSeconds(4f), cancellationToken: _cts.Token);
                         NextStep();
                         break;
                 }
@@ -277,104 +433,126 @@ namespace Combat
             {
             }
         }
-
         private TutorialStep GetCurrentStep()
         {
             if (_currentStepIndex >= 0 && _currentStepIndex < _tutorialSteps.Count)
                 return _tutorialSteps[_currentStepIndex];
             return null;
         }
-
         public void NextStep()
         {
             if (!_tutorialActive) return;
-
             _currentStepIndex++;
             ShowCurrentStep();
         }
-
+        private async UniTaskVoid AdvanceAfterReadTime()
+        {
+            if (!_tutorialActive || _advancePending) return;
+            _advancePending = true;
+            var remaining = MinimumInteractiveReadSeconds - (Time.unscaledTime - _stepShownAt);
+            if (remaining > 0f)
+            {
+                try
+                {
+                    await UniTask.Delay(TimeSpan.FromSeconds(remaining), cancellationToken: _cts?.Token ?? this.GetCancellationTokenOnDestroy());
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+            _advancePending = false;
+            NextStep();
+        }
         private void EndTutorial()
         {
             _tutorialActive = false;
-
+            _tutorialCompletedThisSession = true;
             PlayerPrefs.SetInt(TutorialCompletedKey, 1);
             PlayerPrefs.Save();
-
             if (_screenDimmer != null)
             {
                 _screenDimmer.alpha = 0f;
+                _screenDimmer.blocksRaycasts = false;
+                _screenDimmer.interactable = false;
             }
-
             if (_messageUI != null)
             {
                 _messageUI.Hide();
             }
-
             if (_arrowUI != null)
             {
                 _arrowUI.Hide();
             }
-
+            _handUIManager?.RefreshHandImmediately();
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = null;
-
             Debug.Log("[TutorialSystem] Tutorial completed!");
         }
-
         public void OnCardDragStarted()
         {
             if (!_tutorialActive) return;
-
             _cardDragged = true;
             var step = GetCurrentStep();
             if (step != null && step.CompletionCondition == TutorialStepCondition.CardDragged)
             {
-                NextStep();
+                AdvanceAfterReadTime().Forget();
             }
         }
-
         public void OnTargetSelected()
         {
             if (!_tutorialActive) return;
-
             _targetSelected = true;
             var step = GetCurrentStep();
             Debug.Log($"[TutorialSystem] OnTargetSelected. CurrentStep={_currentStepIndex}, Condition={step?.CompletionCondition}");
             if (step != null && step.CompletionCondition == TutorialStepCondition.TargetSelected)
             {
-                NextStep();
+                AdvanceAfterReadTime().Forget();
             }
         }
-
         public void OnAttackerCardSelected()
         {
             if (!_tutorialActive) return;
-
             var step = GetCurrentStep();
             Debug.Log($"[TutorialSystem] OnAttackerCardSelected. CurrentStep={_currentStepIndex}, Condition={step?.CompletionCondition}");
             if (step != null && step.CompletionCondition == TutorialStepCondition.AttackerCardSelected)
             {
+                // Attacker selection is a two-click interaction: attacker, then target.
+                // Delaying this transition makes the immediate target click look ignored.
                 NextStep();
             }
         }
-
         public void OnPhaseConfirmed()
         {
             if (!_tutorialActive) return;
-
+            if (!AllowsPhaseConfirmation()) return;
             _phaseConfirmed = true;
-            var step = GetCurrentStep();
-            if (step != null && step.CompletionCondition == TutorialStepCondition.PhaseConfirmed)
-            {
-                NextStep();
-            }
+            AdvanceAfterReadTime().Forget();
         }
 
+        public bool AllowsPhaseConfirmation()
+        {
+            if (!_tutorialActive) return true;
+            var step = GetCurrentStep();
+            return step != null &&
+                   step.CompletionCondition == TutorialStepCondition.PhaseConfirmed &&
+                   IsStepPhaseReady(step);
+        }
+
+        public bool AllowsCardDragging()
+        {
+            if (!_tutorialActive) return true;
+            var step = GetCurrentStep();
+            return step != null &&
+                   IsStepPhaseReady(step) &&
+                   (step.CompletionCondition == TutorialStepCondition.CardDragged ||
+                    step.CompletionCondition == TutorialStepCondition.CardPlaced);
+        }
         public bool IsTutorialActive => _tutorialActive;
         public int CurrentStepIndex => _currentStepIndex;
+        public string PreferredPlayableCardName => GetCurrentStep()?.PreferredCardName;
     }
-
     /// <summary>
     /// Один шаг обучения
     /// </summary>
@@ -383,23 +561,24 @@ namespace Combat
         None,
         PlayerVanguardCard,
         EnemyAnyAliveCard,
+        PlayerPlayableHandCard,
+        PlayerPlayableBoardSlot,
+        PlayerHumanResourcesText,
+        PhaseConfirmationButton,
     }
-
     [System.Serializable]
     public class TutorialStep
     {
         [TextArea(3, 5)]
         public string Message;
-
         public GameObject TargetObject;
         public RectTransform TargetUIElement;
         public DynamicArrowTarget DynamicArrow = DynamicArrowTarget.None;
-
         public bool DimScreen = true;
         public string PhaseTag;
-
         public TutorialStepCondition CompletionCondition = TutorialStepCondition.ManualAdvance;
         public float TimeToWait = 3f;
         public string RequiredPhaseTag;
+        public string PreferredCardName;
     }
 }

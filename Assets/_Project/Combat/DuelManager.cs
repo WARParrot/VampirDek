@@ -244,6 +244,7 @@ namespace Combat
                 {
                     Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
                 }
+                RemoveDeadNonTownCardsFromBoards();
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
                 if ((_encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId))?.Check(_duelState) == true)
@@ -401,7 +402,7 @@ namespace Combat
 
         private async UniTask ResolveClashesAsync()
         {
-            var attackers = GetAllVanguardAttackers()
+            var attackers = GetAllAttackers()
                 .OrderByDescending(a => a.CurrentSpeed)
                 .ToList();
 
@@ -486,7 +487,7 @@ namespace Combat
 
         private async UniTask ResolveOneSidedAttacksAsync()
         {
-            var attackers = GetAllVanguardAttackers()
+            var attackers = GetAllAttackers()
                         .Where(a => a.PlannedTarget != null && a.PlannedTarget.IsAlive)
                         .OrderByDescending(a => a.CurrentSpeed);
 
@@ -497,12 +498,12 @@ namespace Combat
             await ProcessActionsAsync();
         }
 
-        private IEnumerable<BoardCard> GetAllVanguardAttackers()
+        private IEnumerable<BoardCard> GetAllAttackers()
         {
             var all = new List<BoardCard>();
             foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-                foreach (var slot in side.Board.VanguardRow)
-                    if (slot.Occupant != null && slot.Occupant.PlannedTarget != null && slot.Occupant.IsAlive)
+                foreach (var slot in side.Board.AllSlots())
+                    if (IsAttackCapable(slot.Occupant) && slot.Occupant.PlannedTarget != null)
                         all.Add(slot.Occupant);
             return all;
         }
@@ -510,9 +511,57 @@ namespace Combat
         private void ClearAllPlannedTargets()
         {
             foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-                foreach (var slot in side.Board.VanguardRow)
+                foreach (var slot in side.Board.AllSlots())
                     if (slot.Occupant != null)
                         slot.Occupant.PlannedTarget = null;
+        }
+
+        private void RemoveDeadNonTownCardsFromBoards()
+        {
+            if (_duelState == null) return;
+
+            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
+            {
+                var board = side?.Board;
+                if (board == null) continue;
+
+                var deadCards = board.AllSlots()
+                    .Select(slot => slot?.Occupant)
+                    .Where(card => card != null && !card.IsTown && !card.IsAlive)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var deadCard in deadCards)
+                {
+                    ClearPlannedTargetsPointingTo(deadCard);
+                    board.RemoveCard(deadCard);
+                    Debug.Log($"[DuelManager] Removed defeated card from board: {deadCard.SourceCard?.CardName ?? deadCard.Id.ToString()}");
+                }
+            }
+        }
+
+        private void ClearPlannedTargetsPointingTo(BoardCard removedCard)
+        {
+            if (_duelState == null || removedCard == null) return;
+
+            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
+            {
+                var board = side?.Board;
+                if (board == null) continue;
+
+                foreach (var slot in board.AllSlots())
+                {
+                    if (slot?.Occupant != null && slot.Occupant.PlannedTarget == removedCard)
+                    {
+                        slot.Occupant.PlannedTarget = null;
+                    }
+                }
+            }
+        }
+
+        private static bool IsAttackCapable(BoardCard card)
+        {
+            return card != null && card.IsAlive && card.Attack > 0;
         }
 
         private enum ClashForce { None, Win, Lose }
@@ -569,7 +618,14 @@ namespace Combat
 
                 foreach (var cost in decision.Card.Def.Costs)
                 {
-                    var ctx = new CostContext { PlayerSide = enemySide, Amount = cost.GetAmount() };
+                    ICostContext ctx = cost is SacrificeCost sacrificeCost
+                        ? new SacrificeCostContext
+                        {
+                            PlayerSide = enemySide,
+                            Amount = sacrificeCost.Amount,
+                            Cost = sacrificeCost
+                        }
+                        : new CostContext { PlayerSide = enemySide, Amount = cost.GetAmount() };
                     QueueAction(cost.GetPaymentAction(ctx));
                 }
 
@@ -583,12 +639,12 @@ namespace Combat
 
         private async UniTask SimulatePlanningAsync()
         {
-            var enemyVanguard = _duelState.OpponentSide.Board.VanguardRow
-                .Where(s => s.Occupant != null && s.Occupant.IsAlive)
+            var enemyAttackers = _duelState.OpponentSide.Board.AllSlots()
+                .Where(s => IsAttackCapable(s.Occupant))
                 .Select(s => s.Occupant)
                 .ToArray();
 
-            foreach (var card in enemyVanguard)
+            foreach (var card in enemyAttackers)
             {
                 if (card == null || !card.IsAlive) continue;
 
