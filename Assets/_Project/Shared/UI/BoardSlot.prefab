@@ -92,8 +92,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
-  m_fontSizeBase: 24
+  m_fontSize: 0
+  m_fontSizeBase: 0
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -230,6 +230,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Combat::BoardSlotUI
   HighlightImage: {fileID: 7893348240805524477}
+  CardNameText: {fileID: 0}
+  CardStatsText: {fileID: 0}
+  SlotIndexText: {fileID: 0}
   RowType: 0
   Index: 0
 --- !u!1 &7753104014791377322
