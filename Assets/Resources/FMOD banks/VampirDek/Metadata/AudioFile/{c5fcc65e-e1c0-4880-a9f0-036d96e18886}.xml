@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.02.00">
+	<object class="AudioFile" id="{c5fcc65e-e1c0-4880-a9f0-036d96e18886}">
+		<property name="assetPath">
+			<value>cardmunch.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>3.6912925170068029</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{aed190f7-76ab-4abe-948b-16067b643915}</destination>
+		</relationship>
+	</object>
+</objects>

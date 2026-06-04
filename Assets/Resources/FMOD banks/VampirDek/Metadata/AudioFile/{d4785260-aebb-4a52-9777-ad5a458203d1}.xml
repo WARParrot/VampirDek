@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.02.00">
+	<object class="AudioFile" id="{d4785260-aebb-4a52-9777-ad5a458203d1}">
+		<property name="assetPath">
+			<value>playersteps_7.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>24</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>0.29325000000000001</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{aed190f7-76ab-4abe-948b-16067b643915}</destination>
+		</relationship>
+	</object>
+</objects>

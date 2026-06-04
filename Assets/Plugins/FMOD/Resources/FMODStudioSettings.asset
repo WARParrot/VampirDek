@@ -290,15 +290,15 @@ MonoBehaviour:
   displaySortOrder: 0
   childIdentifiers:
   - 0f8eb3f400726694eb47beb1a9f94ce8
-  - 46fbfdf3fc43db0458918377fd40293e
-  - 2fea114e74ecf3c4f920e1d5cc1c4c40
-  - e7a046c753c3c3d4aacc91f6597f310d
   - 52eb9df5db46521439908db3a29a1bbb
+  - 2fea114e74ecf3c4f920e1d5cc1c4c40
   - 2c5177b11d81d824dbb064f9ac8527da
-  - b7716510a1f36934c87976f3a81dbf3d
-  - c88d16e5272a4e241b0ef0ac2e53b73d
-  - de700ef3f37a49b58a57ae3addf01ad9
+  - e7a046c753c3c3d4aacc91f6597f310d
   - fd7c55dab0fce234b8c25f6ffca523c1
+  - b7716510a1f36934c87976f3a81dbf3d
+  - de700ef3f37a49b58a57ae3addf01ad9
+  - c88d16e5272a4e241b0ef0ac2e53b73d
+  - 46fbfdf3fc43db0458918377fd40293e
   codecChannels:
     Value: []
     HasValue: 0
@@ -536,8 +536,8 @@ MonoBehaviour:
   switchSettingsMigration: 1
   HasSourceProject: 1
   HasPlatforms: 1
-  sourceProjectPath: ../../../SFX/VampirDek/VampirDek.fspro
-  sourceBankPath: ../../../SFX/VampirDek/Build
+  sourceProjectPath: Assets/Resources/FMOD banks/VampirDek/VampirDek.fspro
+  sourceBankPath: Assets/Resources/FMOD banks/VampirDek/Build
   sourceBankPathUnformatted: 
   BankRefreshCooldown: 5
   ShowBankRefreshWindow: 1
@@ -576,18 +576,18 @@ MonoBehaviour:
   HideSetupWizard: 1
   LastEventReferenceScanVersion: 131636
   Platforms:
-  - {fileID: 1926497352232877500}
-  - {fileID: -3999786572634638096}
   - {fileID: -6608423365216598730}
-  - {fileID: 5691118836527360080}
-  - {fileID: -4287352469892928833}
-  - {fileID: -2656058716305496310}
   - {fileID: -6017606233195965440}
+  - {fileID: -4287352469892928833}
+  - {fileID: -3999786572634638096}
   - {fileID: -3664968912309487559}
-  - {fileID: 153798256309754935}
-  - {fileID: 4916285611613473068}
-  - {fileID: 2915059137071988884}
+  - {fileID: -2656058716305496310}
   - {fileID: -1151407226692817110}
+  - {fileID: 153798256309754935}
+  - {fileID: 1926497352232877500}
+  - {fileID: 2915059137071988884}
+  - {fileID: 4916285611613473068}
+  - {fileID: 5691118836527360080}
   MigratedPlatforms: 0500000000000000060000000a0000000800000009000000120000000c000000150000000b0000000200000001000000
 --- !u!114 &153798256309754935
 MonoBehaviour:

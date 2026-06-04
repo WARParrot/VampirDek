@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.02.00">
+	<object class="Workspace" id="{4f60eea9-fed0-4242-8a17-297b73aff2ea}">
+		<property name="builtBanksOutputDirectory">
+			<value>../../HITs/Unity/VampirDek/Assets/Resources/FMOD banks</value>
+		</property>
+		<property name="builtBanksEncryptionKey" />
+		<relationship name="masterEventFolder">
+			<destination>{fe0e95a1-b1f4-477d-a358-4011061b713c}</destination>
+		</relationship>
+		<relationship name="masterTagFolder">
+			<destination>{61334048-cf6e-4e71-9cbc-c6182b90eeb3}</destination>
+		</relationship>
+		<relationship name="masterEffectPresetFolder">
+			<destination>{351d4bf9-c603-4adc-a2f9-22180a3cd99b}</destination>
+		</relationship>
+		<relationship name="masterParameterPresetFolder">
+			<destination>{79a1e983-a4c2-42aa-a662-6af86a18c924}</destination>
+		</relationship>
+		<relationship name="masterBankFolder">
+			<destination>{d9764c15-ae97-4130-9961-3907f283c796}</destination>
+		</relationship>
+		<relationship name="masterSandboxFolder">
+			<destination>{5e1e7281-1b67-4333-98db-e6ac4dcab3b2}</destination>
+		</relationship>
+		<relationship name="masterAssetFolder">
+			<destination>{aed190f7-76ab-4abe-948b-16067b643915}</destination>
+		</relationship>
+		<relationship name="mixer">
+			<destination>{0d44e378-b96a-4d32-a2b4-f22c7b5e6dd1}</destination>
+		</relationship>
+		<relationship name="profilerSessionFolder">
+			<destination>{ae638462-dc93-44bb-a86c-f918c09962ff}</destination>
+		</relationship>
+		<relationship name="platforms">
+			<destination>{8245d08d-b5e0-4e61-b4ad-465fdd6fd240}</destination>
+		</relationship>
+	</object>
+</objects>
