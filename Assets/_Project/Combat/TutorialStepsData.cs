@@ -89,8 +89,8 @@ namespace Combat
                 },
                 new TutorialStep
                 {
-                    Message = "Обучение завершено. Теперь управление свободно.\n\nПлан простой: стройте поле, берегите Human, атакуйте из Vanguard и разрушьте город противника.",
-                    DimScreen = false, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 4f
+                    Message = "Основы дуэли разобраны. Теперь отойдите от стола и осмотритесь вокруг.\n\nНажмите S, чтобы покинуть стол. Когда будете готовы продолжить бой, подойдите к нему снова и нажмите E.",
+                    DimScreen = false, CompletionCondition = TutorialStepCondition.LeaveDuel, TimeToWait = 0f
                 }
             };
         }

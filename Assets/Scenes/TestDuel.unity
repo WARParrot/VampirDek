@@ -1078,7 +1078,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1621471191}
+  - {fileID: 1662382450}
   - {fileID: 175672663}
   - {fileID: 330585546}
   m_Father: {fileID: 0}
@@ -3057,7 +3057,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 58.7, y: 0, z: 0}
---- !u!1001 &1621471190
+--- !u!1001 &1662382449
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -3079,15 +3079,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.056
+      value: 0.24139999
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.497
+      value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.016
+      value: 0.22619963
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3120,7 +3120,7 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
-      objectReference: {fileID: 2100000, guid: 0e7db5b4e31d52d4a80959946234e17c, type: 2}
+      objectReference: {fileID: 2100000, guid: fa5cafa1e154c284b930d748c4cea7e2, type: 2}
     - target: {fileID: 919132149155446097, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
       propertyPath: m_Name
       value: Table
@@ -3130,10 +3130,10 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
---- !u!4 &1621471191 stripped
+--- !u!4 &1662382450 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
-  m_PrefabInstance: {fileID: 1621471190}
+  m_PrefabInstance: {fileID: 1662382449}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1666213594
 GameObject:
@@ -3963,7 +3963,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Combat::Combat.TutorialSystem
   _isTutorialEncounter: 1
-  _forceShowAlways: 1
+  _forceShowAlways: 0
   _tutorialSteps:
   - Message: Welcome to fight!
     TargetObject: {fileID: 0}

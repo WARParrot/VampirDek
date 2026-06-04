@@ -15,5 +15,6 @@ namespace Combat
         ActionExecuted,
         ManualAdvance,
         AttackerCardSelected,
+        LeaveDuel,
     }
 }

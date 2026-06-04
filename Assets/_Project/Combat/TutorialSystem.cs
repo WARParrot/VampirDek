@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Definitions;
 using Core;
 using Cysharp.Threading.Tasks;
@@ -34,6 +35,7 @@ namespace Combat
         private bool _phaseConfirmed = false;
         private bool _waitingForRequiredPhase = false;
         private bool _advancePending = false;
+        private bool _tutorialLeaveRequested = false;
         private float _stepShownAt = 0f;
         private const float MinimumInteractiveReadSeconds = 2.5f;
         private void Start()
@@ -66,6 +68,10 @@ namespace Combat
                 if (step != null && step.DynamicArrow != DynamicArrowTarget.None)
                 {
                     RefreshDynamicArrow(step);
+                }
+                if (IsLeaveDuelPromptActive() && Keyboard.current?.sKey.wasPressedThisFrame == true)
+                {
+                    TryLeaveTutorialDuelFromPrompt();
                 }
                 return;
             }
@@ -141,6 +147,7 @@ namespace Combat
             _tutorialActive = true;
             _tutorialCompletedThisSession = false;
             _currentStepIndex = 0;
+            _tutorialLeaveRequested = false;
             _cts = new CancellationTokenSource();
             Debug.Log("[TutorialSystem] Tutorial started!");
             ShowCurrentStep();
@@ -464,6 +471,47 @@ namespace Combat
             _advancePending = false;
             NextStep();
         }
+        public bool OnLeaveDuelRequested()
+        {
+            if (!_isTutorialEncounter || !_tutorialActive) return true;
+
+            if (IsLeaveDuelPromptActive())
+            {
+                _tutorialLeaveRequested = true;
+                EndTutorial();
+                return true;
+            }
+
+            Debug.Log("[TutorialSystem] The tutorial is still active; finish the current tutorial prompt before leaving the duel table.");
+            return false;
+        }
+
+        public bool IsLeaveDuelPromptActive()
+        {
+            var step = GetCurrentStep();
+            return step != null && step.CompletionCondition == TutorialStepCondition.LeaveDuel;
+        }
+
+        private void TryLeaveTutorialDuelFromPrompt()
+        {
+            if (_tutorialLeaveRequested) return;
+            _tutorialLeaveRequested = true;
+            EndTutorial();
+
+            if (_duelManager == null)
+            {
+                _duelManager = FindObjectOfType<DuelManager>(true);
+            }
+
+            if (_duelManager == null)
+            {
+                Debug.LogWarning("[TutorialSystem] Cannot leave tutorial duel: DuelManager is not available.");
+                return;
+            }
+
+            _duelManager.RequestLeaveDuel();
+        }
+
         private void EndTutorial()
         {
             _tutorialActive = false;

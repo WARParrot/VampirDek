@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Definitions;
+using Core;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 
@@ -14,5 +15,6 @@ namespace Combat
         public string SavedMatchJson;
         public DeckData PlayerPersistentDeck;
         public AsyncOperationHandle<SceneInstance> DuelSceneHandle;
+        public GameDirector Director;
     }
 }

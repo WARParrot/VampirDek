@@ -101,6 +101,8 @@ namespace Exploration
             var duelManager = duelGO.AddComponent<DuelManager>();
             DuelManagerProxy.Instance = duelManager;
 
+            var director = GlobalServices.Director;
+
             var context = new DuelStartContext
             {
                 Encounter = encounter,
@@ -108,10 +110,11 @@ namespace Exploration
                 PlayerPersistentDeck = DefaultPlayerDeck,
                 TableId = UniqueTableId,
                 SavedMatchJson = savedJson,
-                DuelSceneHandle = loadHandle
+                DuelSceneHandle = loadHandle,
+                Director = director
             };
 
-            await GlobalServices.Director.PushModeAsync(duelManager, context);
+            await director.PushModeAsync(duelManager, context);
         }
 
         private async UniTask<List<CardDef>> GetPlayerDeckAsync()

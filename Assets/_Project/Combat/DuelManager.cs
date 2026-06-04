@@ -27,6 +27,7 @@ namespace Combat
         private AsyncOperationHandle<SceneInstance> _duelLoadHandle;
 
         private InputAction _leaveAction;
+        private bool _leaveDuelRequested;
 
         public DeckData _playerPersistentDeck;
         public DuelState CurrentDuelState => _duelState;
@@ -34,6 +35,7 @@ namespace Combat
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
         private bool _duelFinished = false;
+        private GameDirector _director;
 
         // AI System
         private OpponentAI _opponentAI;
@@ -55,6 +57,7 @@ namespace Combat
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
             _duelLoadHandle = ctx.DuelSceneHandle;
+            _director = ctx.Director ?? ResolveGameDirector();
             MatchStateDTO savedDto = null;
             if (!string.IsNullOrEmpty(ctx.SavedMatchJson))
             {
@@ -99,7 +102,7 @@ namespace Combat
                         _leaveAction.Disable();
                         _leaveAction = null;
                     }
-                    var director = GlobalServices.Director;
+                    var director = ResolveGameDirector();
                     if (director != null)
                     {
                         director.PopModeAsync().Forget();
@@ -179,17 +182,70 @@ namespace Combat
             return UniTask.CompletedTask;
         }
 
+        private GameDirector ResolveGameDirector()
+        {
+            if (_director != null) return _director;
+
+            try
+            {
+                var director = GlobalServices.Director;
+                if (director != null)
+                {
+                    _director = director;
+                    return _director;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DuelManager] GameDirector service lookup failed: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public void RequestLeaveDuel()
+        {
+            TryLeaveDuel();
+        }
+
+        private void Update()
+        {
+            if (_leaveDuelRequested) return;
+
+            var actionPressed = _leaveAction != null && _leaveAction.WasPressedThisFrame();
+            var keyboardPressed = Keyboard.current?.sKey.wasPressedThisFrame == true;
+            if (actionPressed || keyboardPressed)
+            {
+                TryLeaveDuel();
+            }
+        }
+
         private void OnLeaveDuel(InputAction.CallbackContext ctx)
         {
-            if (GlobalServices.IsMenuOpen) return;
+            TryLeaveDuel();
+        }
 
-            var director = GlobalServices.Director;
+        private void TryLeaveDuel()
+        {
+            if (_leaveDuelRequested) return;
+
+            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            var isFinalTutorialLeavePrompt = tutorial != null && tutorial.IsLeaveDuelPromptActive();
+            if (GlobalServices.IsMenuOpen && !isFinalTutorialLeavePrompt) return;
+
+            if (tutorial != null && !tutorial.OnLeaveDuelRequested())
+            {
+                return;
+            }
+
+            var director = ResolveGameDirector();
             if (director == null)
             {
                 Debug.LogWarning("Cannot leave duel: GameDirector service is not available.");
                 return;
             }
 
+            _leaveDuelRequested = true;
             director.PopModeAsync().Forget();
         }
 
@@ -362,7 +418,11 @@ namespace Combat
             else if (targetNode.Tags.Contains("DuelEnd"))
             {
                 Debug.Log("[Phase] DuelEnd – завершаем дуэль.");
-                await GlobalServices.Director.PopModeAsync();
+                var director = ResolveGameDirector();
+                if (director != null)
+                {
+                    await director.PopModeAsync();
+                }
                 return;
             }
 
