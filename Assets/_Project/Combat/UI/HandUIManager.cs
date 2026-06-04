@@ -5,6 +5,7 @@ using Combat.UI;
 using Core;
 using Combat;
 using Definitions;
+using Shared.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -88,7 +89,7 @@ public class HandUIManager : MonoBehaviour
             text.enableWordWrapping = true;
             text.overflowMode = TextOverflowModes.Truncate;
             text.enableAutoSizing = true;
-            text.fontSizeMin = 12f;
+            text.fontSizeMin = 10f;
             text.fontSizeMax = Mathf.Max(text.fontSize, 18f);
             text.raycastTarget = false;
         }
@@ -147,8 +148,12 @@ public class HandUIManager : MonoBehaviour
             handler.enabled = CanStartCardDrag();
             _cardViews[card] = handler;
             EnsureCardTextReadable(go);
-            go.transform.Find("CardName").GetComponent<TextMeshProUGUI>().text = card.Def.CardName;
-            go.transform.Find("CardCost").GetComponent<TextMeshProUGUI>().text = string.Join(" ", card.Def.Costs.Select(c => c.GetCostText()));
+            var cardView = go.GetComponent<Shared.UI.CardView>();
+            if (cardView == null)
+            {
+                cardView = go.AddComponent<Shared.UI.CardView>();
+            }
+            cardView.Bind(card);
         }
         _lastHandCount = side.Hand.Count;
     }
@@ -226,7 +231,10 @@ public class HandUIManager : MonoBehaviour
                     cardImage.color = new Color(1, 0, 0, 0.5f);
                     StartCoroutine(ResetCardHighlight(cardImage));
                 }
-                StartCoroutine(HighlightHRText());
+                if (cost is HumanResourceCost)
+                {
+                    StartCoroutine(HighlightHRText());
+                }
                 BoardView.HideAllHighlights();
                 ResetDragState(handler);
                 return;

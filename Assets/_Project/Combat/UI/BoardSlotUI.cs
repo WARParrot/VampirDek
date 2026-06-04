@@ -2,6 +2,7 @@ using Combat;
 using Combat.UI;
 using Definitions;
 using TMPro;
+using Shared.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -26,14 +27,14 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         RowType = rowType;
         Index = rowLocalIndex;
         AutoBindTextFields();
-        EnsureChildGraphicsDoNotStealRaycasts();
+        EnsureRaycastTargets();
         if (SlotIndexText != null) SlotIndexText.text = $"{ShortRowName(rowType)} {rowLocalIndex + 1}";
     }
 
     public void SetDisplay(BoardCard occupant)
     {
         AutoBindTextFields();
-        EnsureChildGraphicsDoNotStealRaycasts();
+        EnsureRaycastTargets();
 
         if (occupant == null)
         {
@@ -46,10 +47,7 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
         if (CardStatsText != null)
         {
-            var targetName = (occupant.PlannedTarget as BoardCard)?.SourceCard?.CardName;
-            if (occupant.PlannedTarget != null && string.IsNullOrEmpty(targetName)) targetName = "Town";
-            CardStatsText.text = $"HP {occupant.Health}/{occupant.MaxHealth}   ATK {occupant.Attack}" +
-                                 (string.IsNullOrEmpty(targetName) ? string.Empty : $"\n→ {targetName}");
+            CardStatsText.text = BoardCardRulesText.FormatBoardCardStats(occupant);
         }
     }
 
@@ -62,6 +60,11 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (Occupant != null)
+        {
+            CardDetailOverlay.Show(BoardCardRulesText.FormatBoardCardDetails(Occupant), transform);
+        }
+
         PlanningPhaseController.Instance?.HandleSlotClick(this);
     }
 
@@ -83,7 +86,7 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         return child != null ? child.GetComponent<TextMeshProUGUI>() : null;
     }
 
-    private void EnsureChildGraphicsDoNotStealRaycasts()
+    private void EnsureRaycastTargets()
     {
         var rootGraphic = GetComponent<Graphic>();
         if (rootGraphic == null)
@@ -96,8 +99,8 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
         foreach (var graphic in GetComponentsInChildren<Graphic>(true))
         {
-            if (graphic == null || graphic == rootGraphic) continue;
-            graphic.raycastTarget = false;
+            if (graphic == null) continue;
+            graphic.raycastTarget = true;
         }
     }
 
