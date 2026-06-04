@@ -32,8 +32,8 @@ namespace Exploration.Editor
             RectTransform panelRect = panel.AddComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 1f);
             panelRect.anchorMax = new Vector2(0.5f, 1f);
-            panelRect.sizeDelta = new Vector2(400, 150);
-            panelRect.anchoredPosition = new Vector2(0, -100);
+            panelRect.sizeDelta = new Vector2(620, 220);
+            panelRect.anchoredPosition = new Vector2(0, -130);
 
             // Фон
             Image panelImage = panel.AddComponent<Image>();
@@ -58,6 +58,11 @@ namespace Exploration.Editor
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = 20;
             text.alignment = TextAnchor.MiddleCenter;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = 14;
+            text.resizeTextMaxSize = 22;
             text.color = Color.white;
 
             // Изображение клавиши

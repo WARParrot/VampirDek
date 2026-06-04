@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <objects serializationModel="Studio.02.02.00">
 	<object class="Workspace" id="{4f60eea9-fed0-4242-8a17-297b73aff2ea}">
-		<property name="builtBanksOutputDirectory">
-			<value>../../HITs/Unity/VampirDek/Assets/Resources/FMOD banks</value>
-		</property>
-		<property name="builtBanksEncryptionKey" />
 		<relationship name="masterEventFolder">
 			<destination>{fe0e95a1-b1f4-477d-a358-4011061b713c}</destination>
 		</relationship>

@@ -25,7 +25,9 @@ namespace Exploration
         private int _currentStepIndex = 0;
         private bool _tutorialActive = false;
         private bool _stepCompleted = false;
+        private bool _actionPromptShown = false;
         private float _targetAlpha = 0f;
+        private float _stepStartedAt = 0f;
 
         private ExplorationController _player;
 
@@ -37,12 +39,20 @@ namespace Exploration
             if (_tutorialPanel == null)
                 _tutorialPanel = gameObject;
 
-            _canvasGroup.alpha = 0f;
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 0f;
+                _canvasGroup.blocksRaycasts = false;
+                _canvasGroup.interactable = false;
+            }
+
+            ConfigureTutorialPanel();
         }
 
         private void Start()
         {
             _player = FindObjectOfType<ExplorationController>();
+            EnsureUsefulDefaultSteps();
 
             if (_startOnAwake && _steps != null && _steps.Length > 0)
             {
@@ -69,6 +79,102 @@ namespace Exploration
             {
                 CheckStepCompletion();
             }
+        }
+
+        private void ConfigureTutorialPanel()
+        {
+            if (_tutorialPanel != null)
+            {
+                var rect = _tutorialPanel.GetComponent<RectTransform>();
+                if (rect != null)
+                {
+                    rect.sizeDelta = new Vector2(Mathf.Max(rect.sizeDelta.x, 620f), Mathf.Max(rect.sizeDelta.y, 220f));
+                }
+            }
+
+            if (_instructionText != null)
+            {
+                _instructionText.alignment = TextAnchor.MiddleCenter;
+                _instructionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                _instructionText.verticalOverflow = VerticalWrapMode.Truncate;
+                _instructionText.resizeTextForBestFit = true;
+                _instructionText.resizeTextMinSize = 14;
+                _instructionText.resizeTextMaxSize = Mathf.Max(_instructionText.fontSize, 22);
+            }
+        }
+
+        private void EnsureUsefulDefaultSteps()
+        {
+            if (!NeedsDefaultSteps()) return;
+
+            _steps = CreateDefaultExplorationSteps();
+            Debug.Log("[MovementTutorial] Using built-in exploration onboarding steps because the serialized steps are missing or too sparse.");
+        }
+
+        private bool NeedsDefaultSteps()
+        {
+            if (_steps == null || _steps.Length < 5) return true;
+
+            foreach (var step in _steps)
+            {
+                if (step != null && !string.IsNullOrWhiteSpace(step.InstructionText) && step.InstructionText.Contains("Exploration"))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static TutorialMovementStep[] CreateDefaultExplorationSteps()
+        {
+            return new[]
+            {
+                new TutorialMovementStep
+                {
+                    InstructionText = "Exploration is where the run breathes. Between duels, you decide what is worth risking: a fight, a reward, or a retreat.",
+                    CompletionType = MovementCompletionType.TimeElapsed,
+                    DelayBeforeNext = 4.5f
+                },
+                new TutorialMovementStep
+                {
+                    InstructionText = "First, get your bearings. Doors, encounters, secrets, and escape routes only matter once you can reach them.",
+                    ActionPrompt = "Move with WASD or the arrow keys.",
+                    CompletionType = MovementCompletionType.AnyMovement,
+                    MinimumReadSeconds = 2.25f,
+                    DelayBeforeNext = 0.65f
+                },
+                new TutorialMovementStep
+                {
+                    InstructionText = "Your gaze is how you ask the world questions. Look around to find what can be inspected, used, avoided, or fought.",
+                    ActionPrompt = "Move the mouse to look around.",
+                    CompletionType = MovementCompletionType.MouseLook,
+                    MinimumReadSeconds = 2.25f,
+                    DelayBeforeNext = 0.65f
+                },
+                new TutorialMovementStep
+                {
+                    InstructionText = "When the world answers, interact. This is how you inspect objects, open paths, and commit to nearby encounter points.",
+                    ActionPrompt = "Face an interactable prompt or encounter, then press E.",
+                    CompletionType = MovementCompletionType.Interact,
+                    MinimumReadSeconds = 2.5f,
+                    DelayBeforeNext = 0.75f
+                },
+                new TutorialMovementStep
+                {
+                    InstructionText = "Before you accept danger, check what you are carrying. Your deck is not a menu footnote; it is your plan for surviving the next duel.",
+                    ActionPrompt = "Press Esc to open the menu and review your current deck.",
+                    CompletionType = MovementCompletionType.EscapeMenu,
+                    MinimumReadSeconds = 3f,
+                    DelayBeforeNext = 0.75f
+                },
+                new TutorialMovementStep
+                {
+                    InstructionText = "That is Exploration: read the room, check the deck, then choose the fight. Curiosity builds the run; haste can end it.",
+                    CompletionType = MovementCompletionType.TimeElapsed,
+                    DelayBeforeNext = 4.5f
+                }
+            };
         }
 
         /// <summary>
@@ -101,12 +207,14 @@ namespace Exploration
             }
 
             var step = _steps[_currentStepIndex];
+            _stepStartedAt = Time.time;
 
             Debug.Log($"[MovementTutorial] Showing step {_currentStepIndex}: '{step.InstructionText}'");
 
             if (_instructionText != null)
             {
-                _instructionText.text = step.InstructionText;
+                _actionPromptShown = step.CompletionType == MovementCompletionType.TimeElapsed || step.MinimumReadSeconds <= 0f;
+                ApplyStepText(step, _actionPromptShown);
                 Debug.Log($"[MovementTutorial] Text set to: '{_instructionText.text}'");
             }
             else
@@ -133,17 +241,53 @@ namespace Exploration
             Debug.Log($"[MovementTutorial] Target alpha set to 1, current alpha: {_canvasGroup?.alpha}");
         }
 
+        private void ApplyStepText(TutorialMovementStep step, bool showActionPrompt)
+        {
+            if (_instructionText == null || step == null) return;
+
+            if (showActionPrompt && !string.IsNullOrWhiteSpace(step.ActionPrompt))
+            {
+                _instructionText.text = $"{step.InstructionText}\n\n<size=18><color=#FFD36A>{step.ActionPrompt}</color></size>";
+            }
+            else
+            {
+                _instructionText.text = step.InstructionText;
+            }
+
+            _instructionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _instructionText.verticalOverflow = VerticalWrapMode.Truncate;
+            _instructionText.resizeTextForBestFit = true;
+            _instructionText.resizeTextMinSize = 14;
+            _instructionText.resizeTextMaxSize = Mathf.Max(_instructionText.fontSize, 22);
+            _instructionText.supportRichText = true;
+        }
+
         private void CheckStepCompletion()
         {
             var step = _steps[_currentStepIndex];
+            var secondsOnStep = Time.time - _stepStartedAt;
+
+            if (!_actionPromptShown && secondsOnStep >= step.MinimumReadSeconds)
+            {
+                _actionPromptShown = true;
+                ApplyStepText(step, true);
+            }
+
+            if (step.CompletionType != MovementCompletionType.TimeElapsed && secondsOnStep < step.MinimumReadSeconds)
+            {
+                return;
+            }
 
             bool completed = step.CompletionType switch
             {
+                MovementCompletionType.TimeElapsed => Time.time - _stepStartedAt >= step.DelayBeforeNext,
                 MovementCompletionType.MoveForward => Keyboard.current != null && Keyboard.current.wKey.isPressed,
                 MovementCompletionType.MoveBackward => Keyboard.current != null && Keyboard.current.sKey.isPressed,
                 MovementCompletionType.MoveLeft => Keyboard.current != null && Keyboard.current.aKey.isPressed,
                 MovementCompletionType.MoveRight => Keyboard.current != null && Keyboard.current.dKey.isPressed,
                 MovementCompletionType.MouseLook => Mouse.current != null && (Mouse.current.delta.ReadValue().magnitude > 0.1f),
+                MovementCompletionType.Interact => Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame,
+                MovementCompletionType.EscapeMenu => Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame,
                 MovementCompletionType.AnyMovement => Keyboard.current != null && (
                     Keyboard.current.wKey.isPressed ||
                     Keyboard.current.sKey.isPressed ||
@@ -155,7 +299,8 @@ namespace Exploration
             if (completed)
             {
                 _stepCompleted = true;
-                Invoke(nameof(NextStep), step.DelayBeforeNext);
+                var delay = step.CompletionType == MovementCompletionType.TimeElapsed ? 0f : step.DelayBeforeNext;
+                Invoke(nameof(NextStep), delay);
             }
         }
 
@@ -192,10 +337,13 @@ namespace Exploration
     [System.Serializable]
     public class TutorialMovementStep
     {
-        [TextArea(2, 4)]
+        [TextArea(2, 5)]
         public string InstructionText;
+        [TextArea(1, 2)]
+        public string ActionPrompt;
         public Sprite KeyHintSprite;
         public MovementCompletionType CompletionType;
+        [Min(0f)] public float MinimumReadSeconds = 0f;
         public float DelayBeforeNext = 1f;
     }
 
@@ -204,11 +352,15 @@ namespace Exploration
     /// </summary>
     public enum MovementCompletionType
     {
-        MoveForward,
-        MoveBackward,
-        MoveLeft,
-        MoveRight,
-        MouseLook,
-        AnyMovement
+        // Keep the original numeric values stable for scene-serialized tutorial steps.
+        MoveForward = 0,
+        MoveBackward = 1,
+        MoveLeft = 2,
+        MoveRight = 3,
+        MouseLook = 4,
+        AnyMovement = 5,
+        TimeElapsed = 6,
+        Interact = 7,
+        EscapeMenu = 8
     }
 }
