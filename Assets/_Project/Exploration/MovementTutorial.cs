@@ -22,9 +22,13 @@ namespace Exploration
         [Header("Settings")]
         [SerializeField] private float _fadeSpeed = 2f;
         [SerializeField] private bool _startOnAwake = true;
+        [SerializeField] private bool _forceShowAlways = false;
+
+        private const string TutorialCompletedKey = "exploration_tutorial_completed";
 
         private int _currentStepIndex = 0;
         private bool _tutorialActive = false;
+        private bool _tutorialCompletedThisSession = false;
         private bool _stepCompleted = false;
         private bool _actionPromptShown = false;
         private float _targetAlpha = 0f;
@@ -56,6 +60,13 @@ namespace Exploration
         {
             _player = FindObjectOfType<ExplorationController>();
             EnsureUsefulDefaultSteps();
+
+            if (IsTutorialAlreadyCompleted())
+            {
+                HideTutorialPanel();
+                Debug.Log("[MovementTutorial] Exploration tutorial already completed, skipping.");
+                return;
+            }
 
             if (_startOnAwake && _steps != null && _steps.Length > 0)
             {
@@ -195,6 +206,15 @@ namespace Exploration
         /// </summary>
         public void StartTutorial()
         {
+            if (_tutorialCompletedThisSession) return;
+
+            if (IsTutorialAlreadyCompleted())
+            {
+                HideTutorialPanel();
+                Debug.Log("[MovementTutorial] Exploration tutorial already completed, skipping.");
+                return;
+            }
+
             if (_steps == null || _steps.Length == 0)
             {
                 Debug.LogWarning("[MovementTutorial] Cannot start tutorial - no steps configured!");
@@ -356,8 +376,21 @@ namespace Exploration
         private void EndTutorial()
         {
             _tutorialActive = false;
+            _tutorialCompletedThisSession = true;
+            MarkTutorialCompleted();
             _targetAlpha = 0f;
             Invoke(nameof(HideTutorialPanel), 1f / _fadeSpeed);
+        }
+
+        private bool IsTutorialAlreadyCompleted()
+        {
+            return !_forceShowAlways && PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1;
+        }
+
+        private static void MarkTutorialCompleted()
+        {
+            PlayerPrefs.SetInt(TutorialCompletedKey, 1);
+            PlayerPrefs.Save();
         }
 
         private void HideTutorialPanel()
