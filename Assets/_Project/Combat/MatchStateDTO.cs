@@ -41,8 +41,7 @@ namespace Combat
             state.PlayerSide.Hand.Clear();
             state.PlayerSide.Hand.AddRange(RebuildCardList(PlayerSide.HandCardIds));
 
-            state.PlayerSide.Deck.Clear();
-            state.PlayerSide.Deck.AddRange(RebuildCardList(PlayerSide.DeckCardIds));
+            state.PlayerSide.Deck.RestoreCards(RebuildCardList(PlayerSide.DeckCardIds), PlayerSide.DeckDrawIndex);
 
             state.PlayerSide.Graveyard.Clear();
             state.PlayerSide.Graveyard.AddRange(RebuildCardList(PlayerSide.GraveyardCardIds));
@@ -50,8 +49,7 @@ namespace Combat
             state.OpponentSide.Hand.Clear();
             state.OpponentSide.Hand.AddRange(RebuildCardList(OpponentSide.HandCardIds));
 
-            state.OpponentSide.Deck.Clear();
-            state.OpponentSide.Deck.AddRange(RebuildCardList(OpponentSide.DeckCardIds));
+            state.OpponentSide.Deck.RestoreCards(RebuildCardList(OpponentSide.DeckCardIds), OpponentSide.DeckDrawIndex);
 
             state.OpponentSide.Graveyard.Clear();
             state.OpponentSide.Graveyard.AddRange(RebuildCardList(OpponentSide.GraveyardCardIds));
@@ -156,6 +154,7 @@ namespace Combat
         public int Mana;
         public int HumanResources;
         public List<string> DeckCardIds;
+        public int DeckDrawIndex;
         public List<string> HandCardIds;
         public List<string> GraveyardCardIds;
         public BoardSnapshot Board;
@@ -166,7 +165,8 @@ namespace Combat
             {
                 Mana = side.Mana,
                 HumanResources = side.HumanResources,
-                DeckCardIds = side.Deck.Select(c => c.Def.CardName).ToList(),
+                DeckCardIds = side.Deck.Cards.Select(c => c.Def.CardName).ToList(),
+                DeckDrawIndex = side.Deck.DrawIndex,
                 HandCardIds = side.Hand.Select(c => c.Def.CardName).ToList(),
                 GraveyardCardIds = side.Graveyard.Select(c => c.Def.CardName).ToList(),
                 Board = BoardSnapshot.FromBoard(side.Board)

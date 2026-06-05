@@ -281,10 +281,24 @@ namespace Combat
             var handUI = FindObjectOfType<HandUIManager>(true);
             handUI?.RefreshHandImmediately();
 
-            await TransitionToPhaseAsync(_duelState.CurrentPhase);
+            ResumeCurrentPhaseWithoutEntryEffects();
 
             boardView?.RefreshAllSlots();
             handUI?.RefreshHandImmediately();
+        }
+
+        private void ResumeCurrentPhaseWithoutEntryEffects()
+        {
+            var currentPhase = _duelState?.CurrentPhase;
+            if (currentPhase == null)
+            {
+                Debug.LogWarning("[DuelManager] Cannot resume phase: current phase is missing.");
+                return;
+            }
+
+            GlobalServices.EventBus.Publish(new PhaseEnterEvent(currentPhase.PhaseId, currentPhase.Tags));
+            GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+            Debug.Log($"[Phase] Resumed {currentPhase.PhaseId} without replaying phase-entry effects. Tags: {string.Join(", ", currentPhase.Tags)}");
         }
 
         public void QueueAction(IGameAction action)
