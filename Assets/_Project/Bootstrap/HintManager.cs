@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Definitions;
+using Shared.Localization;
 using Combat;
 using UnityEngine;
 
@@ -125,7 +126,7 @@ namespace Core
                 var hint = _hintQueue.Dequeue();
                 if (_hintUI != null)
                 {
-                    await _hintUI.ShowAsync(hint.Message);
+                    await _hintUI.ShowAsync(LocalizationService.HintMessage(hint));
                 }
                 if (_hintQueue.Count > 0)
                     await UniTask.Delay(System.TimeSpan.FromSeconds(_minIntervalBetweenHints));

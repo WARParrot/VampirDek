@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Definitions;
+using Shared.Localization;
+using Shared.UI;
 using System;
 using System.Collections.Generic;
 
@@ -29,26 +31,14 @@ namespace Combat.UI
                 _cardInstance = Instantiate(cardPrefab, container);
 
                 var nameText = _cardInstance.transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
-                if (nameText) nameText.text = card.CardName;
+                if (nameText) nameText.text = LocalizationService.CardName(card);
 
                 var costText = _cardInstance.transform.Find("CardCost")?.GetComponent<TextMeshProUGUI>();
                 if (costText)
                 {
-                    string costStr = "";
-                    if (card.Costs != null)
-                    {
-                        var parts = new List<string>();
-                        foreach (var cost in card.Costs)
-                        {
-                            if (cost is ManaCost mana)
-                                parts.Add($"{mana.Amount} mana");
-                            else if (cost is HumanResourceCost hr)
-                                parts.Add($"{hr.Amount} HR");
-                            else
-                                parts.Add(cost.GetType().Name);
-                        }
-                        costStr = string.Join(" ", parts);
-                    }
+                    var costStr = card.Costs != null
+                        ? string.Join(" ", card.Costs.ConvertAll(CardRulesText.FormatCostText))
+                        : string.Empty;
                     costText.text = costStr;
                 }
 

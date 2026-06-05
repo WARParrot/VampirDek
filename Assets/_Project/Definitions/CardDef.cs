@@ -12,6 +12,8 @@ namespace Definitions
     public class CardDef : ScriptableObject
     {
         public string CardName;
+        [Tooltip("Stable localization key for the display name. Leave empty to use card.<CardName>.name with CardName as fallback.")]
+        public string CardNameKey;
         public AssetReferenceSprite Artwork;
         public CardType Type;
         public RowType RowType;

@@ -6,6 +6,7 @@ using Core;
 using Combat;
 using Definitions;
 using Shared.UI;
+using Shared.Localization;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -43,8 +44,8 @@ public class HandUIManager : MonoBehaviour
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
         EnsureReadableStatusText();
-        PlayerTownHPText.text = $"Town HP: {side.Town?.Health}";
-        OpponentTownHPText.text = $"Opp Town HP: {state.OpponentSide.Town?.Health}";
+        PlayerTownHPText.text = LocalizationService.TFormat("ui.town_hp", "Town HP: {0}", side.Town?.Health);
+        OpponentTownHPText.text = LocalizationService.TFormat("ui.opponent_town_hp", "Opp Town HP: {0}", state.OpponentSide.Town?.Health);
         PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
         if (_displayedHR != side.HumanResources)
         {
@@ -52,7 +53,7 @@ public class HandUIManager : MonoBehaviour
             StartCoroutine(AnimateHRDelta(delta));
             _displayedHR = side.HumanResources;
         }
-        PlayerHumanResText.text = $"HR: {side.HumanResources}";
+        PlayerHumanResText.text = LocalizationService.TFormat("ui.hr", "HR: {0}", side.HumanResources);
         if (side.Hand.Count != _lastHandCount)
             RefreshHand(side);
         bool allowDrag = state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
@@ -96,23 +97,23 @@ public class HandUIManager : MonoBehaviour
     }
     private string GetPhaseDisplayText(PhaseNode phase)
     {
-        if (phase == null) return "";
+        if (phase == null) return string.Empty;
         if (phase.Tags.Contains("BuildingPhase"))
-            return "Фаза строительства\nПеретащите карту на поле или подтвердите фазу";
+            return LocalizationService.T("phase.building", "Building Phase\nDrag a card onto the board or confirm the phase");
         if (phase.Tags.Contains("PlanningPhase"))
-            return "Фаза планирования\nВыберите цели для атаки";
+            return LocalizationService.T("phase.planning", "Planning Phase\nChoose attack targets");
         if (phase.Tags.Contains("ClashingPhase"))
-            return "Фаза столкновений";
+            return LocalizationService.T("phase.clashing", "Clashing Phase");
         if (phase.Tags.Contains("OneSidedAttackPhase"))
-            return "Фаза атак";
+            return LocalizationService.T("phase.one_sided_attack", "Attack Phase");
         if (phase.Tags.Contains("StartOfTurn"))
-            return "Начало хода";
+            return LocalizationService.T("phase.start_of_turn", "Start of turn");
         if (phase.Tags.Contains("EndOfTurn"))
-            return "Конец хода";
+            return LocalizationService.T("phase.end_of_turn", "End of turn");
         if (phase.Tags.Contains("DuelStart"))
-            return "Начало дуэли";
+            return LocalizationService.T("phase.duel_start", "Duel start");
         if (phase.Tags.Contains("Loot"))
-            return "Награда";
+            return LocalizationService.T("phase.loot", "Reward");
         return phase.PhaseId;
     }
     private IEnumerator AnimateHRDelta(int delta)
@@ -345,11 +346,11 @@ public class HandUIManager : MonoBehaviour
         if (wanted != null)
         {
             var costs = wanted.Costs != null && wanted.Costs.Count > 0
-                ? string.Join(" ", wanted.Costs.Select(c => c.GetCostText()))
-                : "без стоимости";
-            return $"Возьмите {wanted.CardName} ({costs}) и перетащите в свободный слот ряда {wanted.RowType}.";
+                ? string.Join(" ", wanted.Costs.Where(c => c != null).Select(CardRulesText.FormatCostText))
+                : LocalizationService.T("tutorial.cost.free", "free");
+            return LocalizationService.TFormat("tutorial.playable_card_hint", "Take {0} ({1}) and drag it into a free {2} row slot.", LocalizationService.CardName(wanted), costs, LocalizationService.RowTypeName(wanted.RowType));
         }
-        return $"Сейчас нет подходящей карты для этого шага (HR={side?.HumanResources ?? 0}). Шаг будет пропущен.";
+        return LocalizationService.TFormat("tutorial.no_playable_card", "There is no playable card for this step right now (HR={0}). The step will be skipped.", side?.HumanResources ?? 0);
     }
     private bool CanPayAllCosts(CardDef def, IPlayerSide side)
     {
@@ -367,21 +368,21 @@ public class HandUIManager : MonoBehaviour
         string warningMessage = "";
         if (cost is ManaCost manaCost)
         {
-            warningMessage = $"Нельзя использовать - не хватает маны\nТребуется: {manaCost.Amount}, Доступно: {side.Mana}";
+            warningMessage = LocalizationService.TFormat("warning.not_enough_mana", "Cannot play — not enough mana\nRequired: {0}, Available: {1}", manaCost.Amount, side.Mana);
         }
         else if (cost is HumanResourceCost hrCost)
         {
-            warningMessage = $"Нельзя использовать - не хватает HR\nТребуется: {hrCost.Amount}, Доступно: {side.HumanResources}";
+            warningMessage = LocalizationService.TFormat("warning.not_enough_hr", "Cannot play — not enough HR\nRequired: {0}, Available: {1}", hrCost.Amount, side.HumanResources);
         }
         else if (cost is SacrificeCost sacrificeCost)
         {
             var available = side.Board.GetCardsRow(sacrificeCost.RequiredRowType)
                 .Count(slot => slot?.Occupant != null && slot.Occupant.IsAlive);
-            warningMessage = $"Нельзя использовать - нужен живой {sacrificeCost.RequiredRowType} на поле\nТребуется: {sacrificeCost.Amount}, Доступно: {available}";
+            warningMessage = LocalizationService.TFormat("warning.need_sacrifice", "Cannot play — sacrifice required\nRequired: {0} {1}, Available: {2}", sacrificeCost.Amount, LocalizationService.RowTypeName(sacrificeCost.RequiredRowType), available);
         }
         else
         {
-            warningMessage = $"Нельзя использовать - недостаточно ресурсов\n{cost.GetCostText()}";
+            warningMessage = LocalizationService.TFormat("warning.not_enough_resources", "Cannot play — not enough resources\n{0}", CardRulesText.FormatCostText(cost));
         }
         ResourceWarningUI.ShowWarningAsync(warningMessage).Forget();
     }

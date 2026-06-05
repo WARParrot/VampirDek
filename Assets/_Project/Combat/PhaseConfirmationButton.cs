@@ -3,10 +3,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using Combat;
 using System.Collections;
+using TMPro;
+using Shared.Localization;
 
 public class PhaseConfirmationButton : MonoBehaviour
 {
     [SerializeField] private TutorialSystem _tutorialSystem;
+    [SerializeField] private TextMeshProUGUI _label;
 
     private Button _button;
     private DuelManager _duelManager;
@@ -29,11 +32,18 @@ public class PhaseConfirmationButton : MonoBehaviour
 
         _button = GetComponent<Button>();
         _button.onClick.AddListener(OnClick);
+        if (_label == null) _label = GetComponentInChildren<TextMeshProUGUI>(true);
+        ApplyLocalization();
 
         if (_tutorialSystem == null)
         {
             _tutorialSystem = FindObjectOfType<TutorialSystem>();
         }
+    }
+
+    private void ApplyLocalization()
+    {
+        if (_label != null) _label.text = LocalizationService.T("phase.confirm_button", "Confirm");
     }
 
     void Update()

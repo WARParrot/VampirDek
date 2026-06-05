@@ -2,6 +2,7 @@ using Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using FMODUnity;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -294,7 +295,7 @@ namespace Exploration
                 if (interactable != null)
                 {
                     string promptText = string.IsNullOrEmpty(interactable.PromptText)
-                        ? "Нажмите [E] для взаимодействия"
+                        ? LocalizationService.T("interaction.default_prompt", "Press [E] to interact")
                         : interactable.PromptText;
 
                     _interactionPromptUI.Show(promptText);

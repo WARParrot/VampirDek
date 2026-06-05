@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Definitions;
+using Shared.Localization;
 
 namespace Shared.UI
 {
@@ -30,20 +31,20 @@ namespace Shared.UI
             var lines = new List<string>
             {
                 FormatCostLine(def),
-                $"HP {def.Health}"
+                LocalizationService.TFormat("ui.card.hp", "HP {0}", def.Health)
             };
-            if (HasAttack(def)) lines.Add($"Attack: {def.Attack}");
-            if (HasSpeed(def)) lines.Add($"Speed roll: {FormatSpeedRange(def)}");
+            if (HasAttack(def)) lines.Add(LocalizationService.TFormat("ui.card.attack", "Attack: {0}", def.Attack));
+            if (HasSpeed(def)) lines.Add(LocalizationService.TFormat("ui.card.speed_roll", "Speed roll: {0}", FormatSpeedRange(def)));
 
             var passives = FormatInnatePassives(def);
             if (!string.IsNullOrEmpty(passives))
             {
-                lines.Add("Passives:");
+                lines.Add(LocalizationService.T("ui.card.passives", "Passives:"));
                 lines.AddRange(passives.Split(';').Select(passive => $"- {passive.Trim()}").Where(line => line.Length > 2));
             }
             else
             {
-                lines.Add("Passives: none");
+                lines.Add(LocalizationService.T("ui.card.passives_none", "Passives: none"));
             }
 
             return string.Join("\n", lines.Where(line => !string.IsNullOrEmpty(line)));
@@ -51,8 +52,34 @@ namespace Shared.UI
 
         public static string FormatCostLine(CardDef def)
         {
-            if (def?.Costs == null || def.Costs.Count == 0) return "Cost: free";
-            return $"Cost: {string.Join(" ", def.Costs.Where(c => c != null).Select(c => c.GetCostText()))}";
+            if (def?.Costs == null || def.Costs.Count == 0) return LocalizationService.T("ui.cost.free", "Cost: free");
+            return LocalizationService.TFormat("ui.cost.line", "Cost: {0}", string.Join(" ", def.Costs.Where(c => c != null).Select(FormatCostText)));
+        }
+
+        public static string FormatCostText(CardCost cost)
+        {
+            if (cost == null) return string.Empty;
+            switch (cost)
+            {
+                case ManaCost manaCost:
+                    return LocalizationService.TFormat("ui.cost.mana", "{0} mana", manaCost.Amount);
+                case HumanResourceCost humanResourceCost:
+                    return LocalizationService.TFormat("ui.cost.hr", "{0} HR", humanResourceCost.Amount);
+                case SacrificeCost sacrificeCost:
+                    if (sacrificeCost.Amount <= 0) return string.Empty;
+                    var rowName = LocalizationService.RowTypeName(sacrificeCost.RequiredRowType);
+                    if (sacrificeCost.RequiredRowType.ToString() == "Human")
+                    {
+                        return sacrificeCost.Amount == 1
+                            ? LocalizationService.T("ui.cost.human.single", "Human")
+                            : LocalizationService.TFormat("ui.cost.human.many", "{0} Human", sacrificeCost.Amount);
+                    }
+                    return sacrificeCost.Amount == 1
+                        ? LocalizationService.TFormat("ui.cost.sacrifice.single", "Sacrifice one {0}", rowName)
+                        : LocalizationService.TFormat("ui.cost.sacrifice.many", "Sacrifice {1} {0} cards", rowName, sacrificeCost.Amount);
+                default:
+                    return cost.GetCostText();
+            }
         }
 
         private static string FormatCompactCost(CardCost cost)
@@ -62,14 +89,16 @@ namespace Shared.UI
                 case ManaCost manaCost:
                     return manaCost.Amount > 0 ? manaCost.Amount.ToString() : string.Empty;
                 case HumanResourceCost humanResourceCost:
-                    return humanResourceCost.Amount > 0 ? $"{humanResourceCost.Amount} HR" : string.Empty;
+                    return humanResourceCost.Amount > 0 ? LocalizationService.TFormat("ui.cost.hr", "{0} HR", humanResourceCost.Amount) : string.Empty;
                 case SacrificeCost sacrificeCost:
                     if (sacrificeCost.Amount <= 0) return string.Empty;
                     if (sacrificeCost.RequiredRowType.ToString() == "Human")
                     {
-                        return sacrificeCost.Amount == 1 ? "Human" : $"{sacrificeCost.Amount} Human";
+                        return sacrificeCost.Amount == 1
+                            ? LocalizationService.T("ui.cost.human.single", "Human")
+                            : LocalizationService.TFormat("ui.cost.human.many", "{0} Human", sacrificeCost.Amount);
                     }
-                    return sacrificeCost.GetCostText();
+                    return FormatCostText(sacrificeCost);
                 default:
                     return cost.GetCostText();
             }
@@ -101,9 +130,9 @@ namespace Shared.UI
         {
             if (data == null) return string.Empty;
 
-            var name = !string.IsNullOrWhiteSpace(data.DisplayName) ? data.DisplayName : "Passive";
+            var name = LocalizationService.EnchantmentName(data);
             var details = BuildEnchantmentDetails(data);
-            return string.IsNullOrEmpty(details) ? name : $"{name}: {details}";
+            return string.IsNullOrEmpty(details) ? name : LocalizationService.TFormat("ui.passive.detail", "{0}: {1}", name, details);
         }
 
         private static string BuildEnchantmentDetails(EnchantmentData data)
@@ -114,11 +143,11 @@ namespace Shared.UI
             {
                 foreach (var modifier in data.Modifiers.Where(m => m != null))
                 {
-                    var stat = string.IsNullOrWhiteSpace(modifier.Stat) ? "Stat" : modifier.Stat;
+                    var stat = LocalizationService.StatName(modifier.Stat);
                     var value = modifier.Type == ModifierType.Multiply
-                        ? $"x{modifier.Value}"
-                        : modifier.Value >= 0 ? $"+{modifier.Value}" : modifier.Value.ToString();
-                    parts.Add($"{stat} {value}");
+                        ? LocalizationService.TFormat("ui.modifier.multiply", "{0} x{1}", stat, modifier.Value)
+                        : LocalizationService.TFormat("ui.modifier.add", "{0} {1}", stat, modifier.Value >= 0 ? $"+{modifier.Value}" : modifier.Value.ToString());
+                    parts.Add(value);
                 }
             }
 
@@ -126,7 +155,7 @@ namespace Shared.UI
             {
                 foreach (var trigger in data.Triggers.Where(t => t != null && !string.IsNullOrWhiteSpace(t.EventType)))
                 {
-                    parts.Add($"on {ShortTypeName(trigger.EventType)}");
+                    parts.Add(LocalizationService.TFormat("ui.trigger.on", "on {0}", ShortTypeName(trigger.EventType)));
                 }
             }
 

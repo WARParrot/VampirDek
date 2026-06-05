@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -16,7 +17,7 @@ namespace Exploration
         private ExplorationController _player;
         private bool _isActive;
 
-        public string PromptText => _solved ? "" : "Взломать";
+        public string PromptText => _solved ? string.Empty : LocalizationService.T("interaction.hack", "Hack");
 
         private void Awake()
         {

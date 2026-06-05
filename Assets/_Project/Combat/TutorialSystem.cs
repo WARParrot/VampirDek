@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Definitions;
 using Core;
+using Shared.Localization;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 using System;
@@ -358,12 +359,12 @@ namespace Combat
         private string BuildContextualMessage(TutorialStep step)
         {
             if (step == null) return string.Empty;
-            var message = step.Message ?? string.Empty;
+            var message = LocalizationService.T(step.MessageKey, step.Message ?? string.Empty);
             if (message.Contains("{PlayableCardHint}"))
             {
                 var hint = _handUIManager != null
                     ? _handUIManager.GetTutorialPlayableCardHint()
-                    : "Туториал ожидает инициализацию руки.";
+                    : LocalizationService.T("tutorial.hand_initializing", "Tutorial is waiting for the hand to initialize.");
                 message = message.Replace("{PlayableCardHint}", hint);
             }
             return message;
@@ -619,6 +620,7 @@ namespace Combat
     {
         [TextArea(3, 5)]
         public string Message;
+        public string MessageKey;
         public GameObject TargetObject;
         public RectTransform TargetUIElement;
         public DynamicArrowTarget DynamicArrow = DynamicArrowTarget.None;

@@ -3,6 +3,7 @@ using Combat.UI;
 using Definitions;
 using TMPro;
 using Shared.UI;
+using Shared.Localization;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -39,11 +40,11 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         if (occupant == null)
         {
             if (CardNameText != null) CardNameText.text = ShortRowName(RowType);
-            if (CardStatsText != null) CardStatsText.text = "Empty";
+            if (CardStatsText != null) CardStatsText.text = LocalizationService.T("ui.empty", "Empty");
             return;
         }
 
-        if (CardNameText != null) CardNameText.text = occupant.SourceCard.CardName;
+        if (CardNameText != null) CardNameText.text = LocalizationService.CardName(occupant.SourceCard);
 
         if (CardStatsText != null)
         {
@@ -104,12 +105,5 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    private static string ShortRowName(Definitions.RowType rowType) => rowType switch
-    {
-        Definitions.RowType.Vanguard => "Vanguard",
-        Definitions.RowType.Building => "Building",
-        Definitions.RowType.Human => "Human",
-        Definitions.RowType.Town => "Town",
-        _ => rowType.ToString()
-    };
+    private static string ShortRowName(Definitions.RowType rowType) => LocalizationService.ShortRowTypeName(rowType);
 }

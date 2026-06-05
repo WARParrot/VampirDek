@@ -4,5 +4,6 @@ using UnityEngine;
 public class ChoiceOption
 {
     public string DisplayText;
+    public string DisplayTextKey;
     public DialogueNode NextNode;
 }

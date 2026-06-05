@@ -1,4 +1,6 @@
 using TMPro;
+using Shared.Localization;
+using Shared.UI;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
@@ -151,7 +153,7 @@ namespace Combat.UI
             // Заполняем информацию о карте
             var nameText = entry.transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
             if (nameText != null)
-                nameText.text = group.CardDef.CardName;
+                nameText.text = LocalizationService.CardName(group.CardDef);
 
             var statsText = entry.transform.Find("Stats")?.GetComponent<TextMeshProUGUI>();
             if (statsText != null)
@@ -160,7 +162,7 @@ namespace Combat.UI
             var costText = entry.transform.Find("Cost")?.GetComponent<TextMeshProUGUI>();
             if (costText != null)
             {
-                var costs = group.CardDef.Costs.ConvertAll(c => c.GetCostText());
+                var costs = group.CardDef.Costs.ConvertAll(CardRulesText.FormatCostText);
                 costText.text = string.Join(" ", costs);
             }
 
@@ -168,9 +170,9 @@ namespace Combat.UI
             if (locationText != null)
             {
                 var parts = new List<string>();
-                if (group.InDeck > 0) parts.Add($"Колода: {group.InDeck}");
-                if (group.InHand > 0) parts.Add($"Рука: {group.InHand}");
-                if (group.InDiscard > 0) parts.Add($"Сброс: {group.InDiscard}");
+                if (group.InDeck > 0) parts.Add(LocalizationService.TFormat("deck.location.deck", "Deck: {0}", group.InDeck));
+                if (group.InHand > 0) parts.Add(LocalizationService.TFormat("deck.location.hand", "Hand: {0}", group.InHand));
+                if (group.InDiscard > 0) parts.Add(LocalizationService.TFormat("deck.location.discard", "Discard: {0}", group.InDiscard));
                 locationText.text = string.Join(" | ", parts);
             }
 
@@ -184,7 +186,7 @@ namespace Combat.UI
             if (_deckStatsText == null) return;
 
             int total = deckCount + handCount + discardCount;
-            _deckStatsText.text = $"Всего карт: {total} | В колоде: {deckCount} | В руке: {handCount} | В сбросе: {discardCount}";
+            _deckStatsText.text = LocalizationService.TFormat("deck.stats", "Total cards: {0} | In deck: {1} | In hand: {2} | Discard: {3}", total, deckCount, handCount, discardCount);
         }
 
         private void ClearCardEntries()
@@ -201,11 +203,11 @@ namespace Combat.UI
         {
             return rowType switch
             {
-                Definitions.RowType.Vanguard => "Авангард",
-                Definitions.RowType.Building => "Здание",
-                Definitions.RowType.Human => "Люди",
-                Definitions.RowType.Town => "Город",
-                _ => "Неизвестно"
+                Definitions.RowType.Vanguard => LocalizationService.RowTypeName(Definitions.RowType.Vanguard),
+                Definitions.RowType.Building => LocalizationService.RowTypeName(Definitions.RowType.Building),
+                Definitions.RowType.Human => LocalizationService.RowTypeName(Definitions.RowType.Human),
+                Definitions.RowType.Town => LocalizationService.RowTypeName(Definitions.RowType.Town),
+                _ => LocalizationService.T("deck.row.unknown", "Unknown")
             };
         }
 

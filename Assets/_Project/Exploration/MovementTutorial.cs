@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -132,13 +133,16 @@ namespace Exploration
             {
                 new TutorialMovementStep
                 {
+                    InstructionKey = "tutorial.exploration_intro",
                     InstructionText = "Exploration is where the run breathes. Between duels, you decide what is worth risking: a fight, a reward, or a retreat.",
                     CompletionType = MovementCompletionType.TimeElapsed,
                     DelayBeforeNext = 4.5f
                 },
                 new TutorialMovementStep
                 {
+                    InstructionKey = "tutorial.exploration_move_intro",
                     InstructionText = "First, get your bearings. Doors, encounters, secrets, and escape routes only matter once you can reach them.",
+                    ActionPromptKey = "tutorial.exploration_move_prompt",
                     ActionPrompt = "Move with WASD or the arrow keys.",
                     CompletionType = MovementCompletionType.AnyMovement,
                     MinimumReadSeconds = 2.25f,
@@ -146,7 +150,9 @@ namespace Exploration
                 },
                 new TutorialMovementStep
                 {
+                    InstructionKey = "tutorial.exploration_look_intro",
                     InstructionText = "Your gaze is how you ask the world questions. Look around to find what can be inspected, used, avoided, or fought.",
+                    ActionPromptKey = "tutorial.exploration_look_prompt",
                     ActionPrompt = "Move the mouse to look around.",
                     CompletionType = MovementCompletionType.MouseLook,
                     MinimumReadSeconds = 2.25f,
@@ -154,7 +160,9 @@ namespace Exploration
                 },
                 new TutorialMovementStep
                 {
+                    InstructionKey = "tutorial.exploration_interact_intro",
                     InstructionText = "When the world answers, interact. This is how you inspect objects, open paths, and commit to nearby encounter points.",
+                    ActionPromptKey = "tutorial.exploration_interact_prompt",
                     ActionPrompt = "Face an interactable prompt or encounter, then press E.",
                     CompletionType = MovementCompletionType.Interact,
                     MinimumReadSeconds = 2.5f,
@@ -162,7 +170,9 @@ namespace Exploration
                 },
                 new TutorialMovementStep
                 {
+                    InstructionKey = "tutorial.exploration_deck_intro",
                     InstructionText = "Before you accept danger, check what you are carrying. Your deck is not a menu footnote; it is your plan for surviving the next duel.",
+                    ActionPromptKey = "tutorial.exploration_deck_prompt",
                     ActionPrompt = "Press Esc to open the menu and review your current deck.",
                     CompletionType = MovementCompletionType.EscapeMenu,
                     MinimumReadSeconds = 3f,
@@ -170,6 +180,7 @@ namespace Exploration
                 },
                 new TutorialMovementStep
                 {
+                    InstructionKey = "tutorial.exploration_outro",
                     InstructionText = "That is Exploration: read the room, check the deck, then choose the fight. Curiosity builds the run; haste can end it.",
                     CompletionType = MovementCompletionType.TimeElapsed,
                     DelayBeforeNext = 4.5f
@@ -245,13 +256,16 @@ namespace Exploration
         {
             if (_instructionText == null || step == null) return;
 
-            if (showActionPrompt && !string.IsNullOrWhiteSpace(step.ActionPrompt))
+            var instruction = ResolveStepText(step.InstructionKey, step.InstructionText);
+            var actionPrompt = ResolveStepText(step.ActionPromptKey, step.ActionPrompt);
+
+            if (showActionPrompt && !string.IsNullOrWhiteSpace(actionPrompt))
             {
-                _instructionText.text = $"{step.InstructionText}\n\n<size=18><color=#FFD36A>{step.ActionPrompt}</color></size>";
+                _instructionText.text = $"{instruction}\n\n<size=18><color=#FFD36A>{actionPrompt}</color></size>";
             }
             else
             {
-                _instructionText.text = step.InstructionText;
+                _instructionText.text = instruction;
             }
 
             _instructionText.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -260,6 +274,31 @@ namespace Exploration
             _instructionText.resizeTextMinSize = 14;
             _instructionText.resizeTextMaxSize = Mathf.Max(_instructionText.fontSize, 22);
             _instructionText.supportRichText = true;
+        }
+
+        private static string ResolveStepText(string key, string fallback)
+        {
+            if (!string.IsNullOrWhiteSpace(key)) return LocalizationService.T(key, fallback);
+            var inferredKey = TutorialKeyFromEnglish(fallback);
+            return LocalizationService.T(inferredKey, fallback);
+        }
+
+        private static string TutorialKeyFromEnglish(string text)
+        {
+            return text switch
+            {
+                "Exploration is where the run breathes. Between duels, you decide what is worth risking: a fight, a reward, or a retreat." => "tutorial.exploration_intro",
+                "First, get your bearings. Doors, encounters, secrets, and escape routes only matter once you can reach them." => "tutorial.exploration_move_intro",
+                "Move with WASD or the arrow keys." => "tutorial.exploration_move_prompt",
+                "Your gaze is how you ask the world questions. Look around to find what can be inspected, used, avoided, or fought." => "tutorial.exploration_look_intro",
+                "Move the mouse to look around." => "tutorial.exploration_look_prompt",
+                "When the world answers, interact. This is how you inspect objects, open paths, and commit to nearby encounter points." => "tutorial.exploration_interact_intro",
+                "Face an interactable prompt or encounter, then press E." => "tutorial.exploration_interact_prompt",
+                "Before you accept danger, check what you are carrying. Your deck is not a menu footnote; it is your plan for surviving the next duel." => "tutorial.exploration_deck_intro",
+                "Press Esc to open the menu and review your current deck." => "tutorial.exploration_deck_prompt",
+                "That is Exploration: read the room, check the deck, then choose the fight. Curiosity builds the run; haste can end it." => "tutorial.exploration_outro",
+                _ => string.Empty
+            };
         }
 
         private void CheckStepCompletion()
@@ -337,8 +376,10 @@ namespace Exploration
     [System.Serializable]
     public class TutorialMovementStep
     {
+        public string InstructionKey;
         [TextArea(2, 5)]
         public string InstructionText;
+        public string ActionPromptKey;
         [TextArea(1, 2)]
         public string ActionPrompt;
         public Sprite KeyHintSprite;

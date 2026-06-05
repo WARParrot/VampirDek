@@ -1,5 +1,6 @@
 using Definitions;
 using TMPro;
+using Shared.Localization;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -34,7 +35,7 @@ namespace Shared.UI
             AutoBindTextFields();
 
             if (_nameText != null)
-                _nameText.text = _model.Def.CardName;
+                _nameText.text = LocalizationService.CardName(_model.Def);
 
             if (_costText != null)
                 _costText.text = CardRulesText.FormatHandCardSummary(_model.Def);

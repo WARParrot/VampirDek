@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Core;
+using Shared.Localization;
 using TMPro;
 using UnityEngine;
 
@@ -21,17 +22,17 @@ namespace Combat.UI
         private float _targetAlpha;
         private float _hideTimer;
 
-        private static readonly Dictionary<string, string> PhaseNames = new Dictionary<string, string>
+        private static readonly Dictionary<string, string> PhaseKeys = new Dictionary<string, string>
         {
-            { "DuelStart", "Начало дуэли" },
-            { "StartOfTurn", "Начало хода" },
-            { "BuildingPhase", "Фаза строительства" },
-            { "PlanningPhase", "Фаза планирования" },
-            { "ClashingPhase", "Фаза столкновений" },
-            { "OneSidedAttackPhase", "Атака" },
-            { "EndOfTurn", "Конец хода" },
-            { "Loot", "Лут" },
-            { "DuelEnd", "Конец дуэли" },
+            { "DuelStart", "phase.duel_start" },
+            { "StartOfTurn", "phase.start_of_turn" },
+            { "BuildingPhase", "phase.building" },
+            { "PlanningPhase", "phase.planning" },
+            { "ClashingPhase", "phase.clashing" },
+            { "OneSidedAttackPhase", "phase.one_sided_attack" },
+            { "EndOfTurn", "phase.end_of_turn" },
+            { "Loot", "phase.loot" },
+            { "DuelEnd", "phase.duel_end" },
         };
 
         private void Awake()
@@ -74,10 +75,10 @@ namespace Combat.UI
             {
                 foreach (var tag in evt.Tags)
                 {
-                    if (PhaseNames.TryGetValue(tag, out var name)) { display = name; break; }
+                    if (PhaseKeys.TryGetValue(tag, out var key)) { display = LocalizationService.T(key, tag); break; }
                 }
             }
-            if (display == null) PhaseNames.TryGetValue(evt.PhaseId ?? "", out display);
+            if (display == null && PhaseKeys.TryGetValue(evt.PhaseId ?? "", out var phaseKey)) display = LocalizationService.T(phaseKey, evt.PhaseId);
             if (string.IsNullOrEmpty(display)) display = evt.PhaseId;
 
             if (_phaseText != null) _phaseText.text = display;

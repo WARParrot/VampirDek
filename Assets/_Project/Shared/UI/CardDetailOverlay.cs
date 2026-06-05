@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Shared.Localization;
 
 namespace Shared.UI
 {
@@ -98,7 +99,7 @@ namespace Shared.UI
             var titleObject = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
             titleObject.transform.SetParent(panelObject.transform, false);
             var titleText = titleObject.GetComponent<TextMeshProUGUI>();
-            titleText.text = "Card details";
+            titleText.text = LocalizationService.T("ui.card_details.title", "Card details");
             titleText.fontSize = 24f;
             titleText.fontStyle = FontStyles.Bold;
             titleText.color = new Color(1f, 0.88f, 0.62f, 1f);
@@ -119,7 +120,7 @@ namespace Shared.UI
             var closeObject = new GameObject("CloseHint", typeof(RectTransform), typeof(TextMeshProUGUI));
             closeObject.transform.SetParent(panelObject.transform, false);
             var closeText = closeObject.GetComponent<TextMeshProUGUI>();
-            closeText.text = "Click anywhere to close";
+            closeText.text = LocalizationService.T("ui.card_details.close_hint", "Click anywhere to close");
             closeText.fontSize = 13f;
             closeText.color = new Color(0.85f, 0.78f, 0.65f, 1f);
             closeText.alignment = TextAlignmentOptions.Right;

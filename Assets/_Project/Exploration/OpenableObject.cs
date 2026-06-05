@@ -1,4 +1,5 @@
 using UnityEngine;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -13,13 +14,15 @@ namespace Exploration
         [SerializeField] private GameObject _contents;   // шкатулка или другой объект внутри
 
         [Header("Prompts")]
+        [SerializeField] private string _promptOpenKey = "interaction.open";
         [SerializeField] private string _promptOpen = "Open";
+        [SerializeField] private string _promptCloseKey = "interaction.close";
         [SerializeField] private string _promptClose = "Close";
 
         private bool _isOpen;
         private Quaternion _closedRotation;
 
-        public string PromptText => _isOpen ? _promptClose : _promptOpen;
+        public string PromptText => _isOpen ? LocalizationService.T(_promptCloseKey, _promptClose) : LocalizationService.T(_promptOpenKey, _promptOpen);
 
         private void Awake()
         {
