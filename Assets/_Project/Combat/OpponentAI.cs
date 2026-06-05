@@ -47,6 +47,9 @@ namespace Combat
         /// </summary>
         public IGameEntity DecideAttackTarget(BoardCard attacker, SideState playerSide)
         {
+            var provoker = Combat.CardBehaviorTags.GetActiveProvokerOn(playerSide);
+            if (provoker != null) return provoker;
+
             var playerVanguard = playerSide.Board.VanguardRow
                 .Where(s => s.Occupant != null && s.Occupant.IsAlive)
                 .Select(s => s.Occupant)

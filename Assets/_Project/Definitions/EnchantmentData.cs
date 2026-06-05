@@ -16,6 +16,8 @@ namespace Definitions
     public class TriggerEntry
     {
         public string EventType;
+        public string PhaseFilter;
+        public bool OwnerOnly;
         public List<ActionDefinition> Actions;
     }
 

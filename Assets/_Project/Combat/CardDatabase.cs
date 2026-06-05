@@ -3,6 +3,7 @@ using Definitions;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using Cysharp.Threading.Tasks;
+using Debug = UnityEngine.Debug;
 
 namespace Combat
 {
@@ -29,26 +30,38 @@ namespace Combat
 
         public static CardDef GetCard(string cardName)
         {
+            if (string.IsNullOrEmpty(cardName)) return null;
             if (_cache.TryGetValue(cardName, out var card))
                 return card;
-            var h = Addressables.LoadAssetAsync<CardDef>(cardName);
-            h.WaitForCompletion();
-            return h.Result;
+            try
+            {
+                var h = Addressables.LoadAssetAsync<CardDef>(cardName);
+                h.WaitForCompletion();
+                if (h.Result != null) _cache[cardName] = h.Result;
+                return h.Result;
+            }
+            catch
+            {
+                Debug.LogWarning($"[CardDatabase] Card '{cardName}' not found. Returning null.");
+                return null;
+            }
         }
 
         public static async UniTask<CardDef> GetCardAsync(string cardName)
         {
+            if (string.IsNullOrEmpty(cardName)) return null;
             if (_cache.TryGetValue(cardName, out var card))
                 return card;
             try
             {
                 var handle = Addressables.LoadAssetAsync<CardDef>(cardName);
                 await handle.Task;
-                _cache[cardName] = handle.Result;
+                if (handle.Result != null) _cache[cardName] = handle.Result;
                 return handle.Result;
             }
             catch
             {
+                Debug.LogWarning($"[CardDatabase] Card '{cardName}' not found in cache or Addressables. Returning null.");
                 return null;
             }
         }

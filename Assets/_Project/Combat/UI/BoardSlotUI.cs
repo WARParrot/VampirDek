@@ -19,7 +19,10 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
     public void SetHighlight(bool on)
     {
         if (HighlightImage != null)
+        {
+            HighlightImage.enabled = true; // ← добавить
             HighlightImage.color = on ? new Color(0, 1, 0, 0.3f) : new Color(1, 1, 1, 0);
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)

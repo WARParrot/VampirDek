@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61a4a12ae61775146864e3f75733293b, type: 3}
+  m_Name: BloodWitch
+  m_EditorClassIdentifier: Definitions::Definitions.CardDef
+  CardName: BloodWitch
+  Artwork:
+    m_AssetGUID: 
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  Type: 0
+  RowType: 0
+  MinSpeed: 1
+  MaxSpeed: 1
+  Health: 1
+  Attack: 3
+  Costs:
+  - {fileID: 11400000, guid: db7683ae68a21ce4c9c072b7820175f8, type: 2}
+  Effects: []
+  InnateEnchantments:
+  - {fileID: 11400000, guid: f4dd7c7ce1765cc4fa4df306a1a7d93d, type: 2}

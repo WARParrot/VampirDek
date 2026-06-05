@@ -63,6 +63,12 @@ namespace Combat.UI
                 }
                 else if (board == state.OpponentSide.Board && _selectedFriendly != null)
                 {
+                    var provoker = CardBehaviorTags.GetActiveProvokerOn(state.OpponentSide);
+                    if (provoker != null && card != provoker)
+                    {
+                        Debug.Log($"[TargetSelector] Provocation blocks selecting {card?.SourceCard.CardName}");
+                        return;
+                    }
                     _selectedFriendly.PlannedTarget = card;
                     ClearSelection();
                     _selectedFriendly = null;

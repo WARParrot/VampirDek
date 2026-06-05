@@ -34,6 +34,13 @@ public class HandUIManager : MonoBehaviour
     private DragHandler _currentlyDragging;
     private int _lastHandCount = -1;
     private bool _lastDragAllowed = false;
+    [Header("HR Animation")]
+    [SerializeField] private TextMeshProUGUI _hrDeltaText;
+    [SerializeField] private float _hrDeltaDuration = 0.5f;
+    [SerializeField] private Color _hrPositiveColor = Color.green;
+    [SerializeField] private Color _hrNegativeColor = Color.red;
+
+    private int _displayedHR;
 
     void Update()
     {
@@ -45,9 +52,15 @@ public class HandUIManager : MonoBehaviour
 
         PlayerTownHPText.text = $"Town HP: {side.Town?.Health}";
         OpponentTownHPText.text = $"Opp Town HP: {state.OpponentSide.Town?.Health}";
-        //PlayerManaText.text = $"Mana: {side.Mana}";
-        PlayerHumanResText.text = $"HR: {side.HumanResources}";
         PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
+
+        if (_displayedHR != side.HumanResources)
+        {
+            int delta = side.HumanResources - _displayedHR;
+            StartCoroutine(AnimateHRDelta(delta));
+            _displayedHR = side.HumanResources;
+        }
+        PlayerHumanResText.text = $"HR: {side.HumanResources}";
 
         if (side.Hand.Count != _lastHandCount)
             RefreshHand(side);
@@ -85,6 +98,30 @@ public class HandUIManager : MonoBehaviour
         return phase.PhaseId;
     }
 
+    private IEnumerator AnimateHRDelta(int delta)
+    {
+        if (_hrDeltaText == null) yield break;
+
+        _hrDeltaText.text = delta > 0 ? $"+{delta}" : $"{delta}";
+        _hrDeltaText.color = delta >= 0 ? _hrPositiveColor : _hrNegativeColor;
+        _hrDeltaText.gameObject.SetActive(true);
+        _hrDeltaText.alpha = 1f;
+
+        float elapsed = 0f;
+        float duration = _hrDeltaDuration;
+        Vector2 fixedPos = new Vector2(30, 20);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            _hrDeltaText.rectTransform.anchoredPosition = fixedPos;
+            _hrDeltaText.alpha = 1f - (elapsed / duration);
+            yield return null;
+        }
+
+        _hrDeltaText.gameObject.SetActive(false);
+    }
+
     void RefreshHand(IPlayerSide side)
     {
         Debug.Log($"[HandUI] RefreshHand - count: {side.Hand.Count}");
@@ -110,6 +147,8 @@ public class HandUIManager : MonoBehaviour
         var state = _duelManager?.CurrentDuelState;
         if (state != null)
             RefreshHand(state.PlayerSide);
+        if (_duelManager?.CurrentDuelState != null)
+            _displayedHR = _duelManager.CurrentDuelState.PlayerSide.HumanResources;
     }
 
     public void OnCardDragStarted(DragHandler handler)
@@ -131,16 +170,14 @@ public class HandUIManager : MonoBehaviour
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
 
-        Debug.Log($"[Drag] Card: {card.Def.CardName}, Phase: {state.CurrentPhase.PhaseId}, Tags: {string.Join(",", state.CurrentPhase.Tags)}");
-
         if (!state.CurrentPhase.Tags.Contains("BuildingPhase"))
         {
-            Debug.Log("[Drag] Not BuildingPhase - ignoring drop");
             BoardView.HideAllHighlights();
             return;
         }
 
         var def = card.Def;
+        var cardImage = handler.GetComponent<Image>();
         foreach (var cost in def.Costs)
         {
             var ctx = new CostContext { PlayerSide = side, Amount = cost.GetAmount() };
@@ -148,7 +185,14 @@ public class HandUIManager : MonoBehaviour
             {
                 Debug.Log($"[Drag] Cannot pay cost: {cost.GetCostText()}");
                 ShowResourceWarning(cost, side);
+                if (cardImage != null)
+                {
+                    cardImage.color = new Color(1, 0, 0, 0.5f);
+                    StartCoroutine(ResetCardHighlight(cardImage));
+                }
+                StartCoroutine(HighlightHRText());
                 BoardView.HideAllHighlights();
+                ResetDragState(handler);
                 return;
             }
         }
@@ -159,18 +203,8 @@ public class HandUIManager : MonoBehaviour
             .Select(r => r.gameObject.GetComponent<BoardSlotUI>())
             .FirstOrDefault(s => s != null);
 
-        if (targetSlotUI == null)
+        if (targetSlotUI == null || !targetSlotUI.IsValidDropTarget)
         {
-            Debug.Log("[Drag] No BoardSlotUI hit");
-            BoardView.HideAllHighlights();
-            return;
-        }
-
-        Debug.Log($"[Drag] Hit slot - RowType: {targetSlotUI.RowType}, Index: {targetSlotUI.Index}, IsValidDrop: {targetSlotUI.IsValidDropTarget}");
-
-        if (!targetSlotUI.IsValidDropTarget)
-        {
-            Debug.Log("[Drag] Slot is not a valid drop target");
             BoardView.HideAllHighlights();
             return;
         }
@@ -178,41 +212,21 @@ public class HandUIManager : MonoBehaviour
         foreach (var cost in def.Costs)
         {
             var ctx = new CostContext { PlayerSide = side, Amount = cost.GetAmount() };
-            _duelManager.QueueAction(cost.GetPaymentAction(ctx));
+            var payment = cost.GetPaymentAction(ctx);
+            if (payment != null)
+                _duelManager.QueueAction(payment);
         }
 
         var board = ((SideState)side).Board;
-        BoardSlot targetSlot = null;
-        switch (targetSlotUI.RowType)
-        {
-            case Definitions.RowType.Vanguard:
-                if (targetSlotUI.Index < board.VanguardRow.Length)
-                    targetSlot = board.VanguardRow[targetSlotUI.Index];
-                break;
-            case Definitions.RowType.Building:
-                if (targetSlotUI.Index < board.BuildingRow.Length)
-                    targetSlot = board.BuildingRow[targetSlotUI.Index];
-                break;
-            case Definitions.RowType.Human:
-                if (targetSlotUI.Index < board.HumanRow.Length)
-                    targetSlot = board.HumanRow[targetSlotUI.Index];
-                break;
-            case Definitions.RowType.Town:
-                targetSlot = board.TownSlot;
-                break;
-        }
+        BoardSlot targetSlot = board.GetSlot(targetSlotUI.RowType, targetSlotUI.Index);
 
         if (targetSlot == null)
         {
-            Debug.LogError("[Drag] Mismatch - UI slot found but no matching BoardSlot");
             BoardView.HideAllHighlights();
             return;
         }
 
-        ((SideState)side).Hand.Remove((Card)card);
         _duelManager.QueueAction(new PlaceCardIntoSlotAction(board, def, targetSlot));
-        Debug.Log($"[Drag] Card removed from hand, placement action queued.");
-
         BoardView.HideAllHighlights();
     }
 
@@ -236,5 +250,34 @@ public class HandUIManager : MonoBehaviour
         }
 
         ResourceWarningUI.ShowWarningAsync(warningMessage).Forget();
+    }
+
+    private IEnumerator HighlightHRText()
+    {
+        if (PlayerHumanResText == null) yield break;
+
+        Color originalColor = PlayerHumanResText.color;
+        PlayerHumanResText.color = new Color(1f, 0.5f, 0f, 1f);
+
+        yield return new WaitForSeconds(1.5f);
+
+        PlayerHumanResText.color = originalColor;
+    }
+
+    private IEnumerator ResetCardHighlight(Image cardImage)
+    {
+        yield return new WaitForSeconds(1.5f);
+        if (cardImage != null)
+            cardImage.color = Color.white;
+    }
+
+    private void ResetDragState(DragHandler handler)
+    {
+        var canvasGroup = handler.GetComponent<CanvasGroup>();
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 1f;
+            canvasGroup.blocksRaycasts = true;
+        }
     }
 }

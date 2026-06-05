@@ -102,7 +102,7 @@ namespace Combat
                 });
             }
 
-            if (!_encounter.WinCondition.Check(_duelState))
+            if (_encounter.WinCondition != null && !_encounter.WinCondition.Check(_duelState))
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
                 string json = JsonUtility.ToJson(dto);
@@ -194,10 +194,17 @@ namespace Combat
                     continue;
                 }
                 Debug.Log($"[DuelManager] Processing action: {action.Description}");
-                await action.ExecuteAsync();
+                try
+                {
+                    await action.ExecuteAsync();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
+                }
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                if (_encounter.WinCondition.Check(_duelState))
+                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
                 {
                     bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
                     if (playerWon)
@@ -235,6 +242,7 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("StartOfTurn"))
             {
+                SpawnOnFriendlyDeathAction.ResetRoundTracking();
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.PlayerSide));
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.OpponentSide));
 
@@ -259,17 +267,10 @@ namespace Combat
                 while (!_playerConfirmedPhase)
                 {
                     if (_actionQueue.Count > 0)
-                    {
-                        Debug.Log($"[Phase] Loop iteration - queue count: {_actionQueue.Count}");
-                        Debug.Log("[Phase] Processing actions...");
                         await ProcessActionsAsync();
-                        Debug.Log("[Phase] Actions processed.");
-                    }
                     else
-                    {
                         await UniTask.Yield();
-                    }
-                };
+                }
                 Debug.Log("[Phase] Confirmed - advancing.");
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
@@ -304,7 +305,7 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
 
-                if (_encounter.WinCondition.Check(_duelState))
+                if (_encounter.WinCondition != null && _encounter.WinCondition.Check(_duelState))
                 {
                     _duelFinished = true;
                 }
@@ -428,18 +429,41 @@ namespace Combat
                     else if (cardWins)
                     {
                         QueueAction(new DamageAction(target, card.Attack, card));
+                        QueueDoubleAttackIfApplicable(card, target);
+                        QueueRitualistSacrificeIfApplicable(card);
                         target.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(card, target));
                     }
                     else if (targetWins)
                     {
                         QueueAction(new DamageAction(card, target.Attack, target));
+                        QueueDoubleAttackIfApplicable(target, card);
+                        QueueRitualistSacrificeIfApplicable(target);
                         card.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(target, card));
                     }
                 }
             }
             await ProcessActionsAsync();
+        }
+
+        private void QueueDoubleAttackIfApplicable(BoardCard attacker, IGameEntity target)
+        {
+            if (!CardBehaviorTags.HasDoubleAttackWhenAlone(attacker)) return;
+            var side = SideLookup.FindSideOf(attacker, _duelState);
+            if (side == null) return;
+            if (!CardBehaviorTags.IsAloneOnVanguard(attacker, side)) return;
+            if (target == null) return;
+            if (target is BoardCard bc && !bc.IsAlive) return;
+            QueueAction(new DamageAction(target, attacker.Attack, attacker));
+        }
+
+        private void QueueRitualistSacrificeIfApplicable(BoardCard attacker)
+        {
+            if (!CardBehaviorTags.DiesAfterAttacking(attacker)) return;
+            var side = SideLookup.FindSideOf(attacker, _duelState);
+            if (side == null) return;
+            QueueAction(new SacrificeAction(attacker, side.Board));
         }
 
         private async UniTask ResolveOneSidedAttacksAsync()
@@ -451,6 +475,8 @@ namespace Combat
             foreach (var card in attackers)
             {
                 QueueAction(new DamageAction(card.PlannedTarget, card.Attack, card));
+                QueueDoubleAttackIfApplicable(card, card.PlannedTarget);
+                QueueRitualistSacrificeIfApplicable(card);
             }
             await ProcessActionsAsync();
         }
@@ -546,7 +572,6 @@ namespace Combat
                 .Select(s => s.Occupant)
                 .ToArray();
 
-            // Используем AI для выбора целей
             foreach (var card in enemyVanguard)
             {
                 if (card == null || !card.IsAlive) continue;

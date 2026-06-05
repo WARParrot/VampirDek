@@ -1,6 +1,8 @@
-<Solution>
+﻿<Solution>
   <Project Path="Combat.csproj" />
   <Project Path="Core.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Assembly-CSharp-firstpass.csproj" />
   <Project Path="Novel.csproj" />
   <Project Path="Shared.csproj" />
   <Project Path="Definitions.csproj" />
