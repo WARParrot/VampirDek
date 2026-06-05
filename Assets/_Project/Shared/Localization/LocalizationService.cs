@@ -369,7 +369,7 @@ namespace Shared.Localization
                 ["tutorial.clash_intro"] = "Бой: если две карты атакуют друг друга, происходит столкновение. Урон считается автоматически.",
                 ["tutorial.one_sided_attack"] = "Если атака не встречена ответной атакой, карта просто наносит урон выбранной цели.",
                 ["tutorial.turn_end"] = "Ход почти закончен. На следующем ходу HR обновится по числу живых Людей, игроки возьмут карты, а временный урон зданий сбросится.",
-                ["tutorial.leave_duel"] = "Основы дуэли разобраны. Теперь отойдите от стола и осмотритесь вокруг.\n\nНажмите S, чтобы покинуть стол. Когда будете готовы продолжить бой, подойдите к нему снова и нажмите E."
+                ["tutorial.leave_duel"] = "Основы дуэли разобраны. Теперь можно отойти от стола и осмотреться вокруг — бой сохранится.\n\nЧтобы открыть дальнейший путь, вернитесь к столу и доведите дуэль до победы: разрушьте город противника.\n\nНажмите S, чтобы покинуть стол. Когда будете готовы продолжить бой, подойдите к нему снова и нажмите E."
             });
 
             RegisterTable("en", new Dictionary<string, string>
@@ -496,7 +496,7 @@ namespace Shared.Localization
                 ["tutorial.clash_intro"] = "Combat: if two cards attack each other, they clash. Damage is calculated automatically.",
                 ["tutorial.one_sided_attack"] = "If an attack is not answered by a counterattack, the card simply deals damage to the selected target.",
                 ["tutorial.turn_end"] = "The turn is almost over. Next turn, HR refreshes from living Humans, players draw cards, and temporary building damage resets.",
-                ["tutorial.leave_duel"] = "Duel basics complete. Step away from the table and look around.\n\nPress S to leave the table. When you are ready to continue, approach it again and press E."
+                ["tutorial.leave_duel"] = "Duel basics complete. You can step away from the table and look around — the fight will be saved.\n\nTo open the next path, return to the table and finish the duel by destroying the enemy town.\n\nPress S to leave the table. When you are ready to continue, approach it again and press E."
             });
         }
     }

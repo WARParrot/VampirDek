@@ -32,10 +32,26 @@ namespace Exploration
         [Header("Camera Seat")]
         [SerializeField] private Transform _cameraSeat;
 
-        public string PromptText => LocalizationService.T(_promptKey, _promptText);
+        public bool CanStartDuel => !IsEncounterCompleted();
+
+        public string PromptText => CanStartDuel ? LocalizationService.T(_promptKey, _promptText) : string.Empty;
+
+        private bool IsEncounterCompleted()
+        {
+            var completedEncounterIds = GlobalServices.GameStateService?.State?.CompletedEncounterIds;
+            return completedEncounterIds != null &&
+                   !string.IsNullOrEmpty(EncounterId) &&
+                   completedEncounterIds.Contains(EncounterId);
+        }
 
         public async UniTask StartDuelAsync(bool instant = false)
         {
+            if (!CanStartDuel)
+            {
+                Debug.Log($"[EncounterPoint] Encounter '{EncounterId}' is already completed. Ignoring duel start.");
+                return;
+            }
+
             Debug.Log($"[EncounterPoint] Starting duel at table {UniqueTableId}");
 
             var player = FindAnyObjectByType<ExplorationController>();

@@ -247,7 +247,7 @@ namespace Exploration
             foreach (var hit in hits)
             {
                 var point = hit.GetComponent<EncounterPoint>() ?? hit.GetComponentInParent<EncounterPoint>();
-                if (point == null) continue;
+                if (point == null || !point.CanStartDuel) continue;
 
                 var distanceSqr = (point.transform.position - transform.position).sqrMagnitude;
                 if (distanceSqr < bestDistanceSqr)
@@ -321,7 +321,7 @@ namespace Exploration
             }
 
             var encounterPoint = FindNearestEncounterPoint();
-            if (encounterPoint != null)
+            if (encounterPoint != null && !string.IsNullOrEmpty(encounterPoint.PromptText))
             {
                 _interactionPromptUI.Show(encounterPoint.PromptText);
                 return;
