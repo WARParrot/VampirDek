@@ -231,16 +231,33 @@ namespace Exploration
         {
             if (GlobalServices.IsMenuOpen) return;
 
+            var point = FindNearestEncounterPoint();
+            if (point != null)
+            {
+                await point.StartDuelAsync();
+            }
+        }
+
+        private EncounterPoint FindNearestEncounterPoint()
+        {
             var hits = Physics.OverlapSphere(transform.position, _encounterStartRange, _encounterMask);
+            EncounterPoint nearest = null;
+            var bestDistanceSqr = float.MaxValue;
+
             foreach (var hit in hits)
             {
-                var point = hit.GetComponent<EncounterPoint>();
-                if (point != null)
+                var point = hit.GetComponent<EncounterPoint>() ?? hit.GetComponentInParent<EncounterPoint>();
+                if (point == null) continue;
+
+                var distanceSqr = (point.transform.position - transform.position).sqrMagnitude;
+                if (distanceSqr < bestDistanceSqr)
                 {
-                    await point.StartDuelAsync();
-                    return;
+                    nearest = point;
+                    bestDistanceSqr = distanceSqr;
                 }
             }
+
+            return nearest;
         }
 
         // Временный метод с отладкой – выводит объект, в который попал луч
@@ -301,6 +318,13 @@ namespace Exploration
                     _interactionPromptUI.Show(promptText);
                     return;
                 }
+            }
+
+            var encounterPoint = FindNearestEncounterPoint();
+            if (encounterPoint != null)
+            {
+                _interactionPromptUI.Show(encounterPoint.PromptText);
+                return;
             }
 
             _interactionPromptUI.Hide();

@@ -10,6 +10,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using Combat.UI;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -24,8 +25,14 @@ namespace Exploration
         [Header("World Table")]
         [SerializeField] private GameObject _worldTableVisual;
 
+        [Header("Prompt")]
+        [SerializeField] private string _promptKey = "interaction.start_duel";
+        [SerializeField] private string _promptText = "Press [E] to start duel";
+
         [Header("Camera Seat")]
         [SerializeField] private Transform _cameraSeat;
+
+        public string PromptText => LocalizationService.T(_promptKey, _promptText);
 
         public async UniTask StartDuelAsync(bool instant = false)
         {
