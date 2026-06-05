@@ -103,21 +103,8 @@ namespace Combat
                     if (cardDef == null) continue;
 
                     var card = new BoardCard(cardDef);
-                    card.SetHealth(slotSnap.OccupantHealth, slotSnap.OccupantMaxHealth);
-                    card.SetAttack(slotSnap.OccupantAttack);
-                    card.ApplyInnateEnchantments();
-
-                    foreach (var enchSnap in slotSnap.Enchantments)
-                    {
-                        var enchData = EnchantmentDatabase.GetEnchantment(enchSnap.EnchantmentDataId);
-                        if (enchData != null)
-                        {
-                            var runtime = EnchantmentFactory.Create(enchData, card);
-                            card.Enchantments.Add(runtime);
-                            runtime.OnAttach();
-                            runtime.SetDurationLeft(enchSnap.DurationLeft);
-                        }
-                    }
+                    RestoreEnchantments(slotSnap, card);
+                    RestoreMutableStats(slotSnap, card);
 
                     slot.Occupant = card;
                 }
@@ -127,6 +114,40 @@ namespace Combat
                 }
             }
         }
+
+        private void RestoreEnchantments(SlotSnapshot slotSnap, BoardCard card)
+        {
+            var snapshots = slotSnap.Enchantments;
+            if (snapshots == null || snapshots.Count == 0)
+            {
+                card.ApplyInnateEnchantments();
+                return;
+            }
+
+            var restoredDataIds = new HashSet<string>();
+            foreach (var enchSnap in snapshots)
+            {
+                if (enchSnap == null || string.IsNullOrEmpty(enchSnap.EnchantmentDataId)) continue;
+                if (!restoredDataIds.Add(enchSnap.EnchantmentDataId)) continue;
+
+                var enchData = EnchantmentDatabase.GetEnchantment(enchSnap.EnchantmentDataId);
+                if (enchData == null) continue;
+
+                var runtime = EnchantmentFactory.Create(enchData, card);
+                card.Enchantments.Add(runtime);
+                runtime.OnAttach();
+                runtime.SetDurationLeft(enchSnap.DurationLeft);
+            }
+        }
+
+        private static void RestoreMutableStats(SlotSnapshot slotSnap, BoardCard card)
+        {
+            card.SetHealth(
+                Math.Min(slotSnap.OccupantHealth, card.MaxHealth),
+                card.MaxHealth);
+            card.CurrentSpeed = slotSnap.OccupantSpeed;
+        }
+
     }
 
     [Serializable]
