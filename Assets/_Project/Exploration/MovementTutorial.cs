@@ -32,6 +32,8 @@ namespace Exploration
 
         private ExplorationController _player;
 
+        public bool BlocksDuelStart => _tutorialActive;
+
         private void Awake()
         {
             if (_canvasGroup == null)
@@ -161,9 +163,9 @@ namespace Exploration
                 new TutorialMovementStep
                 {
                     InstructionKey = "tutorial.exploration_interact_intro",
-                    InstructionText = "When the world answers, interact. This is how you inspect objects, open paths, and commit to nearby encounter points.",
+                    InstructionText = "When the world answers, interact. This is how you inspect objects and open paths before you commit to a duel.",
                     ActionPromptKey = "tutorial.exploration_interact_prompt",
-                    ActionPrompt = "Face an interactable prompt or encounter, then press E.",
+                    ActionPrompt = "Face an interactable prompt, then press E.",
                     CompletionType = MovementCompletionType.Interact,
                     MinimumReadSeconds = 2.5f,
                     DelayBeforeNext = 0.75f
@@ -293,7 +295,9 @@ namespace Exploration
                 "Your gaze is how you ask the world questions. Look around to find what can be inspected, used, avoided, or fought." => "tutorial.exploration_look_intro",
                 "Move the mouse to look around." => "tutorial.exploration_look_prompt",
                 "When the world answers, interact. This is how you inspect objects, open paths, and commit to nearby encounter points." => "tutorial.exploration_interact_intro",
+                "When the world answers, interact. This is how you inspect objects and open paths before you commit to a duel." => "tutorial.exploration_interact_intro",
                 "Face an interactable prompt or encounter, then press E." => "tutorial.exploration_interact_prompt",
+                "Face an interactable prompt, then press E." => "tutorial.exploration_interact_prompt",
                 "Before you accept danger, check what you are carrying. Your deck is not a menu footnote; it is your plan for surviving the next duel." => "tutorial.exploration_deck_intro",
                 "Press Esc to open the menu and review your current deck." => "tutorial.exploration_deck_prompt",
                 "That is Exploration: read the room, check the deck, then choose the fight. Curiosity builds the run; haste can end it." => "tutorial.exploration_outro",

@@ -32,9 +32,11 @@ namespace Exploration
         [Header("Camera Seat")]
         [SerializeField] private Transform _cameraSeat;
 
-        public bool CanStartDuel => !IsEncounterCompleted();
+        public bool CanStartDuel => !IsEncounterCompleted() && !IsDuelModeActive();
 
-        public string PromptText => CanStartDuel ? LocalizationService.T(_promptKey, _promptText) : string.Empty;
+        public bool CanShowPrompt => CanStartDuel && !IsExplorationTutorialBlockingDuelStart();
+
+        public string PromptText => CanShowPrompt ? LocalizationService.T(_promptKey, _promptText) : string.Empty;
 
         private bool IsEncounterCompleted()
         {
@@ -44,11 +46,28 @@ namespace Exploration
                    completedEncounterIds.Contains(EncounterId);
         }
 
+        private static bool IsDuelModeActive()
+        {
+            return GlobalServices.Director?.CurrentMode is DuelManager;
+        }
+
+        private static bool IsExplorationTutorialBlockingDuelStart()
+        {
+            var tutorial = FindObjectOfType<MovementTutorial>(true);
+            return tutorial != null && tutorial.BlocksDuelStart;
+        }
+
         public async UniTask StartDuelAsync(bool instant = false)
         {
             if (!CanStartDuel)
             {
-                Debug.Log($"[EncounterPoint] Encounter '{EncounterId}' is already completed. Ignoring duel start.");
+                Debug.Log($"[EncounterPoint] Encounter '{EncounterId}' cannot start because it is completed or another duel is active. Ignoring duel start.");
+                return;
+            }
+
+            if (!instant && IsExplorationTutorialBlockingDuelStart())
+            {
+                Debug.Log("[EncounterPoint] Exploration tutorial is active. Blocking duel start until onboarding is complete.");
                 return;
             }
 
@@ -56,9 +75,6 @@ namespace Exploration
 
             var player = FindAnyObjectByType<ExplorationController>();
             if (player != null) player.Deactivate();
-
-            if (_worldTableVisual != null)
-                _worldTableVisual.SetActive(false);
 
             if (!instant)
                 SceneTransitionManager.Instance.SaveCameraState();
@@ -86,6 +102,7 @@ namespace Exploration
                     mainCam.enabled = false;
 
                 await duelLoadUniTask;
+                HideWorldTableVisualForLoadedDuel();
                 
                 if (mainCam != null)
                     mainCam.enabled = true;
@@ -98,7 +115,9 @@ namespace Exploration
             else
             {
                 var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
-                await UniTask.WhenAll(duelLoadUniTask, camMoveTask);
+                await duelLoadUniTask;
+                HideWorldTableVisualForLoadedDuel();
+                await camMoveTask;
             }
 
             var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
@@ -138,6 +157,12 @@ namespace Exploration
             };
 
             await director.PushModeAsync(duelManager, context);
+        }
+
+        private void HideWorldTableVisualForLoadedDuel()
+        {
+            if (_worldTableVisual != null)
+                _worldTableVisual.SetActive(false);
         }
 
         private async UniTask<List<CardDef>> GetPlayerDeckAsync()

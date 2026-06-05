@@ -166,6 +166,7 @@ namespace Exploration
             _isActive = false;
 
             SetVisible(false);
+            _interactionPromptUI?.Hide();
 
             _moveAction.performed -= OnMove;
             _moveAction.canceled -= OnMove;
@@ -247,7 +248,7 @@ namespace Exploration
             foreach (var hit in hits)
             {
                 var point = hit.GetComponent<EncounterPoint>() ?? hit.GetComponentInParent<EncounterPoint>();
-                if (point == null || !point.CanStartDuel) continue;
+                if (point == null || !point.CanShowPrompt) continue;
 
                 var distanceSqr = (point.transform.position - transform.position).sqrMagnitude;
                 if (distanceSqr < bestDistanceSqr)
