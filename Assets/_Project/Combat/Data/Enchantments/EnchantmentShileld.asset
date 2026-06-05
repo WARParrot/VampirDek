@@ -14,10 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Definitions::Definitions.EnchantmentData
   DisplayName: Attack
   Duration: -1
-  Triggers:
-  - EventType: Combat.CombatEvents.PlacedCardEvent
-    Actions:
-    - {fileID: 0}
+  Triggers: []
   Modifiers:
   - Stat: Health
     Value: 3

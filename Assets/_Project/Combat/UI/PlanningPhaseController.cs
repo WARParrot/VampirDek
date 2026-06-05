@@ -121,6 +121,12 @@ namespace Combat.UI
             }
             else if (isOpponentSide && _selectedAttacker != null)
             {
+                var provoker = Combat.CardBehaviorTags.GetActiveProvokerOn(state.OpponentSide);
+                if (provoker != null && card != provoker)
+                {
+                    Debug.Log($"[Planner] Provocation: {provoker.SourceCard.CardName} forces attack target. Ignoring click on {card.SourceCard.CardName}");
+                    return;
+                }
                 Debug.Log($"[Planner] Assigning target {card.SourceCard.CardName} to {_selectedAttacker.SourceCard.CardName}");
                 _selectedAttacker.PlannedTarget = card;
                 ClearSelection();

@@ -370,6 +370,7 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("StartOfTurn"))
             {
+                SpawnOnFriendlyDeathAction.ResetRoundTracking();
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.PlayerSide));
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.OpponentSide));
 
@@ -627,12 +628,16 @@ namespace Combat
                     else if (cardWins)
                     {
                         QueueAction(new DamageAction(target, card.Attack, card));
+                        QueueDoubleAttackIfApplicable(card, target);
+                        QueueRitualistSacrificeIfApplicable(card);
                         target.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(card, target));
                     }
                     else if (targetWins)
                     {
                         QueueAction(new DamageAction(card, target.Attack, target));
+                        QueueDoubleAttackIfApplicable(target, card);
+                        QueueRitualistSacrificeIfApplicable(target);
                         card.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(target, card));
                     }
@@ -640,6 +645,25 @@ namespace Combat
             }
             await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
+        }
+
+        private void QueueDoubleAttackIfApplicable(BoardCard attacker, IGameEntity target)
+        {
+            if (!CardBehaviorTags.HasDoubleAttackWhenAlone(attacker)) return;
+            var side = SideLookup.FindSideOf(attacker, _duelState);
+            if (side == null) return;
+            if (!CardBehaviorTags.IsAloneOnVanguard(attacker, side)) return;
+            if (target == null) return;
+            if (target is BoardCard bc && !bc.IsAlive) return;
+            QueueAction(new DamageAction(target, attacker.Attack, attacker));
+        }
+
+        private void QueueRitualistSacrificeIfApplicable(BoardCard attacker)
+        {
+            if (!CardBehaviorTags.DiesAfterAttacking(attacker)) return;
+            var side = SideLookup.FindSideOf(attacker, _duelState);
+            if (side == null) return;
+            QueueAction(new SacrificeAction(attacker, side.Board));
         }
 
         private async UniTask ResolveOneSidedAttacksAsync()
@@ -651,6 +675,8 @@ namespace Combat
             foreach (var card in attackers)
             {
                 QueueAction(new DamageAction(card.PlannedTarget, card.Attack, card));
+                QueueDoubleAttackIfApplicable(card, card.PlannedTarget);
+                QueueRitualistSacrificeIfApplicable(card);
             }
             await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;

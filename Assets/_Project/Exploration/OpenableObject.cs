@@ -1,5 +1,8 @@
 using UnityEngine;
 using Shared.Localization;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 
 namespace Exploration
 {

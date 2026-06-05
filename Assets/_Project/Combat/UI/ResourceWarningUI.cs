@@ -2,6 +2,9 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using System;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 
 namespace Combat.UI
 {
@@ -49,6 +52,11 @@ namespace Combat.UI
             _warningText.text = message;
             _canvasGroup.alpha = 0f;
             gameObject.SetActive(true);
+
+#if DOTWEEN
+            transform.DOComplete();
+            transform.DOShakePosition(0.4f, new Vector3(20f, 0f, 0f), 14, 90f, false, true);
+#endif
 
             await FadeAsync(1f, _fadeDuration);
             await UniTask.Delay(TimeSpan.FromSeconds(_displayDuration));

@@ -11,7 +11,8 @@
         "Unity.InputSystem",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "FMODUnity"
+        "FMODUnity",
+        "DOTween"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

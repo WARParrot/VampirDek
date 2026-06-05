@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8f61c5cec66f534ab60bc2da09f3f41, type: 3}
+  m_Name: Enchantment_Crypt
+  m_EditorClassIdentifier: Definitions::Definitions.EnchantmentData
+  DisplayName: Enchantment_Crypt
+  Duration: -1
+  Triggers:
+  - EventType: Combat.EntityDiedEvent
+    PhaseFilter: 
+    OwnerOnly: 0
+    Actions:
+    - {fileID: 11400000, guid: 22655ba6335953e4e90d6e7e24f9f357, type: 2}
+  Modifiers: []

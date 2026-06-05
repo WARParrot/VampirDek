@@ -15,6 +15,7 @@ namespace Combat
 
         public static CardDef GetCard(string cardName)
         {
+            if (string.IsNullOrEmpty(cardName)) return null;
             _cache.TryGetValue(cardName, out var card);
             return card;
         }

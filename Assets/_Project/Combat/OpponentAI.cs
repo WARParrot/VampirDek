@@ -58,6 +58,9 @@ namespace Combat
         {
             if (attacker == null || playerSide == null || playerSide.Board == null) return null;
 
+            var provoker = CardBehaviorTags.GetActiveProvokerOn(playerSide);
+            if (provoker != null) return provoker;
+
             var liveTargets = playerSide.Board.AllCards()
                 .Where(c => c != null && c.IsAlive)
                 .ToList();

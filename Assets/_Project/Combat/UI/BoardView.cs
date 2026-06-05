@@ -440,5 +440,8 @@ public class BoardView : MonoBehaviour
         return null;
     }
 
+
+    public IEnumerable<BoardSlotUI> GetSlotUIs() => _slotUIs.Values;
+
     private static string Key(Board board, Definitions.RowType row, int index) => $"{board.GetHashCode()}:{row}:{index}";
 }
