@@ -34,6 +34,8 @@ namespace Combat
         public string TableId => _tableId;
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
+        private bool _phaseConfirmationReady;
+        public bool CanConfirmCurrentPhase => _phaseConfirmationReady;
         private DuelOutcome _duelOutcome = DuelOutcome.InProgress;
         private bool _duelFinished = false;
         private GameDirector _director;
@@ -43,6 +45,12 @@ namespace Combat
 
         public void ConfirmCurrentPhase()
         {
+            if (!_phaseConfirmationReady)
+            {
+                Debug.Log("[DuelManager] ConfirmCurrentPhase ignored because the current phase is not ready for confirmation yet");
+                return;
+            }
+
             Debug.Log("[DuelManager] ConfirmCurrentPhase called");
             _playerConfirmedPhase = true;
         }
@@ -301,6 +309,32 @@ namespace Combat
             Debug.Log($"[Phase] Resumed {currentPhase.PhaseId} without replaying phase-entry effects. Tags: {string.Join(", ", currentPhase.Tags)}");
         }
 
+
+        private async UniTask ReturnToSeatViewForPlayerTurnAsync()
+        {
+            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            if (switcher != null)
+                await switcher.FocusSeatViewAsync(0.3f);
+        }
+
+        private async UniTask RunBoardViewResolutionAsync(Func<UniTask> resolveAsync)
+        {
+            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            if (switcher != null)
+                await switcher.FocusBoardViewAsync(0.38f, true);
+
+            try
+            {
+                if (resolveAsync != null)
+                    await resolveAsync();
+            }
+            finally
+            {
+                switcher?.SetBoardViewLocked(false);
+            }
+        }
+
+
         public void QueueAction(IGameAction action)
         {
             if (action == null)
@@ -331,6 +365,7 @@ namespace Combat
                 {
                     Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
                 }
+                await CombatVFX.AwaitCurrentActionAnimationsAsync();
                 RemoveDeadNonTownCardsFromBoards();
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
@@ -358,6 +393,7 @@ namespace Combat
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(targetNode.PhaseId, targetNode.Tags));
             GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
             Debug.Log($"[Phase] Entered {targetNode.PhaseId} with tags: {string.Join(", ", targetNode.Tags)}");
+            _phaseConfirmationReady = false;
 
             if (targetNode.Tags.Contains("DuelStart"))
             {
@@ -370,6 +406,8 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("StartOfTurn"))
             {
+                await ReturnToSeatViewForPlayerTurnAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
                 SpawnOnFriendlyDeathAction.ResetRoundTracking();
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.PlayerSide));
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.OpponentSide));
@@ -395,6 +433,7 @@ namespace Combat
 
                 Debug.Log("[Phase] Waiting for player confirmation...");
                 _playerConfirmedPhase = false;
+                _phaseConfirmationReady = true;
                 while (!_playerConfirmedPhase)
                 {
                     if (_actionQueue.Count > 0)
@@ -407,6 +446,7 @@ namespace Combat
                         await UniTask.Yield();
                     }
                 }
+                _phaseConfirmationReady = false;
                 Debug.Log("[Phase] Confirmed - advancing.");
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
@@ -420,7 +460,9 @@ namespace Combat
 
                 Debug.Log("[Phase] Waiting for player confirmation...");
                 _playerConfirmedPhase = false;
+                _phaseConfirmationReady = true;
                 await UniTask.WaitUntil(() => _playerConfirmedPhase);
+                _phaseConfirmationReady = false;
                 Debug.Log("[Phase] Confirmed - advancing.");
 
                 await SimulatePlanningAsync();
@@ -428,13 +470,13 @@ namespace Combat
             else if (targetNode.Tags.Contains("ClashingPhase"))
             {
                 GlobalServices.EventBus.Publish(new HintEvent { Tag = "ClashingPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
-                await ResolveClashesAsync();
+                await RunBoardViewResolutionAsync(ResolveClashesAsync);
                 if (_leaveDuelRequested || _duelState == null) return;
             }
             else if (targetNode.Tags.Contains("OneSidedAttackPhase"))
             {
                 GlobalServices.EventBus.Publish(new HintEvent { Tag = "OneSidedAttackPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
-                await ResolveOneSidedAttacksAsync();
+                await RunBoardViewResolutionAsync(ResolveOneSidedAttacksAsync);
                 if (_leaveDuelRequested || _duelState == null) return;
                 ClearAllPlannedTargets();
             }

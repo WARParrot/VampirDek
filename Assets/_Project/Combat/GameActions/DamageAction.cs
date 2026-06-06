@@ -38,7 +38,7 @@ namespace Combat
 
             int final = preEvent.ModifiedAmount;
             _target.TakeDamage(final, _source);
-            GlobalServices.EventBus.Publish(new DamageDealtEvent(_target, final));
+            GlobalServices.EventBus.Publish(new DamageDealtEvent(_target, final, _source));
         }
 
         public void OnPrevention() => GlobalServices.EventBus.Publish(new DamagePreventedEvent(_target, _source));

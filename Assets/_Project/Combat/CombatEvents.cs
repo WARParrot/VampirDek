@@ -6,7 +6,13 @@ namespace Combat
 {
     public struct DuelStartedEvent : IGameEvent { public CombatEncounter Encounter; public DuelStartedEvent(CombatEncounter encounter) => Encounter = encounter;
     }
-    public struct DamageDealtEvent : IGameEvent, ISubjectEvent { public IGameEntity Target; public int Amount; public DamageDealtEvent(IGameEntity t, int a) { Target=t; Amount=a; }
+    public struct DamageDealtEvent : IGameEvent, ISubjectEvent
+    {
+        public IGameEntity Target;
+        public int Amount;
+        public IGameEntity Source;
+        public DamageDealtEvent(IGameEntity t, int a) : this(t, a, null) { }
+        public DamageDealtEvent(IGameEntity t, int a, IGameEntity s) { Target = t; Amount = a; Source = s; }
         IGameEntity ISubjectEvent.Subject => Target;
     }
     public struct DamagePreventedEvent : IGameEvent { public IGameEntity Target; public IGameEntity Source; public DamagePreventedEvent(IGameEntity t, IGameEntity s) { Target=t; Source=s; } 

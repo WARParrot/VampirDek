@@ -12,7 +12,18 @@ public class PhaseConfirmationButton : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _label;
 
     private Button _button;
+    private CanvasGroup _canvasGroup;
     private DuelManager _duelManager;
+
+    void Awake()
+    {
+        _button = GetComponent<Button>();
+        _canvasGroup = GetComponent<CanvasGroup>();
+        if (_canvasGroup == null)
+            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        SetVisible(false);
+    }
 
     void Start()
     {
@@ -30,8 +41,13 @@ public class PhaseConfirmationButton : MonoBehaviour
 
         _duelManager = DuelManagerProxy.Instance;
 
-        _button = GetComponent<Button>();
-        _button.onClick.AddListener(OnClick);
+        if (_button == null) _button = GetComponent<Button>();
+        if (_button != null)
+        {
+            _button.onClick.RemoveListener(OnClick);
+            _button.onClick.AddListener(OnClick);
+        }
+
         if (_label == null) _label = GetComponentInChildren<TextMeshProUGUI>(true);
         ApplyLocalization();
 
@@ -54,18 +70,40 @@ public class PhaseConfirmationButton : MonoBehaviour
         var phase = _duelManager.CurrentDuelState?.CurrentPhase;
         if (phase == null)
         {
-            _button.gameObject.SetActive(false);
+            SetVisible(false);
             return;
         }
 
-        bool show = phase.Tags.Contains("BuildingPhase") ||
-                    phase.Tags.Contains("PlanningPhase");
-        _button.gameObject.SetActive(show);
-        _button.interactable = !show || _tutorialSystem == null || !_tutorialSystem.IsTutorialActive || _tutorialSystem.AllowsPhaseConfirmation();
+        bool phaseCanConfirm = phase.Tags.Contains("BuildingPhase") ||
+                               phase.Tags.Contains("PlanningPhase");
+        bool readyForConfirmation = _duelManager.CanConfirmCurrentPhase;
+        bool allowedByTutorial = _tutorialSystem == null ||
+                                 !_tutorialSystem.IsTutorialActive ||
+                                 _tutorialSystem.AllowsPhaseConfirmation();
+        bool show = phaseCanConfirm && readyForConfirmation && allowedByTutorial;
+        SetVisible(show);
+        _button.interactable = show;
+    }
+
+    private void SetVisible(bool visible)
+    {
+        // Do not SetActive(false) on this GameObject: that disables Update(), so the button
+        // cannot bring itself back for the next Building/Planning confirmation wait.
+        if (_canvasGroup != null)
+        {
+            _canvasGroup.alpha = visible ? 1f : 0f;
+            _canvasGroup.blocksRaycasts = visible;
+            _canvasGroup.interactable = visible;
+        }
+
+        if (_button != null && !visible)
+            _button.interactable = false;
     }
 
     void OnClick()
     {
+        if (_button != null && !_button.interactable) return;
+
         if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive && !_tutorialSystem.AllowsPhaseConfirmation())
         {
             Debug.Log("[PhaseCButton] Tutorial blocked phase confirmation until the current tutorial step is completed.");
