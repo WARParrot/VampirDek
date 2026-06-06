@@ -28,6 +28,12 @@ namespace Combat
                 return;
             }
 
+            if (_source == null || !_source.IsAlive || _target == null || !_target.IsAlive)
+            {
+                OnPrevention();
+                return;
+            }
+
             var preEvent = new PreDamageEvent(_target, _amount, _source);
             GlobalServices.EventBus.Publish(preEvent);
             if (preEvent.Prevented)
