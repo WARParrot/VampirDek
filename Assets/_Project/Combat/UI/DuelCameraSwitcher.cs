@@ -20,6 +20,9 @@ namespace Combat.UI
 
         private Transform _currentTarget;
         private bool _boardViewLocked;
+        private bool _perspectiveSwitchingDisabled;
+
+        public bool PerspectiveSwitchingEnabled => !_perspectiveSwitchingDisabled;
 
         void OnEnable()
         {
@@ -39,7 +42,7 @@ namespace Combat.UI
             {
                 _currentTarget = OverheadView;
             }
-            else if (Mouse.current != null)
+            else if (!_perspectiveSwitchingDisabled && Mouse.current != null)
             {
                 Vector2 mousePos = Mouse.current.position.ReadValue();
                 float mouseY = Screen.height > 0 ? mousePos.y / Screen.height : 0f;
@@ -103,6 +106,11 @@ namespace Combat.UI
             _boardViewLocked = locked;
             if (locked && OverheadView != null)
                 _currentTarget = OverheadView;
+        }
+
+        public void SetPerspectiveSwitchingEnabled(bool enabled)
+        {
+            _perspectiveSwitchingDisabled = !enabled;
         }
 
         private void MoveTowardsCurrentTarget(float t)

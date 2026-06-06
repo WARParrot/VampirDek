@@ -513,6 +513,15 @@ namespace Combat
             _duelManager.RequestLeaveDuel();
         }
 
+        public void CompleteTutorialForTerminalDuel()
+        {
+            if (!_isTutorialEncounter) return;
+            if (_tutorialCompletedThisSession && !_tutorialActive) return;
+
+            Debug.Log("[TutorialSystem] Tutorial duel reached a terminal outcome; completing combat tutorial prompts.");
+            EndTutorial();
+        }
+
         private void EndTutorial()
         {
             _tutorialActive = false;

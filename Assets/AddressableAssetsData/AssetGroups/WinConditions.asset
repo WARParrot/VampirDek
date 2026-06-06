@@ -16,7 +16,7 @@ MonoBehaviour:
   m_GUID: 205236b6b95548844b4aa256087fb2dc
   m_SerializeEntries:
   - m_GUID: 3c887e6a3e8b69a419370f7b4504cde7
-    m_Address: Assets/_Project/Data/WinConditions/Standard_TakeTownWinCondition.asset
+    m_Address: Standard_TakeTownWinCondition
     m_ReadOnly: 0
     m_SerializedLabels:
     - WinConditions

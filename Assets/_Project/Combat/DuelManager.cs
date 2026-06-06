@@ -38,6 +38,7 @@ namespace Combat
         public bool CanConfirmCurrentPhase => _phaseConfirmationReady;
         private DuelOutcome _duelOutcome = DuelOutcome.InProgress;
         private bool _duelFinished = false;
+        private bool _duelResultPublished = false;
         private GameDirector _director;
 
         // AI System
@@ -45,6 +46,7 @@ namespace Combat
 
         public void ConfirmCurrentPhase()
         {
+            Debug.Log($"[DuelDebug] ConfirmCurrentPhase requested. ready={_phaseConfirmationReady}; confirmed={_playerConfirmedPhase}; {DescribeDuelDebugState()}");
             if (!_phaseConfirmationReady)
             {
                 Debug.Log("[DuelManager] ConfirmCurrentPhase ignored because the current phase is not ready for confirmation yet");
@@ -141,18 +143,7 @@ namespace Combat
                 CaptureDuelOutcomeIfFinished();
             }
 
-            if (_duelFinished && _encounter != null)
-            {
-                bool playerWon = _duelOutcome == DuelOutcome.PlayerWon;
-                GlobalServices.EventBus.Publish(new DuelResultEvent
-                {
-                    PlayerWon = playerWon,
-                    Outcome = _duelOutcome,
-                    EncounterId = _encounter.EncounterId,
-                    WinFlag = _encounter.WinFlag,
-                    LoseFlag = _encounter.LoseFlag
-                });
-            }
+            PublishDuelResultIfNeeded();
 
             if (_duelState != null && _encounter != null)
             {
@@ -289,13 +280,13 @@ namespace Combat
             var handUI = FindObjectOfType<HandUIManager>(true);
             handUI?.RefreshHandImmediately();
 
-            ResumeCurrentPhaseWithoutEntryEffects();
+            await ResumeCurrentPhaseAsync();
 
             boardView?.RefreshAllSlots();
             handUI?.RefreshHandImmediately();
         }
 
-        private void ResumeCurrentPhaseWithoutEntryEffects()
+        private async UniTask ResumeCurrentPhaseAsync()
         {
             var currentPhase = _duelState?.CurrentPhase;
             if (currentPhase == null)
@@ -307,21 +298,70 @@ namespace Combat
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(currentPhase.PhaseId, currentPhase.Tags));
             GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
             Debug.Log($"[Phase] Resumed {currentPhase.PhaseId} without replaying phase-entry effects. Tags: {string.Join(", ", currentPhase.Tags)}");
+
+            if (currentPhase.Tags.Contains("BuildingPhase"))
+            {
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "BuildingPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+                await CheckAutoTransitionsAsync();
+            }
+            else if (currentPhase.Tags.Contains("PlanningPhase"))
+            {
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "PlanningPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+                await CheckAutoTransitionsAsync();
+            }
+            else
+            {
+                await CheckAutoTransitionsAsync();
+            }
         }
 
+        private async UniTask WaitForPlayerPhaseConfirmationAsync()
+        {
+            Debug.Log("[Phase] Waiting for player confirmation...");
+            _playerConfirmedPhase = false;
+            _phaseConfirmationReady = true;
+
+            while (!_playerConfirmedPhase)
+            {
+                if (_leaveDuelRequested || _duelState == null) return;
+
+                if (_actionQueue.Count > 0)
+                {
+                    await ProcessActionsAsync();
+                    if (_leaveDuelRequested || _duelState == null) return;
+                }
+                else
+                {
+                    await UniTask.Yield();
+                }
+            }
+
+            _phaseConfirmationReady = false;
+            Debug.Log("[Phase] Confirmed - advancing.");
+        }
 
         private async UniTask ReturnToSeatViewForPlayerTurnAsync()
         {
             var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
             if (switcher != null)
+            {
+                switcher.SetPerspectiveSwitchingEnabled(true);
                 await switcher.FocusSeatViewAsync(0.3f);
+            }
         }
 
         private async UniTask RunBoardViewResolutionAsync(Func<UniTask> resolveAsync)
         {
             var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
             if (switcher != null)
+            {
+                switcher.SetPerspectiveSwitchingEnabled(false);
                 await switcher.FocusBoardViewAsync(0.38f, true);
+            }
 
             try
             {
@@ -357,6 +397,7 @@ namespace Combat
                     continue;
                 }
                 Debug.Log($"[DuelManager] Processing action: {action.Description}");
+                Debug.Log($"[DuelDebug] Before action '{action.Description}': {DescribeDuelDebugState()}");
                 try
                 {
                     await action.ExecuteAsync();
@@ -367,10 +408,14 @@ namespace Combat
                 }
                 await CombatVFX.AwaitCurrentActionAnimationsAsync();
                 RemoveDeadNonTownCardsFromBoards();
+                Debug.Log($"[DuelDebug] After action '{action.Description}' and cleanup: {DescribeDuelDebugState()}");
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                if (IsDuelTerminal())
+                bool terminalAfterAction = IsDuelTerminal();
+                Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
+                if (terminalAfterAction)
                 {
+                    Debug.Log($"[DuelDebug] Terminal detected during action processing; routing to outcome phase. action='{action.Description}'");
                     CaptureDuelOutcomeIfFinished();
                     await TransitionToOutcomePhaseAsync();
                     return;
@@ -386,13 +431,16 @@ namespace Combat
                 return;
             }
 
-            if (_duelState.CurrentPhase != null)
-                GlobalServices.EventBus.Publish(new PhaseExitEvent(_duelState.CurrentPhase.PhaseId));
+            var previousPhase = _duelState.CurrentPhase;
+            Debug.Log($"[DuelDebug] TransitionToPhaseAsync requested: {DescribePhase(previousPhase)} -> {DescribePhase(targetNode)}; {DescribeDuelDebugState()}");
+            if (previousPhase != null)
+                GlobalServices.EventBus.Publish(new PhaseExitEvent(previousPhase.PhaseId));
 
             _duelState.CurrentPhase = targetNode;
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(targetNode.PhaseId, targetNode.Tags));
             GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
             Debug.Log($"[Phase] Entered {targetNode.PhaseId} with tags: {string.Join(", ", targetNode.Tags)}");
+            Debug.Log($"[DuelDebug] Entered phase details: transitions=[{DescribeTransitions(targetNode)}]; {DescribeDuelDebugState()}");
             _phaseConfirmationReady = false;
 
             if (targetNode.Tags.Contains("DuelStart"))
@@ -406,6 +454,7 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("StartOfTurn"))
             {
+                Debug.Log($"[DuelDebug] StartOfTurn branch entered. If this appears after a terminal town state, the fault is before/inside terminal routing. {DescribeDuelDebugState()}");
                 await ReturnToSeatViewForPlayerTurnAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
                 SpawnOnFriendlyDeathAction.ResetRoundTracking();
@@ -431,23 +480,8 @@ namespace Combat
                 await ExecuteOpponentBuildingTurnAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
 
-                Debug.Log("[Phase] Waiting for player confirmation...");
-                _playerConfirmedPhase = false;
-                _phaseConfirmationReady = true;
-                while (!_playerConfirmedPhase)
-                {
-                    if (_actionQueue.Count > 0)
-                    {
-                        await ProcessActionsAsync();
-                        if (_leaveDuelRequested || _duelState == null) return;
-                    }
-                    else
-                    {
-                        await UniTask.Yield();
-                    }
-                }
-                _phaseConfirmationReady = false;
-                Debug.Log("[Phase] Confirmed - advancing.");
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
             {
@@ -461,12 +495,8 @@ namespace Combat
                 await SimulatePlanningAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
 
-                Debug.Log("[Phase] Waiting for player confirmation...");
-                _playerConfirmedPhase = false;
-                _phaseConfirmationReady = true;
-                await UniTask.WaitUntil(() => _playerConfirmedPhase);
-                _phaseConfirmationReady = false;
-                Debug.Log("[Phase] Confirmed - advancing.");
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
             }
             else if (targetNode.Tags.Contains("ClashingPhase"))
             {
@@ -516,33 +546,57 @@ namespace Combat
         public async UniTask<bool> TransitionToPhaseWithTagAsync(string triggerTag)
         {
             var node = _duelState.CurrentPhase;
+            Debug.Log($"[DuelDebug] TransitionToPhaseWithTagAsync('{triggerTag}') from {DescribePhase(node)}. transitions=[{DescribeTransitions(node)}]; {DescribeDuelDebugState()}");
             if (node == null) return false;
             foreach (var trans in node.Transitions)
             {
+                if (trans?.Condition == null) continue;
                 if (trans.Condition.Type == ConditionType.TagActive &&
                     trans.Condition.TagTrigger == triggerTag)
                 {
+                    Debug.Log($"[DuelDebug] Matched terminal tag '{triggerTag}' -> {DescribePhase(trans.Target)}");
                     await TransitionToPhaseAsync(trans.Target);
                     return true;
                 }
             }
 
+            Debug.LogWarning($"[DuelDebug] No transition matched tag '{triggerTag}' from {DescribePhase(node)}. transitions=[{DescribeTransitions(node)}]");
             return false;
         }
 
         private bool IsDuelTerminal()
         {
-            if (_duelState == null || _encounter == null) return false;
-            return (_encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId))?.Check(_duelState) == true;
+            if (_duelState == null || _encounter == null)
+            {
+                Debug.Log($"[DuelDebug] IsDuelTerminal => false because state or encounter is missing. stateNull={_duelState == null}; encounterNull={_encounter == null}");
+                return false;
+            }
+
+            // Town death is the authoritative terminal state for this duel outcome policy.
+            // The WinCondition asset/ID remains supported for non-town terminal rules, but
+            // tutorial encounters must not get stuck if that lookup/reference is absent.
+            var townOutcome = EvaluateDuelOutcome();
+            if (townOutcome != DuelOutcome.InProgress)
+            {
+                Debug.Log($"[DuelDebug] IsDuelTerminal => true from town outcome {townOutcome}. {DescribeDuelDebugState()}");
+                return true;
+            }
+
+            var winCondition = _encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId);
+            bool winConditionResult = winCondition?.Check(_duelState) == true;
+            Debug.Log($"[DuelDebug] IsDuelTerminal => {winConditionResult} from win condition. conditionId='{_encounter.WinConditionId}'; hasCondition={winCondition != null}; {DescribeDuelDebugState()}");
+            return winConditionResult;
         }
 
         private DuelOutcome EvaluateDuelOutcome()
         {
-            if (_duelState?.PlayerTown == null || _duelState?.OpponentTown == null)
+            if (_duelState == null)
                 return DuelOutcome.InProgress;
 
-            bool playerAlive = _duelState.PlayerTown.IsAlive;
-            bool opponentAlive = _duelState.OpponentTown.IsAlive;
+            // A missing town occupant is also terminal: some board paths remove dead occupants,
+            // so null here means destroyed, not merely "unknown", once DuelState exists.
+            bool playerAlive = _duelState.PlayerTown?.IsAlive == true;
+            bool opponentAlive = _duelState.OpponentTown?.IsAlive == true;
 
             if (playerAlive && opponentAlive) return DuelOutcome.InProgress;
             if (playerAlive && !opponentAlive) return DuelOutcome.PlayerWon;
@@ -552,28 +606,83 @@ namespace Combat
 
         private void CaptureDuelOutcomeIfFinished()
         {
-            if (_duelOutcome != DuelOutcome.InProgress) return;
+            if (_duelOutcome != DuelOutcome.InProgress)
+            {
+                Debug.Log($"[DuelDebug] CaptureDuelOutcomeIfFinished skipped; already captured {_duelOutcome}. {DescribeDuelDebugState()}");
+                return;
+            }
 
             _duelOutcome = EvaluateDuelOutcome();
             _duelFinished = _duelOutcome != DuelOutcome.InProgress;
+            Debug.Log($"[DuelDebug] CaptureDuelOutcomeIfFinished captured outcome={_duelOutcome}; finished={_duelFinished}; {DescribeDuelDebugState()}");
+            PublishDuelResultIfNeeded();
+        }
+
+        private void PublishDuelResultIfNeeded()
+        {
+            if (_duelResultPublished || !_duelFinished || _encounter == null) return;
+
+            bool playerWon = _duelOutcome == DuelOutcome.PlayerWon;
+            GlobalServices.EventBus.Publish(new DuelResultEvent
+            {
+                PlayerWon = playerWon,
+                Outcome = _duelOutcome,
+                EncounterId = _encounter.EncounterId,
+                WinFlag = _encounter.WinFlag,
+                LoseFlag = _encounter.LoseFlag
+            });
+            _duelResultPublished = true;
+
+            if (!string.IsNullOrEmpty(_tableId))
+                GlobalServices.SaveSystem.ClearActiveBattle(_tableId);
+
+            Debug.Log($"[DuelManager] Published duel result: {_duelOutcome} for encounter {_encounter.EncounterId}");
         }
 
         private async UniTask TransitionToOutcomePhaseAsync()
         {
-            string triggerTag = _duelOutcome == DuelOutcome.PlayerWon ? "WinConditionMet" : "Defeat";
-            bool transitioned = await TransitionToPhaseWithTagAsync(triggerTag);
-            if (!transitioned)
+            // Terminal outcomes should enter the phase graph's terminal branch before Combat exits.
+            // EndOfTurn has both the normal TurnStart transition and a terminal TagActive transition;
+            // choose the terminal tag explicitly so the default transition cannot win by list order.
+            Debug.Log($"[DuelDebug] TransitionToOutcomePhaseAsync entered. {DescribeDuelDebugState()}");
+            CompleteTutorialIfTerminalDuel();
+
+            string triggerTag = _duelOutcome == DuelOutcome.PlayerLost ? "Defeat" : "WinConditionMet";
+            Debug.Log($"[DuelDebug] Trying terminal transition tag '{triggerTag}' for outcome {_duelOutcome}.");
+            if (await TransitionToPhaseWithTagAsync(triggerTag))
             {
-                Debug.LogWarning($"[DuelManager] No '{triggerTag}' transition found. Returning to exploration immediately.");
-                await ReturnToExplorationAsync();
+                Debug.Log($"[DuelDebug] Terminal transition tag '{triggerTag}' succeeded.");
+                return;
             }
+
+            if (triggerTag != "WinConditionMet")
+            {
+                Debug.Log("[DuelDebug] Primary terminal tag failed; trying fallback 'WinConditionMet'.");
+                if (await TransitionToPhaseWithTagAsync("WinConditionMet"))
+                {
+                    Debug.Log("[DuelDebug] Fallback terminal transition tag 'WinConditionMet' succeeded.");
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"[DuelManager] No terminal phase transition found for outcome {_duelOutcome}. Returning to exploration immediately. {DescribeDuelDebugState()}");
+            await ReturnToExplorationAsync();
+        }
+
+        private void CompleteTutorialIfTerminalDuel()
+        {
+            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            Debug.Log($"[DuelDebug] CompleteTutorialIfTerminalDuel: tutorialFound={tutorial != null}.");
+            tutorial?.CompleteTutorialForTerminalDuel();
         }
 
         private async UniTask ReturnToExplorationAsync()
         {
+            Debug.Log($"[DuelDebug] ReturnToExplorationAsync requested. leaveAlreadyRequested={_leaveDuelRequested}; {DescribeDuelDebugState()}");
             if (_leaveDuelRequested) return;
 
             var director = ResolveGameDirector();
+            Debug.Log($"[DuelDebug] ReturnToExplorationAsync directorFound={director != null}.");
             if (director == null)
             {
                 Debug.LogWarning("[DuelManager] Cannot return to exploration: GameDirector service is not available.");
@@ -587,17 +696,72 @@ namespace Combat
         private async UniTask CheckAutoTransitionsAsync()
         {
             var node = _duelState?.CurrentPhase;
+            Debug.Log($"[DuelDebug] CheckAutoTransitionsAsync entered from {DescribePhase(node)}. transitions=[{DescribeTransitions(node)}]; {DescribeDuelDebugState()}");
             if (node?.Transitions == null) return;
+
+            bool terminalBeforeDefault = IsDuelTerminal();
+            Debug.Log($"[DuelDebug] CheckAutoTransitionsAsync terminal-before-default => {terminalBeforeDefault}; {DescribeDuelDebugState()}");
+            if (terminalBeforeDefault)
+            {
+                CaptureDuelOutcomeIfFinished();
+                await TransitionToOutcomePhaseAsync();
+                return;
+            }
 
             foreach (var trans in node.Transitions)
             {
                 if (trans == null || trans.Target == null) continue;
+                if (trans.Condition == null)
+                {
+                    Debug.LogWarning($"[DuelDebug] Skipping transition with null condition from {DescribePhase(node)} to {DescribePhase(trans.Target)}.");
+                    continue;
+                }
+                Debug.Log($"[DuelDebug] Considering auto transition {DescribePhase(node)} -> {DescribePhase(trans.Target)}; condition={trans.Condition.Type}; tag='{trans.Condition.TagTrigger}'");
                 if (trans.Condition.Type != ConditionType.None) continue;
                 if (trans.Target == node) continue;
 
+                Debug.Log($"[DuelDebug] Taking default auto transition {DescribePhase(node)} -> {DescribePhase(trans.Target)}.");
                 await TransitionToPhaseAsync(trans.Target);
                 return;
             }
+
+            Debug.Log($"[DuelDebug] No auto transition taken from {DescribePhase(node)}.");
+        }
+
+        private string DescribeDuelDebugState()
+        {
+            if (_duelState == null)
+                return $"state=null; capturedOutcome={_duelOutcome}; finished={_duelFinished}; resultPublished={_duelResultPublished}; leaveRequested={_leaveDuelRequested}";
+
+            return $"phase={DescribePhase(_duelState.CurrentPhase)}; playerTown={DescribeTown(_duelState.PlayerTown)}; opponentTown={DescribeTown(_duelState.OpponentTown)}; townOutcome={EvaluateDuelOutcome()}; capturedOutcome={_duelOutcome}; finished={_duelFinished}; resultPublished={_duelResultPublished}; queue={_actionQueue.Count}; leaveRequested={_leaveDuelRequested}";
+        }
+
+        private string DescribePhase(PhaseNode phase)
+        {
+            if (phase == null) return "<null phase>";
+            return $"{phase.PhaseId}[{string.Join(",", phase.Tags ?? new List<string>())}]";
+        }
+
+        private string DescribeTransitions(PhaseNode node)
+        {
+            if (node?.Transitions == null) return "<none>";
+            return string.Join(" | ", node.Transitions.Select((trans, index) =>
+            {
+                if (trans == null) return $"#{index}:<null>";
+                var condition = trans.Condition;
+                string conditionText = condition == null
+                    ? "<null condition>"
+                    : $"{condition.Type}:tag='{condition.TagTrigger}' threshold={condition.Threshold}";
+                return $"#{index}:{conditionText}->{DescribePhase(trans.Target)}";
+            }));
+        }
+
+        private string DescribeTown(IGameEntity entity)
+        {
+            if (entity == null) return "<null>";
+            if (entity is BoardCard card)
+                return $"{card.SourceCard?.CardName ?? card.SourceCard?.name ?? "<unnamed>"}#id={card.Id} hp={card.Health}/{card.MaxHealth} atk={card.Attack} alive={card.IsAlive}";
+            return entity.ToString();
         }
 
         private async UniTask ResolveClashesAsync()
