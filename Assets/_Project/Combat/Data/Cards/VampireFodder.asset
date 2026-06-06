@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: VampireFodder
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Vampire
+  CardNameKey: 
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -28,6 +29,6 @@ MonoBehaviour:
   Costs:
   - {fileID: 11400000, guid: cc15bc8810ceeb446a0d4ac0c60adcb1, type: 2}
   Effects: []
-  InnateEnchantments:
-  - {fileID: 11400000, guid: 0373980d6ef3b4043ae8885512cf570d, type: 2}
-  - {fileID: 11400000, guid: ca78c32cb6a273440a611cabd33b3df8, type: 2}
+  InnateEnchantments: []
+  CombatVfxProfileId: 
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}
