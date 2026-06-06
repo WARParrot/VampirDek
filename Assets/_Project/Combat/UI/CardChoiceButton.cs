@@ -40,10 +40,10 @@ namespace Combat.UI
                         var parts = new List<string>();
                         foreach (var cost in card.Costs)
                         {
-                            if (cost is ManaCost mana)
-                                parts.Add($"{mana.Amount} mana");
-                            else if (cost is HumanResourceCost hr)
+                            if (cost is HumanResourceCost hr)
                                 parts.Add($"{hr.Amount} HR");
+                            else if (cost is BloodCost blood)
+                                parts.Add($"{blood.Amount} blood");
                             else
                                 parts.Add(cost.GetType().Name);
                         }

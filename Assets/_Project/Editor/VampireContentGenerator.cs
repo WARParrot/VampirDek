@@ -20,7 +20,6 @@ namespace VampirDek11.EditorTools
         private const string RegistryPath = "Assets/Resources/CardRegistry.asset";
 
         private const string ExistingHumanPayGuid = "dfcdab09cda31684fa68f04c9067488e";
-        private const string ExistingManaPayGuidFallback = ""; // not assumed; will look up by type
 
         [MenuItem("Tools/VampirDek11/Generate Vampire Content Pass")]
         public static void Generate()
@@ -31,13 +30,17 @@ namespace VampirDek11.EditorTools
 
             var humanPay = LoadByGuid<HumanResourcePayActionDefinition>(ExistingHumanPayGuid)
                 ?? FindOrCreate<HumanResourcePayActionDefinition>($"{CostsDir}/Standard_HumanResourcePay.asset");
-            var manaPay = FindFirst<ManaPayActionDefinition>()
-                ?? FindOrCreate<ManaPayActionDefinition>($"{CostsDir}/Standard_ManaPay.asset");
 
             var hr1 = CreateHumanResourceCost("HumanResourceCost_1", 1, humanPay);
             var hr2 = CreateHumanResourceCost("HumanResourceCost_2_gen", 2, humanPay);
-            var mana2 = CreateManaCost("ManaCost_2", 2, manaPay);
-            var mana3 = CreateManaCost("ManaCost_3", 3, manaPay);
+            var hr3 = CreateHumanResourceCost("HumanResourceCost_3", 3, humanPay);
+
+            var bloodPay = FindFirst<BloodPayActionDefinition>()
+                ?? FindOrCreate<BloodPayActionDefinition>($"{CostsDir}/Standard_BloodPay.asset");
+
+            var blood1 = CreateBloodCost("BloodCost_1", 1, bloodPay);
+            var blood2 = CreateBloodCost("BloodCost_2", 2, bloodPay);
+            var blood3 = CreateBloodCost("BloodCost_3", 3, bloodPay);
 
             // -------- Enchantments / passives --------
 
@@ -79,37 +82,37 @@ namespace VampirDek11.EditorTools
 
             var ghoul = CreateCard("Ghoul", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 1, maxSpeed: 1, hp: 2, atk: 1,
-                costs: new List<CardCost> { hr1 },
+                costs: new List<CardCost> { blood1 },
                 enchantments: new List<EnchantmentData> { ghoulEnch });
 
             var bloodWitch = CreateCard("BloodWitch", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 1, maxSpeed: 1, hp: 1, atk: 3,
-                costs: new List<CardCost> { mana2 },
+                costs: new List<CardCost> { blood2 },
                 enchantments: new List<EnchantmentData> { witchEnch });
 
             var nightFury = CreateCard("NightFury", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 4, maxSpeed: 4, hp: 2, atk: 2,
-                costs: new List<CardCost> { hr2 },
+                costs: new List<CardCost> { blood2 },
                 enchantments: new List<EnchantmentData>());
 
             var vampireLoner = CreateCard("VampireLoner", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 2, maxSpeed: 2, hp: 3, atk: 1,
-                costs: new List<CardCost> { hr1 },
+                costs: new List<CardCost> { blood1 },
                 enchantments: new List<EnchantmentData>());
 
             var freshSpawn = CreateCard("FreshSpawn", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 1, maxSpeed: 1, hp: 4, atk: 2,
-                costs: new List<CardCost> { hr2 },
+                costs: new List<CardCost> { blood2 },
                 enchantments: new List<EnchantmentData>());
 
             var ritualist = CreateCard("Ritualist", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 1, maxSpeed: 1, hp: 1, atk: 1,
-                costs: new List<CardCost> { hr1 },
+                costs: new List<CardCost> { blood1 },
                 enchantments: new List<EnchantmentData> { ritualistEnch });
 
             var decoy = CreateCard("Decoy", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 0, maxSpeed: 0, hp: 1, atk: 0,
-                costs: new List<CardCost> { hr1 },
+                costs: new List<CardCost> { blood1 },
                 enchantments: new List<EnchantmentData>());
 
             // Gourmet: spawn Decoy right of self on placement
@@ -120,12 +123,12 @@ namespace VampirDek11.EditorTools
             });
             var gourmet = CreateCard("Gourmet", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 3, maxSpeed: 3, hp: 2, atk: 4,
-                costs: new List<CardCost> { hr2 },
+                costs: new List<CardCost> { blood2 },
                 enchantments: new List<EnchantmentData> { gourmetEnch });
 
             var bloodAltar = CreateCard("BloodAltar", CardType.Building, Definitions.RowType.Building,
                 minSpeed: 0, maxSpeed: 0, hp: 4, atk: 0,
-                costs: new List<CardCost> { mana2 },
+                costs: new List<CardCost> { hr2 },
                 enchantments: new List<EnchantmentData> { altarEnch });
 
             var cryptSpawnGhoul = CreateSpawnOnFriendlyDeathAction("Crypt_SpawnGhoul", ghoul,
@@ -137,7 +140,7 @@ namespace VampirDek11.EditorTools
             });
             var crypt = CreateCard("Crypt", CardType.Building, Definitions.RowType.Building,
                 minSpeed: 0, maxSpeed: 0, hp: 5, atk: 0,
-                costs: new List<CardCost> { mana3 },
+                costs: new List<CardCost> { hr3 },
                 enchantments: new List<EnchantmentData> { cryptEnch });
 
             // -------- Add to fallback deck --------
@@ -317,13 +320,13 @@ namespace VampirDek11.EditorTools
             return asset;
         }
 
-        private static ManaCost CreateManaCost(string name, int amount, ManaPayActionDefinition pay)
+        private static BloodCost CreateBloodCost(string name, int amount, BloodPayActionDefinition pay)
         {
             var path = $"{CostsDir}/{name}.asset";
-            var asset = AssetDatabase.LoadAssetAtPath<ManaCost>(path);
+            var asset = AssetDatabase.LoadAssetAtPath<BloodCost>(path);
             if (asset == null)
             {
-                asset = ScriptableObject.CreateInstance<ManaCost>();
+                asset = ScriptableObject.CreateInstance<BloodCost>();
                 AssetDatabase.CreateAsset(asset, path);
             }
             var so = new SerializedObject(asset);

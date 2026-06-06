@@ -9,6 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bd7d16385a645fd4983e432f55ea6469, type: 3}
-  m_Name: Standard_ManaPay
-  m_EditorClassIdentifier: Combat::Combat.ManaPayActionDefinition
+  m_Script: {fileID: 11500000, guid: b1a2c3d4e5f60718293a4b5c6d7e8f90, type: 3}
+  m_Name: BloodCost_3
+  m_EditorClassIdentifier: Definitions::Definitions.BloodCost
+  _payAction: {fileID: 11400000, guid: b1a2c3d4e5f60718293a4b5c6d7e8004, type: 2}
+  _amount: 3

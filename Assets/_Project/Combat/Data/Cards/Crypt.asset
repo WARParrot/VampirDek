@@ -26,7 +26,7 @@ MonoBehaviour:
   Health: 5
   Attack: 0
   Costs:
-  - {fileID: 11400000, guid: 2d41745a157a27e49b003fdec5ce828a, type: 2}
+  - {fileID: 11400000, guid: c1a73f49b8e7c0a4a9f2b85d3e1a7c46, type: 2}
   Effects: []
   InnateEnchantments:
   - {fileID: 11400000, guid: 9f2b59986df38d04cbed9e81957d51a6, type: 2}

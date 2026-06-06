@@ -42,6 +42,12 @@ public class HandUIManager : MonoBehaviour
 
     private int _displayedHR;
 
+    void Awake()
+    {
+        if (PlayerManaText != null)
+            PlayerManaText.gameObject.SetActive(false);
+    }
+
     void Update()
     {
         _duelManager = DuelManagerProxy.Instance;
@@ -236,13 +242,16 @@ public class HandUIManager : MonoBehaviour
 
         string warningMessage = "";
 
-        if (cost is ManaCost manaCost)
-        {
-            warningMessage = $"Нельзя использовать - не хватает маны\nТребуется: {manaCost.Amount}, Доступно: {side.Mana}";
-        }
-        else if (cost is HumanResourceCost hrCost)
+        if (cost is HumanResourceCost hrCost)
         {
             warningMessage = $"Нельзя использовать - не хватает людей\nТребуется: {hrCost.Amount}, Доступно: {side.HumanResources}";
+        }
+        else if (cost is BloodCost bloodCost)
+        {
+            int aliveHumans = 0;
+            foreach (var slot in side.Board.HumanRow)
+                if (slot.Occupant != null && slot.Occupant.IsAlive) aliveHumans++;
+            warningMessage = $"Нельзя использовать - не хватает крови\nТребуется людей съесть: {bloodCost.Amount}, Доступно: {aliveHumans}";
         }
         else
         {
