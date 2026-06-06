@@ -458,14 +458,15 @@ namespace Combat
                 await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
 
+                await SimulatePlanningAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+
                 Debug.Log("[Phase] Waiting for player confirmation...");
                 _playerConfirmedPhase = false;
                 _phaseConfirmationReady = true;
                 await UniTask.WaitUntil(() => _playerConfirmedPhase);
                 _phaseConfirmationReady = false;
                 Debug.Log("[Phase] Confirmed - advancing.");
-
-                await SimulatePlanningAsync();
             }
             else if (targetNode.Tags.Contains("ClashingPhase"))
             {
