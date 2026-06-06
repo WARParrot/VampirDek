@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Ritualist
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Ritualist
+  CardNameKey: 
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -29,4 +30,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a70d8a9629083ab4596dcfc7f7929152, type: 2}
   Effects: []
   InnateEnchantments:
-  - {fileID: 11400000, guid: 0d535026405024a448346be325004a20, type: 2}
+  - {fileID: 11400000, guid: 03401e58f842d5344adda91c22670b0b, type: 2}
+  CombatVfxProfileId: 
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

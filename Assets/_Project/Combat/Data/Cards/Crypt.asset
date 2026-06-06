@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Crypt
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Crypt
+  CardNameKey: 
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -29,4 +30,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2d41745a157a27e49b003fdec5ce828a, type: 2}
   Effects: []
   InnateEnchantments:
-  - {fileID: 11400000, guid: 9f2b59986df38d04cbed9e81957d51a6, type: 2}
+  - {fileID: 11400000, guid: 946c93329bad2fb41b90a32710dad0be, type: 2}
+  CombatVfxProfileId: 
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

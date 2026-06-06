@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BloodAltar
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: BloodAltar
+  CardNameKey: 
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -29,4 +30,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: db7683ae68a21ce4c9c072b7820175f8, type: 2}
   Effects: []
   InnateEnchantments:
-  - {fileID: 11400000, guid: bca856b80c4d392459364ac0ea649374, type: 2}
+  - {fileID: 11400000, guid: d2a94ffda8787f4499d8e4c3aef4eeec, type: 2}
+  CombatVfxProfileId: 
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

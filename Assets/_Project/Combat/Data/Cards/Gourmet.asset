@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Gourmet
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Gourmet
+  CardNameKey: 
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -29,4 +30,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 484baab2c3b5903418debbc793751316, type: 2}
   Effects: []
   InnateEnchantments:
-  - {fileID: 11400000, guid: 30948f4c0014c4449b90eb8cb2706e72, type: 2}
+  - {fileID: 11400000, guid: 331acb965712cf04499bd382636df339, type: 2}
+  CombatVfxProfileId: 
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

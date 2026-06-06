@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BloodWitch
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: BloodWitch
+  CardNameKey: 
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -29,4 +30,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: db7683ae68a21ce4c9c072b7820175f8, type: 2}
   Effects: []
   InnateEnchantments:
-  - {fileID: 11400000, guid: f4dd7c7ce1765cc4fa4df306a1a7d93d, type: 2}
+  - {fileID: 11400000, guid: cfbda7d5238f87d4587876e74d8885af, type: 2}
+  CombatVfxProfileId: 
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}
