@@ -20,6 +20,12 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 10575ca6e7450654390d71ede861edb9
+    m_Address: VS_Encounter03_CryptRitual
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Encounters
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 12757641de249a64faefbc67f1bc491b
     m_Address: Assets/_Project/Data/PhaseNodes/ClashingPhase.asset
     m_ReadOnly: 0
@@ -35,10 +41,28 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1e388d11259b998469fbfeb58ab8494a
+    m_Address: VS_Encounter01_HungryScoutsDeck
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Decks
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 24535bac36f8d3d49aa5cf25698cf1d2
     m_Address: Assets/_Project/Data/PhaseNodes/EndOfTurn.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 306e369306e6ce544abe595ff25cc000
+    m_Address: VS_Encounter03_CryptRitualDeck
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Decks
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3098e6566b5478d489c255744a1b8c6c
+    m_Address: VS_Encounter02_BloodlingAmbushDeck
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Decks
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 38ff5444e19258740bea1d272a6dc51d
     m_Address: Assets/_Project/Data/PhaseNodes/PlanningPhase.asset
@@ -61,15 +85,39 @@ MonoBehaviour:
     m_SerializedLabels:
     - Hints
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 487cefe29bb214447ac412263d223539
+    m_Address: VS_Boss_NightMatriarchDeck
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Decks
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5c5b79c97b077d64ba856b3106c822da
     m_Address: Assets/_Project/Data/PhaseNodes/DuelEnd.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6ef524cbdd708c7468372fa676710782
+    m_Address: VS_Encounter01_HungryScouts
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Encounters
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7f8de97da7b4622468f86aeac29c7fed
     m_Address: TestNovel
     m_ReadOnly: 0
     m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8985dd4889177d843bc9cb97af771d42
+    m_Address: VS_Boss_NightMatriarch
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Encounters
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9d353ddda1e44ee40b357a8869ec5151
+    m_Address: VS_Encounter02_BloodlingAmbush
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Encounters
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: af4902a7374014a44a5cda5899e775f0
     m_Address: Assets/_Project/Combat/Data/ActionDefs/SacrificeHumanActionDef.asset
