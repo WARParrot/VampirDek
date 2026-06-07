@@ -1,0 +1,1 @@
+{ "CardName": "BloodTitheCollector", "CardNameKey": "mod.example_blood_cult.card.tithe_collector.name", "Type": 2, "RowType": 2, "MinSpeed": 0, "MaxSpeed": 1, "Health": 3, "Attack": 0, "Costs": [], "Effects": [], "InnateEnchantments": [], "CombatVfxProfileId": "ritual", "CombatVfxTint": { "r": 0.55, "g": 0.0, "b": 0.12, "a": 1.0 } }

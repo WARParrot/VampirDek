@@ -1,0 +1,6 @@
+{
+  "mod.example_blood_cult.card.acolyte.name": "Blood Cult Acolyte",
+  "mod.example_blood_cult.card.tithe_collector.name": "Blood Tithe Collector",
+  "mod.example_blood_cult.card.knife_bearer.name": "Ritual Knife-Bearer",
+  "interaction.start_mod_duel": "Press [E] to challenge the Blood Cult mod table"
+}

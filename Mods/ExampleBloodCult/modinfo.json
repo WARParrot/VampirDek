@@ -1,0 +1,14 @@
+{
+  "name": "Example Blood Cult",
+  "version": "1.0.0",
+  "catalogPath": "",
+  "scenes": [],
+  "cards": ["BloodCultAcolyte", "BloodTitheCollector", "RitualKnifeBearer"],
+  "decks": ["ExampleBloodCultDeck"],
+  "encounters": ["MOD_PROOF_BLOOD_CULT_INITIATE"],
+  "enchantments": [],
+  "layouts": [],
+  "phasegraphs": [],
+  "winconditions": [],
+  "hints": []
+}

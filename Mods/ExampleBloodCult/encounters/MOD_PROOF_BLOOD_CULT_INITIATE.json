@@ -1,0 +1,23 @@
+{
+  "EncounterId": "MOD_PROOF_BLOOD_CULT_INITIATE",
+  "PlayerBoardLayoutId": "Standard_BoardLayout",
+  "OpponentBoardLayoutId": "Standard_BoardLayout",
+  "PhaseGraphId": "Standard_Phases",
+  "WinConditionId": "Standard_TakeTownWinCondition",
+  "OpponentDeckId": "ExampleBloodCultDeck",
+  "HintIds": [],
+  "RewardCardPool": [
+    "BloodCultAcolyte",
+    "BloodTitheCollector",
+    "RitualKnifeBearer"
+  ],
+  "DuelScene": {
+    "m_AssetGUID": "5a6050c62f77eca428f6c6bd526692f1",
+    "m_SubObjectName": "",
+    "m_SubObjectType": "",
+    "m_SubObjectGUID": "",
+    "m_EditorAssetChanged": 0
+  },
+  "WinFlag": "mod.example_blood_cult.defeated",
+  "LoseFlag": "mod.example_blood_cult.lost"
+}

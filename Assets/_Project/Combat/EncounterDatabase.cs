@@ -19,5 +19,10 @@ namespace Combat
             _encounters.TryGetValue(encounterId, out var enc);
             return enc;
         }
+
+        public static IReadOnlyCollection<CombatEncounter> GetAllEncounters()
+        {
+            return _encounters.Values;
+        }
     }
 }

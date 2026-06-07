@@ -38,6 +38,18 @@ namespace Exploration
 
         public string PromptText => CanShowPrompt ? LocalizationService.T(_promptKey, _promptText) : string.Empty;
 
+
+        public void ConfigureRuntime(string encounterId, string uniqueTableId, DeckData defaultPlayerDeck, Transform cameraSeat, GameObject worldTableVisual = null, string promptKey = "interaction.start_mod_duel", string promptText = "Press [E] to challenge the modded cult table")
+        {
+            EncounterId = encounterId;
+            UniqueTableId = uniqueTableId;
+            DefaultPlayerDeck = defaultPlayerDeck;
+            _cameraSeat = cameraSeat;
+            _worldTableVisual = worldTableVisual;
+            _promptKey = promptKey;
+            _promptText = promptText;
+        }
+
         private bool IsEncounterCompleted()
         {
             var completedEncounterIds = GlobalServices.GameStateService?.State?.CompletedEncounterIds;
@@ -92,6 +104,10 @@ namespace Exploration
                 return;
             }
 
+            var cameraSeat = _cameraSeat != null ? _cameraSeat : transform;
+            if (_cameraSeat == null)
+                Debug.LogWarning($"[EncounterPoint] Encounter '{EncounterId}' has no camera seat assigned. Falling back to encounter transform.", this);
+
             var loadHandle = encounter.DuelScene.LoadSceneAsync(LoadSceneMode.Additive);
             var duelLoadUniTask = loadHandle.Task.AsUniTask();
 
@@ -106,15 +122,15 @@ namespace Exploration
                 
                 if (mainCam != null)
                     mainCam.enabled = true;
-                if (mainCam != null && _cameraSeat != null)
+                if (mainCam != null && cameraSeat != null)
                 {
-                    mainCam.transform.position = _cameraSeat.position;
-                    mainCam.transform.rotation = _cameraSeat.rotation;
+                    mainCam.transform.position = cameraSeat.position;
+                    mainCam.transform.rotation = cameraSeat.rotation;
                 }
             }
             else
             {
-                var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
+                var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(cameraSeat, 1.0f);
                 await duelLoadUniTask;
                 HideWorldTableVisualForLoadedDuel();
                 await camMoveTask;
@@ -161,7 +177,7 @@ namespace Exploration
 
         private void HideWorldTableVisualForLoadedDuel()
         {
-            if (_worldTableVisual != null)
+            if (_worldTableVisual != null && _worldTableVisual != gameObject)
                 _worldTableVisual.SetActive(false);
         }
 
@@ -177,8 +193,27 @@ namespace Exploration
                 }
                 if (deck.Count > 0) return deck;
             }
-            Debug.LogWarning("No player data found - returning fallback deck.");
-            return new List<CardDef>(DefaultPlayerDeck.Cards);
+            if (DefaultPlayerDeck != null && DefaultPlayerDeck.Cards != null && DefaultPlayerDeck.Cards.Count > 0)
+            {
+                Debug.LogWarning("No player data found - returning fallback deck asset.");
+                return new List<CardDef>(DefaultPlayerDeck.Cards);
+            }
+
+            var builtInFallback = new List<CardDef>();
+            foreach (var cardId in new[] { "Town", "Human", "Human", "Building", "Vampire" })
+            {
+                var cardDef = CardDatabase.GetCard(cardId);
+                if (cardDef != null) builtInFallback.Add(cardDef);
+            }
+
+            if (builtInFallback.Count > 0)
+            {
+                Debug.LogWarning($"No player data or fallback deck asset found for encounter '{EncounterId}' - using built-in starter card ids.");
+                return builtInFallback;
+            }
+
+            Debug.LogError($"[EncounterPoint] No player deck, fallback deck, or built-in fallback cards are available for encounter '{EncounterId}'.");
+            return new List<CardDef>();
 
            /* string json = System.Text.Encoding.UTF8.GetString(dataBytes);
             var playerData = JsonUtility.FromJson<PersistentPlayerData>(json);

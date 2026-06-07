@@ -18,6 +18,12 @@ namespace Exploration
 
         public string CurrentWorldAddress => _worldSceneAddress;
 
+        public sealed class ExplorationModeContext
+        {
+            public bool EnableModdedDuelTables;
+            public int ModdedDuelTableLimit = int.MaxValue;
+        }
+
         public ExplorationMode(string worldSceneAddress)
         {
             _worldSceneAddress = worldSceneAddress;
@@ -29,6 +35,9 @@ namespace Exploration
             _sceneHandle = Addressables.LoadSceneAsync(_worldSceneAddress, LoadSceneMode.Additive);
             await _sceneHandle.Task;
             Debug.Log($"[ExplorationMode] Scene loaded successfully.");
+
+            if (context is ExplorationModeContext modeContext && modeContext.EnableModdedDuelTables)
+                ModProofEncounterBootstrap.EnsureEncounterPoints(_worldSceneAddress, _sceneHandle.Result.Scene, modeContext.ModdedDuelTableLimit);
 
             _player = Object.FindAnyObjectByType<ExplorationController>();
             if (_player != null)
