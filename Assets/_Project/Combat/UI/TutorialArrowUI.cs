@@ -111,7 +111,7 @@ namespace Combat
                 _arrowImage.raycastTarget = false;
                 _arrowImage.enabled = true;
             }
-            Debug.Log($"[TutorialArrowUI] PointToUI: target={target?.name ?? "NULL"}, _arrowTransform={(_arrowTransform != null ? "OK" : "NULL")}, _arrowImage={(_arrowImage != null ? "OK" : "NULL")}");
+            //Debug.Log($"[TutorialArrowUI] PointToUI: target={target?.name ?? "NULL"}, _arrowTransform={(_arrowTransform != null ? "OK" : "NULL")}, _arrowImage={(_arrowImage != null ? "OK" : "NULL")}");
         }
 
         /// <summary>
