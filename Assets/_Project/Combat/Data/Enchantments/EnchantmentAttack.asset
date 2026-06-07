@@ -14,10 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Definitions::Definitions.EnchantmentData
   DisplayName: Shield
   Duration: -1
-  Triggers:
-  - EventType: Combat.CombatEvents.PlacedCardEvent
-    Actions:
-    - {fileID: 0}
+  Triggers: []
   Modifiers:
   - Stat: Attack
     Value: 3

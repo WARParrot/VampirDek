@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Core;
+using UnityEngine.SceneManagement;
 
 public class NovelManager : MonoBehaviour, IGameMode
 {
@@ -34,6 +35,7 @@ public class NovelManager : MonoBehaviour, IGameMode
         {
             GlobalServices.EventBus.Publish(new NovelSceneEndedEvent(_scene));
             GlobalServices.Director.PopModeAsync().Forget();
+            SceneManager.LoadSceneAsync("Core");
             return;
         }
         _currentNode = node;

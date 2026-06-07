@@ -7,6 +7,8 @@ namespace Definitions
     public class EnchantmentData : ScriptableObject
     {
         public string DisplayName;
+        [Tooltip("Stable localization key for the display name. Leave empty to use enchantment.<DisplayName>.name with DisplayName as fallback.")]
+        public string DisplayNameKey;
         public int Duration = -1;
         public List<TriggerEntry> Triggers;
         public List<ModifierEntry> Modifiers;
@@ -16,6 +18,8 @@ namespace Definitions
     public class TriggerEntry
     {
         public string EventType;
+        public string PhaseFilter;
+        public bool OwnerOnly;
         public List<ActionDefinition> Actions;
     }
 

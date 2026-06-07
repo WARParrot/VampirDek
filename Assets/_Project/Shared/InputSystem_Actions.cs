@@ -107,7 +107,7 @@ namespace Shared
                     ""name"": ""Look"",
                     ""type"": ""Value"",
                     ""id"": ""6b444451-8a00-4d00-a97e-f47457f736a8"",
-                    ""expectedControlType"": ""Vector2"",
+                    ""expectedControlType"": ""Vector3"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
@@ -306,6 +306,17 @@ namespace Shared
                     ""processors"": """",
                     ""groups"": ""Joystick"",
                     ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e239a792-8241-4f8b-a3ca-79680298a0a1"",
+                    ""path"": ""<Mouse>/delta"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Look"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -1110,6 +1121,15 @@ namespace Shared
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Look"",
+                    ""type"": ""Value"",
+                    ""id"": ""81da7ec3-7fcf-4bd2-b3f2-fe90fa686201"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -1259,11 +1279,33 @@ namespace Shared
                 {
                     ""name"": """",
                     ""id"": ""562ef156-86dd-409d-959a-7c3c54c639f6"",
-                    ""path"": ""<Keyboard>/w"",
+                    ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": "";Keyboard&Mouse;Gamepad"",
                     ""action"": ""StartDuel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""97dbfe08-ab23-4506-8d08-d2b41ab6aecb"",
+                    ""path"": ""<Mouse>/delta"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Look"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8182101c-96cc-4126-8869-4e80b78ecb38"",
+                    ""path"": """",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Look"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1417,6 +1459,7 @@ namespace Shared
             m_Exploration_Move = m_Exploration.FindAction("Move", throwIfNotFound: true);
             m_Exploration_Interact = m_Exploration.FindAction("Interact", throwIfNotFound: true);
             m_Exploration_StartDuel = m_Exploration.FindAction("StartDuel", throwIfNotFound: true);
+            m_Exploration_Look = m_Exploration.FindAction("Look", throwIfNotFound: true);
             // Duel
             m_Duel = asset.FindActionMap("Duel", throwIfNotFound: true);
             m_Duel_LeaveDuel = m_Duel.FindAction("LeaveDuel", throwIfNotFound: true);
@@ -1889,6 +1932,7 @@ namespace Shared
         private readonly InputAction m_Exploration_Move;
         private readonly InputAction m_Exploration_Interact;
         private readonly InputAction m_Exploration_StartDuel;
+        private readonly InputAction m_Exploration_Look;
         /// <summary>
         /// Provides access to input actions defined in input action map "Exploration".
         /// </summary>
@@ -1912,6 +1956,10 @@ namespace Shared
             /// Provides access to the underlying input action "Exploration/StartDuel".
             /// </summary>
             public InputAction @StartDuel => m_Wrapper.m_Exploration_StartDuel;
+            /// <summary>
+            /// Provides access to the underlying input action "Exploration/Look".
+            /// </summary>
+            public InputAction @Look => m_Wrapper.m_Exploration_Look;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1947,6 +1995,9 @@ namespace Shared
                 @StartDuel.started += instance.OnStartDuel;
                 @StartDuel.performed += instance.OnStartDuel;
                 @StartDuel.canceled += instance.OnStartDuel;
+                @Look.started += instance.OnLook;
+                @Look.performed += instance.OnLook;
+                @Look.canceled += instance.OnLook;
             }
 
             /// <summary>
@@ -1967,6 +2018,9 @@ namespace Shared
                 @StartDuel.started -= instance.OnStartDuel;
                 @StartDuel.performed -= instance.OnStartDuel;
                 @StartDuel.canceled -= instance.OnStartDuel;
+                @Look.started -= instance.OnLook;
+                @Look.performed -= instance.OnLook;
+                @Look.canceled -= instance.OnLook;
             }
 
             /// <summary>
@@ -2434,6 +2488,13 @@ namespace Shared
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnStartDuel(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Look" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLook(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Duel" which allows adding and removing callbacks.

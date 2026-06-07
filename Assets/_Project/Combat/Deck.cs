@@ -12,6 +12,7 @@ namespace Combat
         private int _drawIndex;
 
         public int Count => _cards.Count;
+        public int DrawIndex => _drawIndex;
         public int RemainingCards => _cards.Count - _drawIndex;
         public bool IsEmpty => _drawIndex >= _cards.Count;
 
@@ -55,7 +56,19 @@ namespace Combat
             _cards.Add(card);
         }
         public void AddRange(IEnumerable<Card> cards) => _cards.AddRange(cards);
-        public void Clear() => _cards.Clear();
+        public void Clear()
+        {
+            _cards.Clear();
+            _drawIndex = 0;
+        }
+
+        public void RestoreCards(IEnumerable<Card> cards, int drawIndex)
+        {
+            _cards.Clear();
+            _cards.AddRange(cards);
+            _drawIndex = drawIndex < 0 ? 0 : drawIndex > _cards.Count ? _cards.Count : drawIndex;
+            GlobalServices.EventBus?.Publish(new DeckCountChangedEvent(_owner, RemainingCards));
+        }
 
         public IEnumerator<Card> GetEnumerator() => _cards.GetEnumerator();
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();

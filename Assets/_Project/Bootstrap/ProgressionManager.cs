@@ -34,7 +34,10 @@ namespace Bootstrap
         {
             var state = _stateService.State;
 
-            if (!string.IsNullOrEmpty(e.EncounterId))
+            state.CompletedEncounterIds ??= new();
+            state.Flags ??= new();
+
+            if (e.PlayerWon && !string.IsNullOrEmpty(e.EncounterId) && !state.CompletedEncounterIds.Contains(e.EncounterId))
                 state.CompletedEncounterIds.Add(e.EncounterId);
 
             if (e.PlayerWon && !string.IsNullOrEmpty(e.WinFlag))

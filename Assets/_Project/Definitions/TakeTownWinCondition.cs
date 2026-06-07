@@ -7,9 +7,10 @@ namespace Definitions
     {
         public override bool Check(IDuelState state)
         {
-            if (!state.OpponentTown.IsAlive) return true;
-            if (!state.PlayerTown.IsAlive) return true;
-            return false;
+            // This condition means the duel has reached a terminal town-destroyed state.
+            // DuelManager is responsible for turning that terminal state into PlayerWon/PlayerLost/Draw.
+            return state?.OpponentTown?.IsAlive == false
+                || state?.PlayerTown?.IsAlive == false;
         }
     }
 }

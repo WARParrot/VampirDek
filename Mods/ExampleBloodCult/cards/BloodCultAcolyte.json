@@ -1,0 +1,1 @@
+{ "CardName": "BloodCultAcolyte", "CardNameKey": "mod.example_blood_cult.card.acolyte.name", "Type": 0, "RowType": 0, "MinSpeed": 1, "MaxSpeed": 2, "Health": 2, "Attack": 1, "Costs": [], "Effects": [], "InnateEnchantments": [], "CombatVfxProfileId": "blood", "CombatVfxTint": { "r": 0.65, "g": 0.05, "b": 0.08, "a": 1.0 } }

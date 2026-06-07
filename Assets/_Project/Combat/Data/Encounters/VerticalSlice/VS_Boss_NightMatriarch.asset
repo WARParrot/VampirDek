@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 120f2244856fba24c95e0841ace4345d, type: 3}
+  m_Name: VS_Boss_NightMatriarch
+  m_EditorClassIdentifier: Definitions::Definitions.CombatEncounter
+  winCondition: {fileID: 0}
+  EncounterId: VS_Boss_NightMatriarch
+  PlayerBoardLayoutId: Standard_BoardLayout
+  OpponentBoardLayoutId: Standard_BoardLayout
+  PhaseGraphId: Standard_Phases
+  WinConditionId: Standard_TakeTownWinCondition
+  OpponentDeckId: VS_Boss_NightMatriarchDeck
+  HintIds: []
+  RewardCardPool:
+  - NightFury
+  - BloodWitch
+  - Gourmet
+  - Crypt
+  DuelScene:
+    m_AssetGUID: 5a6050c62f77eca428f6c6bd526692f1
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  WinFlag: vs.boss.win
+  LoseFlag: vs.boss.loss

@@ -15,5 +15,5 @@ MonoBehaviour:
   Message: Vanguard card in hand
   EventTag: PhaseEnter
   Condition: {fileID: 11400000, guid: 07a52f246be6d834ca13b8eef289cc3f, type: 2}
-  ShownOncePerGame: 1
+  ShownOncePerGame: 0
   AllowedMode: 1

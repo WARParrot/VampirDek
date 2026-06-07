@@ -1,27 +1,21 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Core;
 using Combat;
-using Combat.UI;
+using Core;
 using Definitions;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class BoardView : MonoBehaviour
 {
+    private const string GeneratedPrefix = "GeneratedBoardSlot_";
+
     public GameObject SlotPrefab;
+    public GameObject RowPrefab;
     public Transform PlayerBoardContainer;
     public Transform OpponentBoardContainer;
 
-    [Header("Empty slot texts")]
-    [SerializeField] private string _emptySlotName = "New Text";
-    [SerializeField] private string _emptySlotStats = "";
-
-    private DuelManager _duelManager;
-    private Dictionary<string, BoardSlotUI> _slotUIs = new();
+    private readonly Dictionary<string, BoardSlotUI> _slotUIs = new();
     private bool _subscribed = false;
 
     public void Start()
@@ -29,304 +23,425 @@ public class BoardView : MonoBehaviour
         StartCoroutine(InitUI());
     }
 
-    IEnumerator InitUI()
+    private IEnumerator InitUI()
     {
-        Debug.Log("[BoardView] InitUI started - waiting for proxy...");
-        yield return new WaitUntil(() => DuelManagerProxy.Instance != null);
-        Debug.Log("[BoardView] Proxy acquired.");
-
-        yield return new WaitUntil(() => DuelManagerProxy.Instance.CurrentDuelState != null);
-        Debug.Log("[BoardView] DuelState ready. Building layout...");
-
-        _duelManager = DuelManagerProxy.Instance;
-        var encounter = _duelManager.CurrentDuelState.Encounter;
-
-        InitializeLayout(BoardLayoutDatabase.GetLayout(encounter.PlayerBoardLayoutId), PlayerBoardContainer, true);
-        InitializeLayout(BoardLayoutDatabase.GetLayout(encounter.OpponentBoardLayoutId), OpponentBoardContainer, false);
-
-        if (!_subscribed)
-        {
-            GlobalServices.EventBus.Subscribe<PlacedCardEvent>(OnCardPlaced);
-            GlobalServices.EventBus.Subscribe<TownPlacedEvent>(OnTownPlaced);
-            GlobalServices.EventBus.Subscribe<EntityDiedEvent>(OnEntityDied);
-            _subscribed = true;
-        }
-
-        SyncExistingCards();
+        yield return new WaitUntil(() => DuelManagerProxy.Instance != null && DuelManagerProxy.Instance.CurrentDuelState != null);
+        BuildSlots();
+        SubscribeEvents();
+        RefreshAllSlots();
     }
 
-    void SyncExistingCards()
+    private void OnDisable()
     {
-        foreach (var slot in _duelManager.CurrentDuelState.PlayerSide.Board.AllSlots())
-            if (slot.Occupant != null) UpdateSlotUIForEntity(slot.Occupant);
-        foreach (var slot in _duelManager.CurrentDuelState.OpponentSide.Board.AllSlots())
-            if (slot.Occupant != null) UpdateSlotUIForEntity(slot.Occupant);
+        UnsubscribeEvents();
     }
 
-    void OnDisable()
+    private void SubscribeEvents()
     {
-        if (_subscribed && GlobalServices.EventBus != null)
+        if (_subscribed || GlobalServices.EventBus == null) return;
+        GlobalServices.EventBus.Subscribe<PlacedCardEvent>(OnBoardChanged);
+        GlobalServices.EventBus.Subscribe<EntityDiedEvent>(OnEntityChanged);
+        GlobalServices.EventBus.Subscribe<ActionExecutedEvent>(OnActionExecuted);
+        _subscribed = true;
+    }
+
+    private void UnsubscribeEvents()
+    {
+        if (!_subscribed || GlobalServices.EventBus == null) return;
+        GlobalServices.EventBus.Unsubscribe<PlacedCardEvent>(OnBoardChanged);
+        GlobalServices.EventBus.Unsubscribe<EntityDiedEvent>(OnEntityChanged);
+        GlobalServices.EventBus.Unsubscribe<ActionExecutedEvent>(OnActionExecuted);
+        _subscribed = false;
+    }
+
+    private void OnBoardChanged(PlacedCardEvent evt) => RefreshAllSlots();
+    private void OnEntityChanged(EntityDiedEvent evt) => RefreshAllSlots();
+    private void OnActionExecuted(ActionExecutedEvent evt) => RefreshAllSlots();
+
+    private void BuildSlots()
+    {
+        var state = DuelManagerProxy.Instance?.CurrentDuelState;
+        if (state == null) return;
+        if (_slotUIs.Count > 0) return;
+
+        BindSideSlots(state.PlayerSide.Board, PlayerBoardContainer, "Player");
+        BindSideSlots(state.OpponentSide.Board, OpponentBoardContainer, "Opponent");
+    }
+
+    private void BindSideSlots(Board board, Transform container, string sideName)
+    {
+        if (board == null || container == null) return;
+
+        ClearGeneratedSlots(container);
+
+        if (TryBindAuthoredSlots(board, container))
         {
-            GlobalServices.EventBus.Unsubscribe<PlacedCardEvent>(OnCardPlaced);
-            GlobalServices.EventBus.Unsubscribe<TownPlacedEvent>(OnTownPlaced);
-            GlobalServices.EventBus.Unsubscribe<EntityDiedEvent>(OnEntityDied);
-            _subscribed = false;
+            return;
         }
+
+        CreatePrefabSlots(board, container, sideName);
+    }
+
+    private bool TryBindAuthoredSlots(Board board, Transform container)
+    {
+        var rowOrder = GetRows(board);
+        var groupedRows = new Dictionary<Definitions.RowType, List<BoardSlotUI>>();
+        var groupedCount = 0;
+
+        foreach (var rowType in rowOrder)
+        {
+            var rowSlots = FindAuthoredSlotsForNamedRow(container, rowType);
+            if (rowSlots.Count > 0)
+            {
+                groupedRows[rowType] = rowSlots;
+                groupedCount++;
+            }
+        }
+
+        if (groupedCount > 0)
+        {
+            if (groupedCount != rowOrder.Count)
+            {
+                Debug.LogWarning($"[BoardView] {container.name} has only {groupedCount}/{rowOrder.Count} authored row groups. Add row containers named Vanguard, Building, Human, and Town, or assign SlotPrefab for generated slots.");
+                return false;
+            }
+
+            foreach (var rowType in rowOrder)
+            {
+                if (!BindRow(board, rowType, groupedRows[rowType], container.name)) return false;
+            }
+
+            return true;
+        }
+
+        var flatSlots = FindAuthoredSlots(container);
+        var expectedCount = GetExpectedSlotCount(board);
+        if (flatSlots.Count == 0) return false;
+
+        if (flatSlots.Count < expectedCount)
+        {
+            Debug.LogWarning($"[BoardView] {container.name} has {flatSlots.Count} authored BoardSlotUI components, but the board needs {expectedCount}. Add the missing authored slots or assign SlotPrefab.");
+            return false;
+        }
+
+        var cursor = 0;
+        foreach (var rowType in rowOrder)
+        {
+            var boardSlots = GetBoardSlots(board, rowType);
+            var rowSlots = new List<BoardSlotUI>();
+            for (var i = 0; i < boardSlots.Length; i++)
+            {
+                rowSlots.Add(flatSlots[cursor++]);
+            }
+
+            if (!BindRow(board, rowType, rowSlots, container.name)) return false;
+        }
+
+        return true;
+    }
+
+    private bool BindRow(Board board, Definitions.RowType rowType, List<BoardSlotUI> slotUIs, string containerName)
+    {
+        var boardSlots = GetBoardSlots(board, rowType);
+        if (slotUIs.Count < boardSlots.Length)
+        {
+            Debug.LogWarning($"[BoardView] {containerName}/{rowType} has {slotUIs.Count} authored slots, but the board needs {boardSlots.Length}.");
+            return false;
+        }
+
+        for (var displayIndex = 0; displayIndex < boardSlots.Length; displayIndex++)
+        {
+            var boardSlot = boardSlots[displayIndex];
+            var slotUI = slotUIs[displayIndex];
+            ConfigureSlotUI(board, rowType, boardSlot.Index, slotUI);
+        }
+
+        return true;
+    }
+
+    private void CreatePrefabSlots(Board board, Transform container, string sideName)
+    {
+        if (SlotPrefab == null)
+        {
+            Debug.LogError($"[BoardView] {container.name} has no authored BoardSlotUI children and SlotPrefab is not assigned. Board layout is a scene/prefab responsibility; assign authored slots or a BoardSlot prefab.");
+            return;
+        }
+
+        if (RowPrefab == null && !HasAllAuthoredRowContainers(board, container))
+        {
+            Debug.LogError($"[BoardView] {container.name} has no authored row containers and RowPrefab is not assigned. Generated boards require an authored row prefab so layout stays outside BoardView.");
+            return;
+        }
+
+        foreach (var rowType in GetRows(board))
+        {
+            var rowParent = FindRowContainer(container, rowType) ?? CreateGeneratedRow(container, sideName, rowType);
+            if (rowParent == null) continue;
+
+            var boardSlots = GetBoardSlots(board, rowType);
+            for (var displayIndex = 0; displayIndex < boardSlots.Length; displayIndex++)
+            {
+                var go = Instantiate(SlotPrefab, rowParent);
+                go.name = $"{GeneratedPrefix}{sideName}_{rowType}_{displayIndex}";
+
+                var slotUI = go.GetComponent<BoardSlotUI>();
+                if (slotUI == null)
+                {
+                    Debug.LogError($"[BoardView] SlotPrefab '{SlotPrefab.name}' must contain BoardSlotUI. Skipping generated slot {sideName}/{rowType}/{displayIndex}.");
+                    DestroyBoardObject(go);
+                    continue;
+                }
+
+                ConfigureSlotUI(board, rowType, boardSlots[displayIndex].Index, slotUI);
+            }
+        }
+    }
+
+    private Transform CreateGeneratedRow(Transform container, string sideName, Definitions.RowType rowType)
+    {
+        if (RowPrefab == null) return null;
+
+        var row = Instantiate(RowPrefab, container);
+        row.name = $"{GeneratedPrefix}{sideName}_{rowType}_Row";
+        return row.transform;
+    }
+
+    private bool HasAllAuthoredRowContainers(Board board, Transform container)
+    {
+        foreach (var rowType in GetRows(board))
+        {
+            if (FindRowContainer(container, rowType) == null) return false;
+        }
+
+        return true;
+    }
+
+    private void ConfigureSlotUI(Board board, Definitions.RowType rowType, int index, BoardSlotUI slotUI)
+    {
+        if (slotUI == null) return;
+
+        slotUI.Configure(board, rowType, index);
+        if (slotUI.HighlightImage == null)
+        {
+            var highlight = slotUI.transform.Find("Highlight")?.GetComponent<Image>();
+            slotUI.HighlightImage = highlight != null ? highlight : slotUI.GetComponent<Image>();
+        }
+
+        var image = slotUI.GetComponent<Image>();
+        if (image != null) image.raycastTarget = true;
+
+        _slotUIs[Key(board, rowType, index)] = slotUI;
+    }
+
+    private List<BoardSlotUI> FindAuthoredSlotsForNamedRow(Transform container, Definitions.RowType rowType)
+    {
+        var slots = new List<BoardSlotUI>();
+        var rowName = rowType.ToString();
+
+        for (var i = 0; i < container.childCount; i++)
+        {
+            var child = container.GetChild(i);
+            if (!NameContains(child.name, rowName)) continue;
+            AddAuthoredSlots(child, slots);
+        }
+
+        return slots;
+    }
+
+    private List<BoardSlotUI> FindAuthoredSlots(Transform container)
+    {
+        var slots = new List<BoardSlotUI>();
+        AddAuthoredSlots(container, slots);
+        return slots;
+    }
+
+    private void AddAuthoredSlots(Transform root, List<BoardSlotUI> slots)
+    {
+        var found = root.GetComponentsInChildren<BoardSlotUI>(true);
+        foreach (var slot in found)
+        {
+            if (slot == null || slot.name.StartsWith(GeneratedPrefix)) continue;
+            slots.Add(slot);
+        }
+    }
+
+    private Transform FindRowContainer(Transform container, Definitions.RowType rowType)
+    {
+        var rowName = rowType.ToString();
+        for (var i = 0; i < container.childCount; i++)
+        {
+            var child = container.GetChild(i);
+            if (NameContains(child.name, rowName)) return child;
+        }
+
+        return null;
+    }
+
+    private static bool NameContains(string value, string term)
+    {
+        return value != null && value.IndexOf(term, System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private List<Definitions.RowType> GetRows(Board board)
+    {
+        var rows = new List<Definitions.RowType>
+        {
+            Definitions.RowType.Vanguard,
+            Definitions.RowType.Building,
+            Definitions.RowType.Human
+        };
+
+        if (board?.TownSlot != null) rows.Add(Definitions.RowType.Town);
+        return rows;
+    }
+
+    private static BoardSlot[] GetBoardSlots(Board board, Definitions.RowType rowType)
+    {
+        if (board == null) return System.Array.Empty<BoardSlot>();
+        return rowType switch
+        {
+            Definitions.RowType.Vanguard => board.VanguardRow ?? System.Array.Empty<BoardSlot>(),
+            Definitions.RowType.Building => board.BuildingRow ?? System.Array.Empty<BoardSlot>(),
+            Definitions.RowType.Human => board.HumanRow ?? System.Array.Empty<BoardSlot>(),
+            Definitions.RowType.Town => board.TownSlot != null ? new[] { board.TownSlot } : System.Array.Empty<BoardSlot>(),
+            _ => System.Array.Empty<BoardSlot>()
+        };
+    }
+
+    private static int GetExpectedSlotCount(Board board)
+    {
+        if (board == null) return 0;
+        return (board.VanguardRow?.Length ?? 0) +
+               (board.BuildingRow?.Length ?? 0) +
+               (board.HumanRow?.Length ?? 0) +
+               (board.TownSlot != null ? 1 : 0);
+    }
+
+    private void ClearGeneratedSlots(Transform container)
+    {
+        ClearGeneratedSlotsRecursive(container);
+    }
+
+    private void ClearGeneratedSlotsRecursive(Transform parent)
+    {
+        for (var i = parent.childCount - 1; i >= 0; i--)
+        {
+            var child = parent.GetChild(i);
+            if (child.name.StartsWith(GeneratedPrefix))
+            {
+                DestroyBoardObject(child.gameObject);
+                continue;
+            }
+
+            ClearGeneratedSlotsRecursive(child);
+        }
+    }
+
+    private static void DestroyBoardObject(GameObject go)
+    {
+        if (go == null) return;
+        if (Application.isPlaying) Destroy(go);
+        else DestroyImmediate(go);
     }
 
     public void RefreshAllSlots()
     {
-        if (_duelManager?.CurrentDuelState == null) return;
+        if (DuelManagerProxy.Instance?.CurrentDuelState == null) return;
+        if (_slotUIs.Count == 0) BuildSlots();
 
-        foreach (var slot in _duelManager.CurrentDuelState.PlayerSide.Board.AllSlots())
-            UpdateSlotUIForEntity(slot.Occupant);
-
-        foreach (var slot in _duelManager.CurrentDuelState.OpponentSide.Board.AllSlots())
-            UpdateSlotUIForEntity(slot.Occupant);
+        foreach (var slotUI in _slotUIs.Values)
+        {
+            RefreshSlot(slotUI);
+        }
     }
 
-    private void InitializeLayout(BoardLayoutData layout, Transform container, bool isPlayer)
+    private void RefreshSlot(BoardSlotUI slotUI)
     {
-        if (layout == null)
-        {
-            Debug.LogError("BoardLayoutData is null - check your CombatEncounter asset.");
-            return;
-        }
+        if (slotUI == null) return;
 
-        foreach (Transform child in container)
-            Destroy(child.gameObject);
-
-        var rows = new (string name, int count, Definitions.RowType type)[]
-        {
-            ("Vanguard", layout.VanguardSlotsCount, Definitions.RowType.Vanguard),
-            ("Building",  layout.BuildingSlotsCount, Definitions.RowType.Building),
-            ("Human",     layout.HumanSlotsCount, Definitions.RowType.Human),
-            ("Town",      1, Definitions.RowType.Town)
-        };
-
-        foreach (var (rowName, count, rowType) in rows)
-        {
-            var rowObj = new GameObject(rowName, typeof(HorizontalLayoutGroup));
-            rowObj.transform.SetParent(container, false);
-
-            var layoutRow = rowObj.GetComponent<HorizontalLayoutGroup>();
-            layoutRow.spacing = 5f;
-            layoutRow.childAlignment = TextAnchor.MiddleCenter;
-
-            layoutRow.childControlHeight = false;
-            layoutRow.childControlWidth = false;
-
-            layoutRow.childForceExpandHeight = false;
-            layoutRow.childForceExpandWidth = false;
-
-            for (int i = 0; i < count; i++)
-            {
-                GameObject slot;
-                try
-                {
-                    slot = Instantiate(SlotPrefab, rowObj.transform);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Failed to instantiate SlotPrefab. Is it assigned in the Inspector? Error: {e.Message}");
-                    return;
-                }
-
-                var indexTextComponent = slot.transform.Find("SlotIndex");
-                if (indexTextComponent == null)
-                {
-                    var tmp = slot.GetComponentInChildren<TextMeshProUGUI>();
-                    if (tmp == null)
-                        Debug.LogError("BoardSlot prefab has no 'SlotIndex' child with a Text or TextMeshPro component.", slot);
-                    else
-                        tmp.text = $"{rowName[0]}{i}";
-                }
-                else
-                {
-                    var txt = indexTextComponent.GetComponent<Text>();
-                    if (txt == null)
-                    {
-                        var tmp = indexTextComponent.GetComponent<TextMeshProUGUI>();
-                        if (tmp == null)
-                            Debug.LogError("'SlotIndex' child has neither Text nor TextMeshPro component.", slot);
-                        else
-                            tmp.text = $"{rowName[0]}{i}";
-                    }
-                    else
-                    {
-                        txt.text = $"{rowName[0]}{i}";
-                    }
-                }
-
-                // Инициализация заглушек для имени и статов (пустой слот)
-                var cn = slot.transform.Find("CardName");
-                if (cn != null)
-                {
-                    var tmp = cn.GetComponent<TextMeshProUGUI>();
-                    if (tmp != null) tmp.text = _emptySlotName;
-                }
-
-                var cs = slot.transform.Find("CardStats");
-                if (cs != null)
-                {
-                    var tmp = cs.GetComponent<TextMeshProUGUI>();
-                    if (tmp != null) tmp.text = _emptySlotStats;
-                }
-
-                var ui = slot.GetComponent<BoardSlotUI>();
-                if (ui != null)
-                {
-                    ui.Board = isPlayer ? _duelManager.CurrentDuelState.PlayerSide.Board : _duelManager.CurrentDuelState.OpponentSide.Board;
-                    ui.RowType = rowType;
-                    ui.Index = i;
-                }
-                else
-                {
-                    Debug.LogError("BoardSlot prefab is missing BoardSlotUI component.", slot);
-                    continue;
-                }
-
-                string key = $"{(isPlayer ? "P" : "O")}_{rowType}_{i}";
-                _slotUIs[key] = ui;
-            }
-        }
-
-        Debug.Log($"Board layout initialized for {(isPlayer ? "Player" : "Opponent")}.");
+        slotUI.SetDisplay(slotUI.Occupant);
+        slotUI.SetHighlight(slotUI.IsValidDropTarget);
     }
 
-    public void ShowValidDropZones(Definitions.RowType cardRowType)
+    public void ShowValidDropZones(Definitions.RowType rowType)
     {
-        Debug.Log($"[BoardView] ShowValidDropZones for {cardRowType}. Total slots: {_slotUIs.Count}");
-        foreach (var kv in _slotUIs)
+        var state = DuelManagerProxy.Instance?.CurrentDuelState;
+        if (state == null) return;
+        if (_slotUIs.Count == 0) BuildSlots();
+
+        foreach (var slotUI in _slotUIs.Values)
         {
-            var parts = kv.Key.Split('_');
-            if (parts.Length != 3)
-            {
-                Debug.LogWarning($"Bad key: {kv.Key}");
-                continue;
-            }
-            bool isPlayer = parts[0] == "P";
-            if (!isPlayer)
-            {
-                kv.Value.IsValidDropTarget = false;
-                kv.Value.SetHighlight(false);
-                continue;
-            }
-
-            if (!Enum.TryParse(parts[1], out Definitions.RowType slotRow))
-            {
-                Debug.LogWarning($"Unrecognised RowType in key: {kv.Key}");
-                continue;
-            }
-
-            if (slotRow != cardRowType)
-            {
-                kv.Value.IsValidDropTarget = false;
-                kv.Value.SetHighlight(false);
-                continue;
-            }
-
-            int index = int.Parse(parts[2]);
-            bool empty = IsSlotEmpty(_duelManager.CurrentDuelState.PlayerSide.Board, slotRow, index);
-            kv.Value.IsValidDropTarget = empty;
-            kv.Value.SetHighlight(empty);
-            if (empty) Debug.Log($"[BoardView] Highlighted {kv.Key}");
+            bool isPlayerSlot = slotUI.Board == state.PlayerSide.Board;
+            var slot = slotUI.Board?.GetSlot(slotUI.RowType, slotUI.Index);
+            slotUI.IsValidDropTarget = isPlayerSlot && slotUI.RowType == rowType && slot != null && slot.IsEmpty;
+            slotUI.SetHighlight(slotUI.IsValidDropTarget);
         }
     }
 
     public void HideAllHighlights()
     {
-        foreach (var ui in _slotUIs.Values)
+        foreach (var slotUI in _slotUIs.Values)
         {
-            ui.SetHighlight(false);
-            ui.IsValidDropTarget = false;
+            slotUI.IsValidDropTarget = false;
+            slotUI.SetHighlight(false);
         }
     }
 
     public void SetCardHighlight(BoardCard card, Color color)
     {
-        foreach (var ui in _slotUIs.Values)
-        {
-            if (ui.Occupant == card)
-            {
-                ui.HighlightImage.color = color;
-                return;
-            }
-        }
-    }
-
-    private bool IsSlotEmpty(Board board, Definitions.RowType row, int index)
-    {
-        bool empty = false;
-        switch (row)
-        {
-            case Definitions.RowType.Vanguard:
-                bool inBounds = index < board.VanguardRow.Length;
-                empty = inBounds && board.VanguardRow[index].IsEmpty;
-                Debug.Log($"[IsSlotEmpty] Vanguard[{index}] - inBounds={inBounds}, occupant={board.VanguardRow[index]?.Occupant?.SourceCard?.CardName ?? "none"}, IsEmpty={empty}");
-                return empty;
-            case Definitions.RowType.Building:
-                bool bInBounds = index < board.BuildingRow.Length;
-                empty = bInBounds && board.BuildingRow[index].IsEmpty;
-                Debug.Log($"[IsSlotEmpty] Building[{index}] - inBounds={bInBounds}, IsEmpty={empty}");
-                return empty;
-            case Definitions.RowType.Human:
-                bool hInBounds = index < board.HumanRow.Length;
-                empty = hInBounds && board.HumanRow[index].IsEmpty;
-                Debug.Log($"[IsSlotEmpty] Human[{index}] - inBounds={hInBounds}, IsEmpty={empty}");
-                return empty;
-            case Definitions.RowType.Town:
-                empty = board.TownSlot.IsEmpty;
-                Debug.Log($"[IsSlotEmpty] Town - occupant={board.TownSlot?.Occupant?.SourceCard?.CardName ?? "none"}, IsEmpty={empty}");
-                return empty;
-        }
-        return false;
-    }
-
-    private void OnCardPlaced(PlacedCardEvent e) => UpdateSlotUIForEntity(e.Card);
-    private void OnTownPlaced(TownPlacedEvent e) => UpdateSlotUIForEntity(e.Town);
-    private void OnEntityDied(EntityDiedEvent e) => UpdateSlotUIForEntity(e.Entity as BoardCard);
-
-    private void UpdateSlotUIForEntity(BoardCard card)
-    {
         if (card == null) return;
-        var state = _duelManager.CurrentDuelState;
-        FindAndUpdate(state.PlayerSide.Board, card);
-        FindAndUpdate(state.OpponentSide.Board, card);
+        var slotUI = FindSlotForCard(card);
+        if (slotUI == null) return;
+
+        var image = slotUI.HighlightImage != null ? slotUI.HighlightImage : slotUI.GetComponent<Image>();
+        if (image == null) return;
+        image.enabled = true;
+        image.color = color;
     }
 
-    private void FindAndUpdate(Board board, BoardCard card)
+    public BoardSlotUI FindFirstEmptyPlayerSlot(Definitions.RowType rowType)
     {
-        if (card == null) return;
-        if (board.TownSlot.Occupant == card) { UpdateSlotUI(board, Definitions.RowType.Town, 0, card); return; }
-        void CheckRow(BoardSlot[] slots, Definitions.RowType row)
+        var state = DuelManagerProxy.Instance?.CurrentDuelState;
+        if (state == null) return null;
+        if (_slotUIs.Count == 0) BuildSlots();
+
+        foreach (var slotUI in _slotUIs.Values)
         {
-            for (int i = 0; i < slots.Length; i++)
-                if (slots[i].Occupant == card) { UpdateSlotUI(board, row, i, card); return; }
+            if (slotUI == null || slotUI.Board != state.PlayerSide.Board) continue;
+            if (slotUI.RowType != rowType) continue;
+            var slot = slotUI.Board?.GetSlot(slotUI.RowType, slotUI.Index);
+            if (slot != null && slot.IsEmpty) return slotUI;
         }
-        CheckRow(board.VanguardRow, Definitions.RowType.Vanguard);
-        CheckRow(board.BuildingRow, Definitions.RowType.Building);
-        CheckRow(board.HumanRow, Definitions.RowType.Human);
+
+        return null;
     }
 
-    private void UpdateSlotUI(Board board, Definitions.RowType row, int index, BoardCard card)
+    public BoardSlotUI FindFirstOccupiedSlot(Board board, System.Func<BoardCard, bool> filter)
     {
-        bool isPlayer = board == _duelManager?.CurrentDuelState?.PlayerSide.Board;
-        string key = $"{(isPlayer ? "P" : "O")}_{row}_{index}";
-        if (!_slotUIs.TryGetValue(key, out var ui)) return;
+        if (board == null || filter == null) return null;
+        if (_slotUIs.Count == 0) BuildSlots();
 
-        var nameText = ui.transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
-        var statsText = ui.transform.Find("CardStats")?.GetComponent<TextMeshProUGUI>();
+        foreach (var slotUI in _slotUIs.Values)
+        {
+            if (slotUI == null || slotUI.Board != board) continue;
+            var occupant = slotUI.Occupant;
+            if (filter(occupant)) return slotUI;
+        }
 
-        if (card == null || !card.IsAlive)
-        {
-            if (nameText != null) nameText.text = _emptySlotName;
-            if (statsText != null) statsText.text = _emptySlotStats;
-        }
-        else
-        {
-            if (nameText != null) nameText.text = card.SourceCard.CardName;
-            if (statsText != null) statsText.text = $"{card.Health}/{card.MaxHealth} ATK{card.Attack}";
-        }
+        return null;
     }
+
+    private BoardSlotUI FindSlotForCard(BoardCard card)
+    {
+        foreach (var slotUI in _slotUIs.Values)
+        {
+            if (slotUI.Occupant == card) return slotUI;
+        }
+        return null;
+    }
+
+
+    public IEnumerable<BoardSlotUI> GetSlotUIs() => _slotUIs.Values;
+
+    private static string Key(Board board, Definitions.RowType row, int index) => $"{board.GetHashCode()}:{row}:{index}";
 }

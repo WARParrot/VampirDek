@@ -28,6 +28,12 @@ namespace Combat
                 return;
             }
 
+            if (_source == null || !_source.IsAlive || _target == null || !_target.IsAlive)
+            {
+                OnPrevention();
+                return;
+            }
+
             var preEvent = new PreDamageEvent(_target, _amount, _source);
             GlobalServices.EventBus.Publish(preEvent);
             if (preEvent.Prevented)
@@ -38,7 +44,7 @@ namespace Combat
 
             int final = preEvent.ModifiedAmount;
             _target.TakeDamage(final, _source);
-            GlobalServices.EventBus.Publish(new DamageDealtEvent(_target, final));
+            GlobalServices.EventBus.Publish(new DamageDealtEvent(_target, final, _source));
         }
 
         public void OnPrevention() => GlobalServices.EventBus.Publish(new DamagePreventedEvent(_target, _source));

@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.AddressableAssets;
 using Cysharp.Threading.Tasks;
+using Shared.Localization;
 public class NovelUI : MonoBehaviour
 {
     public static NovelUI Instance { get; private set; }
@@ -49,8 +50,8 @@ public class NovelUI : MonoBehaviour
 
     public void UpdateDisplay(DialogueNode node)
     {
-        _speakerName.text = node.SpeakerName;
-        _dialogueText.ShowText(node.Text);
+        _speakerName.text = LocalizationService.T(LocalizationService.FirstNonEmpty(node.SpeakerNameKey, LocalizationService.KeyFromName("speaker", node.SpeakerName, "name")), node.SpeakerName);
+        _dialogueText.ShowText(LocalizationService.T(LocalizationService.FirstNonEmpty(node.TextKey, LocalizationService.KeyFromName("novel", node.name, "text")), node.Text));
         LoadSprite(node.SpeakerPortraitName, _portraitImage);
         LoadSprite(node.BackgroundName, _backgroundImage);
     }
@@ -65,7 +66,7 @@ public class NovelUI : MonoBehaviour
         foreach (var choice in choices)
         {
             var go = Instantiate(_choiceButtonPrefab, _choicesContainer);
-            go.GetComponentInChildren<TextMeshProUGUI>().text = choice.DisplayText;
+            go.GetComponentInChildren<TextMeshProUGUI>().text = LocalizationService.T(choice.DisplayTextKey, choice.DisplayText);
             go.GetComponent<Button>().onClick.AddListener(() => _manager.MakeChoice(choice));
         }
     }

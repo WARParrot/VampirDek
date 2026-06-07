@@ -29,8 +29,12 @@ namespace Definitions
         {
             foreach (var trigger in _data.Triggers)
             {
-                var eventType = Type.GetType(trigger.EventType);
-                if (eventType == null) continue;
+                var eventType = ResolveEventType(trigger.EventType);
+                if (eventType == null)
+                {
+                    UnityEngine.Debug.LogWarning($"[RuntimeEnchantment] Unknown EventType '{trigger.EventType}' on '{_data.DisplayName}' — trigger ignored.");
+                    continue;
+                }
                 var method = typeof(EventBus).GetMethod("Subscribe").MakeGenericMethod(eventType);
                 var actionType = typeof(Action<>).MakeGenericType(eventType);
                 var handler = Delegate.CreateDelegate(actionType, this, nameof(OnEvent));
@@ -38,6 +42,19 @@ namespace Definitions
                 _subscriptions.Add(subscription);
             }
             ApplyModifiers(1);
+        }
+
+        private static Type ResolveEventType(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            var t = Type.GetType(name);
+            if (t != null) return t;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType(name);
+                if (t != null) return t;
+            }
+            return null;
         }
 
         public void OnDetach()
@@ -51,16 +68,40 @@ namespace Definitions
         {
             foreach (var trigger in _data.Triggers)
             {
-                if (trigger.EventType == typeof(T).FullName)
+                if (trigger.EventType != typeof(T).FullName) continue;
+                if (!PassesFilters(trigger, evt)) continue;
+
+                foreach (var actionDef in trigger.Actions)
                 {
-                    foreach (var actionDef in trigger.Actions)
-                    {
-                        var action = actionDef.CreateAction();
-                        action.ExecuteAsync().Forget();
-                    }
+                    if (actionDef == null) continue;
+                    var action = actionDef is EnchantmentActionDefinition ench
+                        ? ench.CreateAction(_owner, evt)
+                        : actionDef.CreateAction();
+                    if (action != null) action.ExecuteAsync().Forget();
                 }
             }
         }
+
+        private bool PassesFilters<T>(TriggerEntry trigger, T evt) where T : IGameEvent
+        {
+            if (!string.IsNullOrEmpty(trigger.PhaseFilter))
+            {
+                string phaseId = TryGetPhaseId(evt);
+                if (phaseId != trigger.PhaseFilter) return false;
+            }
+            if (trigger.OwnerOnly)
+            {
+                var subject = TryGetSubject(evt);
+                if (!ReferenceEquals(subject, _owner)) return false;
+            }
+            return true;
+        }
+
+        private static string TryGetPhaseId<T>(T evt) where T : IGameEvent
+            => evt is IPhasedEvent phased ? phased.PhaseId : null;
+
+        private static object TryGetSubject<T>(T evt) where T : IGameEvent
+            => evt is ISubjectEvent subj ? (object)subj.Subject : null;
 
         private void ApplyModifiers(int sign)
         {

@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Combat.UI;
 using Shared.UI;
+using Shared.Localization;
 
 namespace Bootstrap.UI
 {
@@ -23,6 +24,11 @@ namespace Bootstrap.UI
         [SerializeField] private Transform _deckContent;
         [SerializeField] private GameObject _cardViewPrefab;
 
+        [Header("Localized Labels")]
+        [SerializeField] private TextMeshProUGUI _titleText;
+        [SerializeField] private TextMeshProUGUI _resumeButtonText;
+        [SerializeField] private TextMeshProUGUI _exitSaveButtonText;
+
         private InputAction _escapeAction;
 
         void Start()
@@ -31,6 +37,7 @@ namespace Bootstrap.UI
 
             _resumeButton.onClick.AddListener(Resume);
             _exitSaveButton.onClick.AddListener(ExitAndSave);
+            ApplyLocalization();
 
             _escapeAction = new InputAction("EscapeMenu", binding: "<Keyboard>/escape");
             _escapeAction.performed += _ => Toggle();
@@ -49,9 +56,39 @@ namespace Bootstrap.UI
             else Open();
         }
 
+        private void ApplyLocalization()
+        {
+            if (_titleText == null)
+            {
+                foreach (var text in GetComponentsInChildren<TextMeshProUGUI>(true))
+                {
+                    if (string.Equals(text.text, "Paused", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        _titleText = text;
+                        break;
+                    }
+                }
+            }
+
+            if (_resumeButtonText == null && _resumeButton != null)
+                _resumeButtonText = _resumeButton.GetComponentInChildren<TextMeshProUGUI>(true);
+            if (_exitSaveButtonText == null && _exitSaveButton != null)
+                _exitSaveButtonText = _exitSaveButton.GetComponentInChildren<TextMeshProUGUI>(true);
+
+            SetText(_titleText, LocalizationService.T("menu.paused", "Paused"));
+            SetText(_resumeButtonText, LocalizationService.T("menu.resume", "Resume"));
+            SetText(_exitSaveButtonText, LocalizationService.T("menu.exit_save", "Exit & Save"));
+        }
+
+        private static void SetText(TextMeshProUGUI text, string value)
+        {
+            if (text != null) text.text = value;
+        }
+
         private void Open()
         {
             GlobalServices.IsMenuOpen = true;
+            ApplyLocalization();
 
             foreach (Transform child in _deckContent)
                 Destroy(child.gameObject);

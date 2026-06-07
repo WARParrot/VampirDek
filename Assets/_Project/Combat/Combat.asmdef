@@ -10,7 +10,9 @@
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Addressables",
-        "Unity.ResourceManager"
+        "Unity.ResourceManager",
+        "FMODUnity",
+        "DOTween"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

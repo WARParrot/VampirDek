@@ -1,12 +1,13 @@
 using Definitions;
 using TMPro;
+using Shared.Localization;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using TMPro;
 
 namespace Shared.UI
 {
-    public class CardView : MonoBehaviour
+    public class CardView : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _costText;
@@ -22,18 +23,32 @@ namespace Shared.UI
             Refresh();
         }
 
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (_model?.Def == null) return;
+            CardDetailOverlay.Show(CardRulesText.FormatHandCardDetails(_model.Def), transform);
+        }
+
         private void Refresh()
         {
             if (_model == null) return;
+            AutoBindTextFields();
 
             if (_nameText != null)
-                _nameText.text = _model.Def.CardName;
+                _nameText.text = LocalizationService.CardName(_model.Def);
 
             if (_costText != null)
-            {
-                var costStrings = _model.Def.Costs.ConvertAll(c => c.GetCostText());
-                _costText.text = string.Join(" ", costStrings);
-            }
+                _costText.text = CardRulesText.FormatHandCardSummary(_model.Def);
+        }
+
+        private void AutoBindTextFields()
+        {
+            _nameText ??= transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
+            _costText ??= transform.Find("CardCost")?.GetComponent<TextMeshProUGUI>();
+
+            var texts = GetComponentsInChildren<TextMeshProUGUI>(true);
+            if (_nameText == null && texts.Length > 0) _nameText = texts[0];
+            if (_costText == null && texts.Length > 1) _costText = texts[1];
         }
     }
 }

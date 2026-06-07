@@ -10,6 +10,7 @@ namespace Core
         void Delete(string fileName);
         void SaveActiveBattle(string tableId, string matchDataJson);
         string LoadActiveBattleJson(string tableId);
+        void ClearActiveBattle(string tableId);
         string LoadJson(string fileName);
     }
 }

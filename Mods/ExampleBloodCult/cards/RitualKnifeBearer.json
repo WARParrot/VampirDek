@@ -1,0 +1,1 @@
+{ "CardName": "RitualKnifeBearer", "CardNameKey": "mod.example_blood_cult.card.knife_bearer.name", "Type": 0, "RowType": 0, "MinSpeed": 2, "MaxSpeed": 3, "Health": 1, "Attack": 2, "Costs": [], "Effects": [], "InnateEnchantments": [], "CombatVfxProfileId": "blood", "CombatVfxTint": { "r": 0.85, "g": 0.1, "b": 0.1, "a": 1.0 } }

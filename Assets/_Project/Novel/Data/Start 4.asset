@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31d008bdcacead04491ac0d4650685d2, type: 3}
+  m_Name: Start 4
+  m_EditorClassIdentifier: Novel::DialogueNode
+  Text: Don't forget to look around for interactable objects.
+  SpeakerName: viven
+  SpeakerPortraitName: 
+  BackgroundName: 
+  Choices: []
+  NextNode: {fileID: 0}

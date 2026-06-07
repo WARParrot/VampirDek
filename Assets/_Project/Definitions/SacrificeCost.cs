@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 namespace Definitions
@@ -14,9 +15,18 @@ namespace Definitions
 
         public override bool CanPay(ICostContext context)
         {
-            return context.PlayerSide.Board.GetCardsRow(_requiredRowType).Length >= _amount;
+            if (context?.PlayerSide?.Board == null) return false;
+
+            return context.PlayerSide.Board
+                .GetCardsRow(_requiredRowType)
+                .Count(slot => slot?.Occupant != null && slot.Occupant.IsAlive) >= _amount;
         }
 
-        public override string GetCostText() => (_amount == 1) ? $"{_requiredRowType}" : $"{_amount} {_requiredRowType}";
+
+        public override string GetCostText()
+        {
+            var rowName = _requiredRowType == RowType.Human ? "Human card" : _requiredRowType.ToString();
+            return _amount == 1 ? rowName : $"{_amount} {rowName}s";
+        }
     }
 }

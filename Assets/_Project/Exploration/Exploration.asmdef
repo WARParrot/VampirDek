@@ -11,7 +11,8 @@
         "Unity.ResourceManager",
         "Unity.InputSystem",
         "Combat",
-        "VContainer"
+        "VContainer",
+        "FMODUnity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

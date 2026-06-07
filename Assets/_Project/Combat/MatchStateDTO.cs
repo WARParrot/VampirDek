@@ -41,8 +41,7 @@ namespace Combat
             state.PlayerSide.Hand.Clear();
             state.PlayerSide.Hand.AddRange(RebuildCardList(PlayerSide.HandCardIds));
 
-            state.PlayerSide.Deck.Clear();
-            state.PlayerSide.Deck.AddRange(RebuildCardList(PlayerSide.DeckCardIds));
+            state.PlayerSide.Deck.RestoreCards(RebuildCardList(PlayerSide.DeckCardIds), PlayerSide.DeckDrawIndex);
 
             state.PlayerSide.Graveyard.Clear();
             state.PlayerSide.Graveyard.AddRange(RebuildCardList(PlayerSide.GraveyardCardIds));
@@ -50,8 +49,7 @@ namespace Combat
             state.OpponentSide.Hand.Clear();
             state.OpponentSide.Hand.AddRange(RebuildCardList(OpponentSide.HandCardIds));
 
-            state.OpponentSide.Deck.Clear();
-            state.OpponentSide.Deck.AddRange(RebuildCardList(OpponentSide.DeckCardIds));
+            state.OpponentSide.Deck.RestoreCards(RebuildCardList(OpponentSide.DeckCardIds), OpponentSide.DeckDrawIndex);
 
             state.OpponentSide.Graveyard.Clear();
             state.OpponentSide.Graveyard.AddRange(RebuildCardList(OpponentSide.GraveyardCardIds));
@@ -103,21 +101,8 @@ namespace Combat
                     if (cardDef == null) continue;
 
                     var card = new BoardCard(cardDef);
-                    card.SetHealth(slotSnap.OccupantHealth, slotSnap.OccupantMaxHealth);
-                    card.SetAttack(slotSnap.OccupantAttack);
-                    card.ApplyInnateEnchantments();
-
-                    foreach (var enchSnap in slotSnap.Enchantments)
-                    {
-                        var enchData = EnchantmentDatabase.GetEnchantment(enchSnap.EnchantmentDataId);
-                        if (enchData != null)
-                        {
-                            var runtime = EnchantmentFactory.Create(enchData, card);
-                            card.Enchantments.Add(runtime);
-                            runtime.OnAttach();
-                            runtime.SetDurationLeft(enchSnap.DurationLeft);
-                        }
-                    }
+                    RestoreEnchantments(slotSnap, card);
+                    RestoreMutableStats(slotSnap, card);
 
                     slot.Occupant = card;
                 }
@@ -127,6 +112,40 @@ namespace Combat
                 }
             }
         }
+
+        private void RestoreEnchantments(SlotSnapshot slotSnap, BoardCard card)
+        {
+            var snapshots = slotSnap.Enchantments;
+            if (snapshots == null || snapshots.Count == 0)
+            {
+                card.ApplyInnateEnchantments();
+                return;
+            }
+
+            var restoredDataIds = new HashSet<string>();
+            foreach (var enchSnap in snapshots)
+            {
+                if (enchSnap == null || string.IsNullOrEmpty(enchSnap.EnchantmentDataId)) continue;
+                if (!restoredDataIds.Add(enchSnap.EnchantmentDataId)) continue;
+
+                var enchData = EnchantmentDatabase.GetEnchantment(enchSnap.EnchantmentDataId);
+                if (enchData == null) continue;
+
+                var runtime = EnchantmentFactory.Create(enchData, card);
+                card.Enchantments.Add(runtime);
+                runtime.OnAttach();
+                runtime.SetDurationLeft(enchSnap.DurationLeft);
+            }
+        }
+
+        private static void RestoreMutableStats(SlotSnapshot slotSnap, BoardCard card)
+        {
+            card.SetHealth(
+                Math.Min(slotSnap.OccupantHealth, card.MaxHealth),
+                card.MaxHealth);
+            card.CurrentSpeed = slotSnap.OccupantSpeed;
+        }
+
     }
 
     [Serializable]
@@ -135,6 +154,7 @@ namespace Combat
         public int Mana;
         public int HumanResources;
         public List<string> DeckCardIds;
+        public int DeckDrawIndex;
         public List<string> HandCardIds;
         public List<string> GraveyardCardIds;
         public BoardSnapshot Board;
@@ -145,7 +165,8 @@ namespace Combat
             {
                 Mana = side.Mana,
                 HumanResources = side.HumanResources,
-                DeckCardIds = side.Deck.Select(c => c.Def.CardName).ToList(),
+                DeckCardIds = side.Deck.Cards.Select(c => c.Def.CardName).ToList(),
+                DeckDrawIndex = side.Deck.DrawIndex,
                 HandCardIds = side.Hand.Select(c => c.Def.CardName).ToList(),
                 GraveyardCardIds = side.Graveyard.Select(c => c.Def.CardName).ToList(),
                 Board = BoardSnapshot.FromBoard(side.Board)

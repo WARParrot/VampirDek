@@ -55,6 +55,7 @@ namespace Bootstrap
                     var card = ScriptableObject.CreateInstance<CardDef>();
                     JsonUtility.FromJsonOverwrite(json, card);
                     CardDatabase.RegisterCard(card);
+                    Debug.Log($"[ModDataLoader] Registered card '{card.CardName}' from {file}");
                 }
             }
 
@@ -78,6 +79,7 @@ namespace Bootstrap
                     var json = await File.ReadAllTextAsync(file);
                     var deck = ScriptableObject.CreateInstance<DeckData>();
                     JsonUtility.FromJsonOverwrite(json, deck);
+                    deck.name = Path.GetFileNameWithoutExtension(file);
 
                     deck.Cards.Clear();
                     foreach (var name in deck.CardNames)
@@ -86,6 +88,7 @@ namespace Bootstrap
                         if (def != null) deck.Cards.Add(def);
                     }
                     DeckDatabase.RegisterDeck(deck);
+                    Debug.Log($"[ModDataLoader] Registered deck '{deck.name}' with {deck.Cards.Count}/{deck.CardNames.Count} resolved cards from {file}");
                 }
             }
 
@@ -97,7 +100,9 @@ namespace Bootstrap
                     var json = await File.ReadAllTextAsync(file);
                     var enc = ScriptableObject.CreateInstance<CombatEncounter>();
                     JsonUtility.FromJsonOverwrite(json, enc);
+                    EnsureEncounterDuelSceneReference(enc, json, file);
                     EncounterDatabase.RegisterEncounter(enc);
+                    Debug.Log($"[ModDataLoader] Registered encounter '{enc.EncounterId}' from {file}");
                 }
             }
 
@@ -156,6 +161,50 @@ namespace Bootstrap
                     HintDatabase.RegisterHint(hint);
                 }
             }
+        }
+
+        private static void EnsureEncounterDuelSceneReference(CombatEncounter encounter, string json, string sourceFile)
+        {
+            if (encounter == null)
+                return;
+
+            if (encounter.DuelScene != null && encounter.DuelScene.RuntimeKeyIsValid())
+                return;
+
+            var guid = ExtractJsonString(json, "m_AssetGUID");
+            if (string.IsNullOrWhiteSpace(guid))
+            {
+                Debug.LogWarning($"[ModDataLoader] Encounter '{encounter.EncounterId}' from {sourceFile} has no valid DuelScene AssetReference or m_AssetGUID.");
+                return;
+            }
+
+            encounter.DuelScene = new UnityEngine.AddressableAssets.AssetReference(guid);
+            Debug.Log($"[ModDataLoader] Rebuilt DuelScene AssetReference for encounter '{encounter.EncounterId}' from m_AssetGUID '{guid}'.");
+        }
+
+        private static string ExtractJsonString(string json, string fieldName)
+        {
+            if (string.IsNullOrEmpty(json) || string.IsNullOrEmpty(fieldName))
+                return string.Empty;
+
+            var quotedField = "\"" + fieldName + "\"";
+            var fieldIndex = json.IndexOf(quotedField, System.StringComparison.Ordinal);
+            if (fieldIndex < 0)
+                return string.Empty;
+
+            var colonIndex = json.IndexOf(':', fieldIndex + quotedField.Length);
+            if (colonIndex < 0)
+                return string.Empty;
+
+            var openQuoteIndex = json.IndexOf('"', colonIndex + 1);
+            if (openQuoteIndex < 0)
+                return string.Empty;
+
+            var closeQuoteIndex = json.IndexOf('"', openQuoteIndex + 1);
+            if (closeQuoteIndex < 0)
+                return string.Empty;
+
+            return json.Substring(openQuoteIndex + 1, closeQuoteIndex - openQuoteIndex - 1);
         }
     }
 }

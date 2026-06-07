@@ -47,6 +47,7 @@ namespace Core
                 { "time", args => TimeCommand(args) },
                 { "scenes", _ => ScenesCommand() },
                 { "duel", args => DuelCommand(args) },
+                { "mods", args => ModsCommand(args) },
                 { "quit", _ => QuitCommand() }
             };
 
@@ -184,6 +185,7 @@ namespace Core
             sb.AppendLine("  clear              - Clear current log tab");
             sb.AppendLine("  time <scale>       - Set Time.timeScale (0-10)");
             sb.AppendLine("  scenes             - List loaded scenes");
+            sb.AppendLine("  mods hub [maxTables] - Spawn explicit additive modded-duel hub tables");
             sb.AppendLine("  quit               - Quit application");
             sb.AppendLine();
             sb.AppendLine("<color=#00CCFF>DUEL INFO</color>");
@@ -247,6 +249,17 @@ namespace Core
             }
         }
 
+        private void ModsCommand(string[] args)
+        {
+            if (args.Length == 0 || args[0].ToLower() != "hub")
+            {
+                Debug.Log("Usage: mods hub [maxTables] - spawn an explicit additive modded-duel hub scene.");
+                return;
+            }
+
+            Debug.Log(CallStaticCommand("Exploration.ModProofEncounterBootstrap", "SpawnDevHubFromConsole", new object[] { args.Length > 1 ? args[1..] : Array.Empty<string>() }));
+        }
+
         private void DuelCommand(string[] args)
         {
             if (args.Length == 0)
@@ -299,6 +312,27 @@ namespace Core
         {
             if (index < args.Length && int.TryParse(args[index], out int val)) return val;
             return 0;
+        }
+
+        private string CallStaticCommand(string typeName, string methodName, params object[] parameters)
+        {
+            Type type = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = asm.GetType(typeName);
+                if (type != null) break;
+            }
+            if (type == null) return $"[DevConsole] Type '{typeName}' not found.";
+            var method = type.GetMethod(methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (method == null) return $"[DevConsole] Method '{methodName}' not found.";
+            try
+            {
+                return method.Invoke(null, parameters)?.ToString() ?? "null";
+            }
+            catch (Exception e)
+            {
+                return $"Error: {e.InnerException?.Message ?? e.Message}";
+            }
         }
 
         private string CallCombatCommand(string methodName, params object[] parameters)

@@ -6,7 +6,14 @@ namespace Combat
 {
     public struct DuelStartedEvent : IGameEvent { public CombatEncounter Encounter; public DuelStartedEvent(CombatEncounter encounter) => Encounter = encounter;
     }
-    public struct DamageDealtEvent : IGameEvent { public IGameEntity Target; public int Amount; public DamageDealtEvent(IGameEntity t, int a) { Target=t; Amount=a; }
+    public struct DamageDealtEvent : IGameEvent, ISubjectEvent
+    {
+        public IGameEntity Target;
+        public int Amount;
+        public IGameEntity Source;
+        public DamageDealtEvent(IGameEntity t, int a) : this(t, a, null) { }
+        public DamageDealtEvent(IGameEntity t, int a, IGameEntity s) { Target = t; Amount = a; Source = s; }
+        IGameEntity ISubjectEvent.Subject => Target;
     }
     public struct DamagePreventedEvent : IGameEvent { public IGameEntity Target; public IGameEntity Source; public DamagePreventedEvent(IGameEntity t, IGameEntity s) { Target=t; Source=s; } 
     }
@@ -16,15 +23,19 @@ namespace Combat
     }
     public struct ManaChangedEvent : IGameEvent { public IPlayerSide Side; public ManaChangedEvent(IPlayerSide s) { Side=s; }
     }
-    public struct PhaseEnterEvent : IGameEvent { public string PhaseId; public List<string> Tags; public PhaseEnterEvent(string id, List<string> tags) { PhaseId=id; Tags=tags; }
+    public struct PhaseEnterEvent : IGameEvent, IPhasedEvent { public string PhaseId; public List<string> Tags; public PhaseEnterEvent(string id, List<string> tags) { PhaseId=id; Tags=tags; }
+        string IPhasedEvent.PhaseId => PhaseId;
     }
-    public struct PhaseExitEvent : IGameEvent { public string PhaseId; public PhaseExitEvent(string id){ PhaseId=id; }
+    public struct PhaseExitEvent : IGameEvent, IPhasedEvent { public string PhaseId; public PhaseExitEvent(string id){ PhaseId=id; }
+        string IPhasedEvent.PhaseId => PhaseId;
     }
     public struct ActionExecutedEvent : IGameEvent { public IGameAction Action; public ActionExecutedEvent(IGameAction a) { Action=a; }
     }
-    public struct PlacedCardEvent : IGameEvent { public BoardCard Card; public Board Board; public PlacedCardEvent(BoardCard c, Board b) { Card=c; Board=b; }
+    public struct PlacedCardEvent : IGameEvent, ISubjectEvent { public BoardCard Card; public Board Board; public PlacedCardEvent(BoardCard c, Board b) { Card=c; Board=b; }
+        IGameEntity ISubjectEvent.Subject => Card;
     }
-    public struct EntityDiedEvent : IGameEvent { public IGameEntity Entity; public EntityDiedEvent(IGameEntity e) { Entity=e; }
+    public struct EntityDiedEvent : IGameEvent, ISubjectEvent { public IGameEntity Entity; public EntityDiedEvent(IGameEntity e) { Entity=e; }
+        IGameEntity ISubjectEvent.Subject => Entity;
     }
     public struct PlaceFailedEvent : IGameEvent { public string CardName; public string Reason; public PlaceFailedEvent(string n, string r) { CardName=n; Reason=r; }
     }

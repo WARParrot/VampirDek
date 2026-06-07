@@ -1,19 +1,13 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using UnityEngine;
 
 namespace Core
 {
-    public class GameDirector : MonoBehaviour
+    public class GameDirector
     {
         private readonly Stack<IGameMode> _modeStack = new();
 
         public IGameMode CurrentMode => _modeStack.Count > 0 ? _modeStack.Peek() : null;
-
-        private void Start()
-        {
-            DontDestroyOnLoad(gameObject);
-        }
 
         public async UniTask PushModeAsync(IGameMode mode, object context = null)
         {

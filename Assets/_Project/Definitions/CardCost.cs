@@ -7,7 +7,7 @@ namespace Definitions
         [SerializeField] protected CostActionDefinition _payAction;
         public abstract bool CanPay(ICostContext context);
         public abstract int GetAmount();
-        public IGameAction GetPaymentAction(ICostContext context)
+        public virtual IGameAction GetPaymentAction(ICostContext context)
         {
             return _payAction?.CreateAction(context);
         }

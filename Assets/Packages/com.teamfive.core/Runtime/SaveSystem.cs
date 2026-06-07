@@ -45,6 +45,18 @@ namespace Core
             return File.ReadAllText(path);
         }
 
+        public void ClearActiveBattle(string tableId)
+        {
+            if (string.IsNullOrEmpty(tableId)) return;
+
+            var fileName = $"battle_{tableId}.json";
+            var path = GetPath(fileName);
+            if (!File.Exists(path)) return;
+
+            Debug.Log($"[SaveSystem] Clearing completed battle save: {path}");
+            File.Delete(path);
+        }
+
         public string LoadJson(string fileName)
         {
             var path = GetPath(fileName);

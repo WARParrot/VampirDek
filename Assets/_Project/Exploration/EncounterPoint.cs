@@ -10,6 +10,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using Combat.UI;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -24,18 +25,68 @@ namespace Exploration
         [Header("World Table")]
         [SerializeField] private GameObject _worldTableVisual;
 
+        [Header("Prompt")]
+        [SerializeField] private string _promptKey = "interaction.start_duel";
+        [SerializeField] private string _promptText = "Press [E] to start duel";
+
         [Header("Camera Seat")]
         [SerializeField] private Transform _cameraSeat;
 
+        public bool CanStartDuel => !IsEncounterCompleted() && !IsDuelModeActive();
+
+        public bool CanShowPrompt => CanStartDuel && !IsExplorationTutorialBlockingDuelStart();
+
+        public string PromptText => CanShowPrompt ? LocalizationService.T(_promptKey, _promptText) : string.Empty;
+
+
+        public void ConfigureRuntime(string encounterId, string uniqueTableId, DeckData defaultPlayerDeck, Transform cameraSeat, GameObject worldTableVisual = null, string promptKey = "interaction.start_mod_duel", string promptText = "Press [E] to challenge the modded cult table")
+        {
+            EncounterId = encounterId;
+            UniqueTableId = uniqueTableId;
+            DefaultPlayerDeck = defaultPlayerDeck;
+            _cameraSeat = cameraSeat;
+            _worldTableVisual = worldTableVisual;
+            _promptKey = promptKey;
+            _promptText = promptText;
+        }
+
+        private bool IsEncounterCompleted()
+        {
+            var completedEncounterIds = GlobalServices.GameStateService?.State?.CompletedEncounterIds;
+            return completedEncounterIds != null &&
+                   !string.IsNullOrEmpty(EncounterId) &&
+                   completedEncounterIds.Contains(EncounterId);
+        }
+
+        private static bool IsDuelModeActive()
+        {
+            return GlobalServices.Director?.CurrentMode is DuelManager;
+        }
+
+        private static bool IsExplorationTutorialBlockingDuelStart()
+        {
+            var tutorial = FindObjectOfType<MovementTutorial>(true);
+            return tutorial != null && tutorial.BlocksDuelStart;
+        }
+
         public async UniTask StartDuelAsync(bool instant = false)
         {
+            if (!CanStartDuel)
+            {
+                Debug.Log($"[EncounterPoint] Encounter '{EncounterId}' cannot start because it is completed or another duel is active. Ignoring duel start.");
+                return;
+            }
+
+            if (!instant && IsExplorationTutorialBlockingDuelStart())
+            {
+                Debug.Log("[EncounterPoint] Exploration tutorial is active. Blocking duel start until onboarding is complete.");
+                return;
+            }
+
             Debug.Log($"[EncounterPoint] Starting duel at table {UniqueTableId}");
 
             var player = FindAnyObjectByType<ExplorationController>();
             if (player != null) player.Deactivate();
-
-            if (_worldTableVisual != null)
-                _worldTableVisual.SetActive(false);
 
             if (!instant)
                 SceneTransitionManager.Instance.SaveCameraState();
@@ -53,6 +104,10 @@ namespace Exploration
                 return;
             }
 
+            var cameraSeat = _cameraSeat != null ? _cameraSeat : transform;
+            if (_cameraSeat == null)
+                Debug.LogWarning($"[EncounterPoint] Encounter '{EncounterId}' has no camera seat assigned. Falling back to encounter transform.", this);
+
             var loadHandle = encounter.DuelScene.LoadSceneAsync(LoadSceneMode.Additive);
             var duelLoadUniTask = loadHandle.Task.AsUniTask();
 
@@ -63,19 +118,22 @@ namespace Exploration
                     mainCam.enabled = false;
 
                 await duelLoadUniTask;
+                HideWorldTableVisualForLoadedDuel();
                 
                 if (mainCam != null)
                     mainCam.enabled = true;
-                if (mainCam != null && _cameraSeat != null)
+                if (mainCam != null && cameraSeat != null)
                 {
-                    mainCam.transform.position = _cameraSeat.position;
-                    mainCam.transform.rotation = _cameraSeat.rotation;
+                    mainCam.transform.position = cameraSeat.position;
+                    mainCam.transform.rotation = cameraSeat.rotation;
                 }
             }
             else
             {
-                var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(_cameraSeat, 1.0f);
-                await UniTask.WhenAll(duelLoadUniTask, camMoveTask);
+                var camMoveTask = SceneTransitionManager.Instance.MoveCameraToTransform(cameraSeat, 1.0f);
+                await duelLoadUniTask;
+                HideWorldTableVisualForLoadedDuel();
+                await camMoveTask;
             }
 
             var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
@@ -101,6 +159,8 @@ namespace Exploration
             var duelManager = duelGO.AddComponent<DuelManager>();
             DuelManagerProxy.Instance = duelManager;
 
+            var director = GlobalServices.Director;
+
             var context = new DuelStartContext
             {
                 Encounter = encounter,
@@ -108,10 +168,17 @@ namespace Exploration
                 PlayerPersistentDeck = DefaultPlayerDeck,
                 TableId = UniqueTableId,
                 SavedMatchJson = savedJson,
-                DuelSceneHandle = loadHandle
+                DuelSceneHandle = loadHandle,
+                Director = director
             };
 
-            await GlobalServices.Director.PushModeAsync(duelManager, context);
+            await director.PushModeAsync(duelManager, context);
+        }
+
+        private void HideWorldTableVisualForLoadedDuel()
+        {
+            if (_worldTableVisual != null && _worldTableVisual != gameObject)
+                _worldTableVisual.SetActive(false);
         }
 
         private async UniTask<List<CardDef>> GetPlayerDeckAsync()
@@ -126,8 +193,27 @@ namespace Exploration
                 }
                 if (deck.Count > 0) return deck;
             }
-            Debug.LogWarning("No player data found - returning fallback deck.");
-            return new List<CardDef>(DefaultPlayerDeck.Cards);
+            if (DefaultPlayerDeck != null && DefaultPlayerDeck.Cards != null && DefaultPlayerDeck.Cards.Count > 0)
+            {
+                Debug.LogWarning("No player data found - returning fallback deck asset.");
+                return new List<CardDef>(DefaultPlayerDeck.Cards);
+            }
+
+            var builtInFallback = new List<CardDef>();
+            foreach (var cardId in new[] { "Town", "Human", "Human", "Building", "Vampire" })
+            {
+                var cardDef = CardDatabase.GetCard(cardId);
+                if (cardDef != null) builtInFallback.Add(cardDef);
+            }
+
+            if (builtInFallback.Count > 0)
+            {
+                Debug.LogWarning($"No player data or fallback deck asset found for encounter '{EncounterId}' - using built-in starter card ids.");
+                return builtInFallback;
+            }
+
+            Debug.LogError($"[EncounterPoint] No player deck, fallback deck, or built-in fallback cards are available for encounter '{EncounterId}'.");
+            return new List<CardDef>();
 
            /* string json = System.Text.Encoding.UTF8.GetString(dataBytes);
             var playerData = JsonUtility.FromJson<PersistentPlayerData>(json);
@@ -146,8 +232,29 @@ namespace Exploration
             return deck;*/
         }
 
-        void OnEnable() => GlobalServices.EventBus.Subscribe<DuelEndedEvent>(OnDuelEnded);
-        void OnDisable() => GlobalServices.EventBus.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
+        void OnEnable()
+        {
+            try
+            {
+                GlobalServices.EventBus?.Subscribe<DuelEndedEvent>(OnDuelEnded);
+            }
+            catch (System.Exception)
+            {
+                // EventBus not initialized yet, skip subscription
+            }
+        }
+
+        void OnDisable()
+        {
+            try
+            {
+                GlobalServices.EventBus?.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
+            }
+            catch (System.Exception)
+            {
+                // EventBus not available, skip unsubscription
+            }
+        }
 
         void OnDuelEnded(DuelEndedEvent e)
         {

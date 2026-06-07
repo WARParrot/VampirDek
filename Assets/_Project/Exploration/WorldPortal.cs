@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer;
 using Definitions;
+using Shared.Localization;
 
 namespace Exploration
 {
@@ -11,9 +12,20 @@ namespace Exploration
         [SerializeField] private WorldSceneInfo _targetWorld;
         [SerializeField] private Transform _spawnPoint;
 
-        public string PromptText => "Enter " + _targetWorld?.DisplayName;
+        public string PromptText => LocalizationService.TFormat("interaction.enter_world", "Enter {0}", LocalizedWorldName());
 
         private IProgressionService _progression;
+
+        private string LocalizedWorldName()
+        {
+            if (_targetWorld == null) return string.Empty;
+            var fallback = string.IsNullOrWhiteSpace(_targetWorld.DisplayName) ? _targetWorld.name : _targetWorld.DisplayName;
+            var key = LocalizationService.FirstNonEmpty(
+                LocalizationService.KeyFromName("world", _targetWorld.SceneId, "name"),
+                LocalizationService.KeyFromName("world", _targetWorld.name, "name"),
+                LocalizationService.KeyFromName("world", fallback, "name"));
+            return LocalizationService.T(key, fallback);
+        }
 
         private void Start()
         {

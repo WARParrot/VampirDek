@@ -27,27 +27,48 @@ namespace Combat
         private AsyncOperationHandle<SceneInstance> _duelLoadHandle;
 
         private InputAction _leaveAction;
+        private bool _leaveDuelRequested;
 
         public DeckData _playerPersistentDeck;
         public DuelState CurrentDuelState => _duelState;
         public string TableId => _tableId;
         public bool LoadDuelScene = false;
         private bool _playerConfirmedPhase;
+        private bool _phaseConfirmationReady;
+        public bool CanConfirmCurrentPhase => _phaseConfirmationReady;
+        private DuelOutcome _duelOutcome = DuelOutcome.InProgress;
         private bool _duelFinished = false;
+        private bool _duelResultPublished = false;
+        private GameDirector _director;
+
+        // AI System
+        private OpponentAI _opponentAI;
 
         public void ConfirmCurrentPhase()
         {
+            Debug.Log($"[DuelDebug] ConfirmCurrentPhase requested. ready={_phaseConfirmationReady}; confirmed={_playerConfirmedPhase}; {DescribeDuelDebugState()}");
+            if (!_phaseConfirmationReady)
+            {
+                Debug.Log("[DuelManager] ConfirmCurrentPhase ignored because the current phase is not ready for confirmation yet");
+                return;
+            }
+
             Debug.Log("[DuelManager] ConfirmCurrentPhase called");
             _playerConfirmedPhase = true;
         }
 
         public async UniTask EnterAsync(object context)
         {
-            var ctx = (DuelStartContext) context;
+            if (context is not DuelStartContext ctx)
+            {
+                Debug.LogError($"Duel requires {nameof(DuelStartContext)} but got {context?.GetType().Name ?? "null"}.");
+                return;
+            }
             _playerPersistentDeck = ctx.PlayerPersistentDeck;
             _encounter = ctx.Encounter;
             _tableId = ctx.TableId;
             _duelLoadHandle = ctx.DuelSceneHandle;
+            _director = ctx.Director ?? ResolveGameDirector();
             MatchStateDTO savedDto = null;
             if (!string.IsNullOrEmpty(ctx.SavedMatchJson))
             {
@@ -55,8 +76,51 @@ namespace Combat
                 ctx.SavedMatchState = savedDto;
             }
 
+            if (_encounter == null)
+            {
+                Debug.LogError("Cannot initialize duel: encounter is missing from the duel start context.");
+                return;
+            }
+
             List<CardDef> opponentDeckList = DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
             var playerDeckList = ctx.PlayerDeck;
+            if (playerDeckList == null || opponentDeckList == null)
+            {
+                Debug.LogError($"Cannot initialize duel: {(playerDeckList == null ? "player deck is missing" : "opponent deck is missing")}.");
+                return;
+            }
+
+            _opponentAI = new OpponentAI(AIStrategy.Balanced, 0.7f);
+
+            if (ctx.SavedMatchState != null)
+            {
+                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, playerDeckList, opponentDeckList);
+                await ResumeFromSaveAsync();
+            }
+            else
+            {
+                try
+                {
+                    _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
+                    await TransitionToPhaseAsync(_duelState.CurrentPhase);
+                }
+                catch (System.InvalidOperationException ex)
+                {
+                    Debug.LogError($"Failed to initialize duel: {ex.Message}");
+                    if (_leaveAction != null)
+                    {
+                        _leaveAction.performed -= OnLeaveDuel;
+                        _leaveAction.Disable();
+                        _leaveAction = null;
+                    }
+                    var director = ResolveGameDirector();
+                    if (director != null)
+                    {
+                        director.PopModeAsync().Forget();
+                    }
+                    return;
+                }
+            }
 
             var input = FindObjectOfType<InputController>();
             if (input != null)
@@ -69,43 +133,37 @@ namespace Combat
                 }
             }
 
-            if (ctx.SavedMatchState != null)
-            {
-                _duelState = ctx.SavedMatchState.ToDuelState(_encounter, playerDeckList, opponentDeckList);
-                await ResumeFromSaveAsync();
-            }
-            else
-            {
-                _duelState = new DuelState(_encounter, playerDeckList, opponentDeckList);
-                await TransitionToPhaseAsync(_duelState.CurrentPhase);
-            }
-
             GlobalServices.EventBus.Publish(new DuelStartedEvent(_encounter));
         }
 
         public async UniTask ExitAsync()
         {
-            if (_duelFinished)
+            if (_duelState != null)
             {
-                bool playerWon = !_duelState.OpponentSide.Town.IsAlive;
-                GlobalServices.EventBus.Publish(new DuelResultEvent
+                CaptureDuelOutcomeIfFinished();
+            }
+
+            PublishDuelResultIfNeeded();
+
+            if (_duelState != null && _encounter != null)
+            {
+                if (_duelOutcome == DuelOutcome.InProgress)
                 {
-                    PlayerWon = playerWon,
-                    EncounterId = _encounter.EncounterId,
-                    WinFlag = _encounter.WinFlag,
-                    LoseFlag = _encounter.LoseFlag
-                });
+                    var dto = MatchStateDTO.FromDuelState(_duelState);
+                    string json = JsonUtility.ToJson(dto);
+                    GlobalServices.SaveSystem.SaveActiveBattle(_tableId, json);
+                }
+                else
+                {
+                    GlobalServices.SaveSystem.ClearActiveBattle(_tableId);
+                }
             }
 
-            if (!WinConditionDatabase.GetWinCondition(_encounter.WinConditionId).Check(_duelState))
+            if (_duelState != null)
             {
-                var dto = MatchStateDTO.FromDuelState(_duelState);
-                string json = JsonUtility.ToJson(dto);
-                GlobalServices.SaveSystem.SaveActiveBattle(_tableId, json);
+                DetachAllEnchantments(_duelState.PlayerSide);
+                DetachAllEnchantments(_duelState.OpponentSide);
             }
-
-            DetachAllEnchantments(_duelState.PlayerSide);
-            DetachAllEnchantments(_duelState.OpponentSide);
 
             if (_duelLoadHandle.IsValid())
                 await Addressables.UnloadSceneAsync(_duelLoadHandle, true);
@@ -140,10 +198,71 @@ namespace Combat
             return UniTask.CompletedTask;
         }
 
+        private GameDirector ResolveGameDirector()
+        {
+            if (_director != null) return _director;
+
+            try
+            {
+                var director = GlobalServices.Director;
+                if (director != null)
+                {
+                    _director = director;
+                    return _director;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DuelManager] GameDirector service lookup failed: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        public void RequestLeaveDuel()
+        {
+            TryLeaveDuel();
+        }
+
+        private void Update()
+        {
+            if (_leaveDuelRequested) return;
+
+            var actionPressed = _leaveAction != null && _leaveAction.WasPressedThisFrame();
+            var keyboardPressed = Keyboard.current?.sKey.wasPressedThisFrame == true;
+            if (actionPressed || keyboardPressed)
+            {
+                TryLeaveDuel();
+            }
+        }
+
         private void OnLeaveDuel(InputAction.CallbackContext ctx)
         {
-            if (GlobalServices.IsMenuOpen) return;
-            GlobalServices.Director.PopModeAsync().Forget();
+            TryLeaveDuel();
+        }
+
+        private void TryLeaveDuel()
+        {
+            if (_leaveDuelRequested) return;
+
+            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            var isFinalTutorialLeavePrompt = tutorial != null && tutorial.IsLeaveDuelPromptActive();
+            if (GlobalServices.IsMenuOpen && !isFinalTutorialLeavePrompt) return;
+
+            if (tutorial != null && !tutorial.OnLeaveDuelRequested())
+            {
+                return;
+            }
+
+            var director = ResolveGameDirector();
+            if (director == null)
+            {
+                Debug.LogWarning("Cannot leave duel: GameDirector service is not available.");
+                return;
+            }
+
+            _leaveDuelRequested = true;
+            director.PopModeAsync().Forget();
         }
 
         private void OnDestroy()
@@ -161,13 +280,110 @@ namespace Combat
             var handUI = FindObjectOfType<HandUIManager>(true);
             handUI?.RefreshHandImmediately();
 
-            await TransitionToPhaseAsync(_duelState.CurrentPhase);
+            await ResumeCurrentPhaseAsync();
 
             boardView?.RefreshAllSlots();
             handUI?.RefreshHandImmediately();
         }
 
-        public void QueueAction(IGameAction action) => _actionQueue.Enqueue(action);
+        private async UniTask ResumeCurrentPhaseAsync()
+        {
+            var currentPhase = _duelState?.CurrentPhase;
+            if (currentPhase == null)
+            {
+                Debug.LogWarning("[DuelManager] Cannot resume phase: current phase is missing.");
+                return;
+            }
+
+            GlobalServices.EventBus.Publish(new PhaseEnterEvent(currentPhase.PhaseId, currentPhase.Tags));
+            GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+            Debug.Log($"[Phase] Resumed {currentPhase.PhaseId} without replaying phase-entry effects. Tags: {string.Join(", ", currentPhase.Tags)}");
+
+            if (currentPhase.Tags.Contains("BuildingPhase"))
+            {
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "BuildingPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+                await CheckAutoTransitionsAsync();
+            }
+            else if (currentPhase.Tags.Contains("PlanningPhase"))
+            {
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "PlanningPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+                await CheckAutoTransitionsAsync();
+            }
+            else
+            {
+                await CheckAutoTransitionsAsync();
+            }
+        }
+
+        private async UniTask WaitForPlayerPhaseConfirmationAsync()
+        {
+            Debug.Log("[Phase] Waiting for player confirmation...");
+            _playerConfirmedPhase = false;
+            _phaseConfirmationReady = true;
+
+            while (!_playerConfirmedPhase)
+            {
+                if (_leaveDuelRequested || _duelState == null) return;
+
+                if (_actionQueue.Count > 0)
+                {
+                    await ProcessActionsAsync();
+                    if (_leaveDuelRequested || _duelState == null) return;
+                }
+                else
+                {
+                    await UniTask.Yield();
+                }
+            }
+
+            _phaseConfirmationReady = false;
+            Debug.Log("[Phase] Confirmed - advancing.");
+        }
+
+        private async UniTask ReturnToSeatViewForPlayerTurnAsync()
+        {
+            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            if (switcher != null)
+            {
+                switcher.SetPerspectiveSwitchingEnabled(true);
+                await switcher.FocusSeatViewAsync(0.3f);
+            }
+        }
+
+        private async UniTask RunBoardViewResolutionAsync(Func<UniTask> resolveAsync)
+        {
+            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            if (switcher != null)
+            {
+                switcher.SetPerspectiveSwitchingEnabled(false);
+                await switcher.FocusBoardViewAsync(0.38f, true);
+            }
+
+            try
+            {
+                if (resolveAsync != null)
+                    await resolveAsync();
+            }
+            finally
+            {
+                switcher?.SetBoardViewLocked(false);
+            }
+        }
+
+
+        public void QueueAction(IGameAction action)
+        {
+            if (action == null)
+            {
+                Debug.LogWarning("[DuelManager] QueueAction called with null - ignored. Возможно у CardCost не назначен _payAction в инспекторе.");
+                return;
+            }
+            _actionQueue.Enqueue(action);
+        }
 
         private async UniTask ProcessActionsAsync()
         {
@@ -175,17 +391,33 @@ namespace Combat
             {
                 if (_state == CombatState.Paused) break;
                 var action = _actionQueue.Dequeue();
+                if (action == null)
+                {
+                    Debug.LogWarning("[DuelManager] Skipping null action in queue");
+                    continue;
+                }
                 Debug.Log($"[DuelManager] Processing action: {action.Description}");
-                await action.ExecuteAsync();
+                Debug.Log($"[DuelDebug] Before action '{action.Description}': {DescribeDuelDebugState()}");
+                try
+                {
+                    await action.ExecuteAsync();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
+                }
+                await CombatVFX.AwaitCurrentActionAnimationsAsync();
+                RemoveDeadNonTownCardsFromBoards();
+                Debug.Log($"[DuelDebug] After action '{action.Description}' and cleanup: {DescribeDuelDebugState()}");
                 GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                if (WinConditionDatabase.GetWinCondition(_encounter.WinConditionId).Check(_duelState))
+                bool terminalAfterAction = IsDuelTerminal();
+                Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
+                if (terminalAfterAction)
                 {
-                    bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
-                    if (playerWon)
-                        await TransitionToPhaseWithTagAsync("WinConditionMet");
-                    else
-                        await TransitionToPhaseWithTagAsync("Defeat");
+                    Debug.Log($"[DuelDebug] Terminal detected during action processing; routing to outcome phase. action='{action.Description}'");
+                    CaptureDuelOutcomeIfFinished();
+                    await TransitionToOutcomePhaseAsync();
                     return;
                 }
             }
@@ -199,96 +431,84 @@ namespace Combat
                 return;
             }
 
-            if (_duelState.CurrentPhase != null)
-                GlobalServices.EventBus.Publish(new PhaseExitEvent(_duelState.CurrentPhase.PhaseId));
+            var previousPhase = _duelState.CurrentPhase;
+            Debug.Log($"[DuelDebug] TransitionToPhaseAsync requested: {DescribePhase(previousPhase)} -> {DescribePhase(targetNode)}; {DescribeDuelDebugState()}");
+            if (previousPhase != null)
+                GlobalServices.EventBus.Publish(new PhaseExitEvent(previousPhase.PhaseId));
 
             _duelState.CurrentPhase = targetNode;
             GlobalServices.EventBus.Publish(new PhaseEnterEvent(targetNode.PhaseId, targetNode.Tags));
             GlobalServices.EventBus.Publish(new HintEvent { Tag = "PhaseEnter", Context = _duelState, Mode = GameMode.Combat });
             Debug.Log($"[Phase] Entered {targetNode.PhaseId} with tags: {string.Join(", ", targetNode.Tags)}");
+            Debug.Log($"[DuelDebug] Entered phase details: transitions=[{DescribeTransitions(targetNode)}]; {DescribeDuelDebugState()}");
+            _phaseConfirmationReady = false;
 
             if (targetNode.Tags.Contains("DuelStart"))
             {
-                Debug.Log("[Phase] Drawing 3 cards...");
+                Debug.Log("[Phase] Drawing starting cards...");
                 QueueAction(new DrawCardsAction(_duelState.PlayerSide, 2));
+                QueueAction(new DrawCardsAction(_duelState.OpponentSide, 2));
                 await ProcessActionsAsync();
-                Debug.Log($"[Phase] Hand count after draw: {_duelState.PlayerSide.Hand.Count}");
+                if (_leaveDuelRequested || _duelState == null) return;
+                Debug.Log($"[Phase] Player hand: {_duelState.PlayerSide.Hand.Count}, Opponent hand: {_duelState.OpponentSide.Hand.Count}");
             }
             else if (targetNode.Tags.Contains("StartOfTurn"))
             {
+                Debug.Log($"[DuelDebug] StartOfTurn branch entered. If this appears after a terminal town state, the fault is before/inside terminal routing. {DescribeDuelDebugState()}");
+                await ReturnToSeatViewForPlayerTurnAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+                SpawnOnFriendlyDeathAction.ResetRoundTracking();
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.PlayerSide));
                 QueueAction(new RegenerateHumanResourcesAction(_duelState.OpponentSide));
 
                 QueueAction(new ResetBuildingDamageAction(_duelState.PlayerSide.Board));
                 QueueAction(new ResetBuildingDamageAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
 
-                Debug.Log("[Phase] Drawing 1 card...");
+                Debug.Log("[Phase] Drawing turn cards...");
                 QueueAction(new DrawCardsAction(_duelState.PlayerSide, 1));
+                QueueAction(new DrawCardsAction(_duelState.OpponentSide, 1));
                 await ProcessActionsAsync();
-                Debug.Log($"[Phase] Hand count after draw: {_duelState.PlayerSide.Hand.Count}");
+                if (_leaveDuelRequested || _duelState == null) return;
+                Debug.Log($"[Phase] Player hand: {_duelState.PlayerSide.Hand.Count}, Opponent hand: {_duelState.OpponentSide.Hand.Count}");
             }
             else if (targetNode.Tags.Contains("BuildingPhase"))
             {
-                var enemySide = _duelState.OpponentSide;
-                var playable = enemySide.Hand
-                    .Where(c => c.Def.Costs.Any(cost => cost is ManaCost mc && mc.Amount <= enemySide.Mana))
-                    .ToList();
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "BuildingPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
 
-                if (playable.Count > 0)
-                {
-                    var rng = new System.Random();
-                    var card = playable[rng.Next(playable.Count)];
-                    var board = enemySide.Board;
-                    var row = board.GetRow(card.Def.RowType);
-                    var slot = row?.FirstOrDefault(s => s.IsEmpty);
-                    if (slot != null)
-                    {
-                        QueueAction(new PlaceCardIntoSlotAction(board, card.Def, slot));
-                        Debug.Log($"[AI] Opponent plays {card.Def.CardName} in {card.Def.RowType}[{slot.Index}]");
-                    }
-                }
+                await ExecuteOpponentBuildingTurnAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
 
-                await ProcessActionsAsync();
-
-                Debug.Log("[Phase] Waiting for player confirmation...");
-                _playerConfirmedPhase = false;
-                while (!_playerConfirmedPhase)
-                {
-                    if (_actionQueue.Count > 0)
-                    {
-                        Debug.Log($"[Phase] Loop iteration - queue count: {_actionQueue.Count}");
-                        Debug.Log("[Phase] Processing actions...");
-                        await ProcessActionsAsync();
-                        Debug.Log("[Phase] Actions processed.");
-                    }
-                    else
-                    {
-                        await UniTask.Yield();
-                    }
-                };
-                Debug.Log("[Phase] Confirmed - advancing.");
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
             }
             else if (targetNode.Tags.Contains("PlanningPhase"))
             {
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "PlanningPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+
                 QueueAction(new RollSpeedAction(_duelState.PlayerSide.Board));
                 QueueAction(new RollSpeedAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
-
-                Debug.Log("[Phase] Waiting for player confirmation...");
-                _playerConfirmedPhase = false;
-                await UniTask.WaitUntil(() => _playerConfirmedPhase);
-                Debug.Log("[Phase] Confirmed - advancing.");
+                if (_leaveDuelRequested || _duelState == null) return;
 
                 await SimulatePlanningAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+
+                await WaitForPlayerPhaseConfirmationAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
             }
             else if (targetNode.Tags.Contains("ClashingPhase"))
             {
-                await ResolveClashesAsync();
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "ClashingPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+                await RunBoardViewResolutionAsync(ResolveClashesAsync);
+                if (_leaveDuelRequested || _duelState == null) return;
             }
             else if (targetNode.Tags.Contains("OneSidedAttackPhase"))
             {
-                await ResolveOneSidedAttacksAsync();
+                GlobalServices.EventBus.Publish(new HintEvent { Tag = "OneSidedAttackPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+                await RunBoardViewResolutionAsync(ResolveOneSidedAttacksAsync);
+                if (_leaveDuelRequested || _duelState == null) return;
                 ClearAllPlannedTargets();
             }
             else if (targetNode.Tags.Contains("EndOfTurn"))
@@ -296,63 +516,257 @@ namespace Combat
                 QueueAction(new BuildingDestructionCheckAction(_duelState.PlayerSide.Board));
                 QueueAction(new BuildingDestructionCheckAction(_duelState.OpponentSide.Board));
                 await ProcessActionsAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
 
-                if (WinConditionDatabase.GetWinCondition(_encounter.WinConditionId).Check(_duelState))
+                if (IsDuelTerminal())
                 {
-                    _duelFinished = true;
+                    CaptureDuelOutcomeIfFinished();
+                    await TransitionToOutcomePhaseAsync();
+                    return;
                 }
             }
             else if (targetNode.Tags.Contains("Loot"))
             {
                 Debug.Log("[Phase] Loot phase entered");
                 await ShowLootSelectionAsync();
+                await ReturnToExplorationAsync();
                 return;
             }
 
             else if (targetNode.Tags.Contains("DuelEnd"))
             {
-                Debug.Log("[Phase] DuelEnd – завершаем дуэль.");
-                await GlobalServices.Director.PopModeAsync();
+                Debug.Log("[Phase] DuelEnd – returning to exploration.");
+                await ReturnToExplorationAsync();
                 return;
             }
 
             await CheckAutoTransitionsAsync();
         }
 
-        public async UniTask TransitionToPhaseWithTagAsync(string triggerTag)
+        public async UniTask<bool> TransitionToPhaseWithTagAsync(string triggerTag)
         {
             var node = _duelState.CurrentPhase;
-            if (node == null) return;
+            Debug.Log($"[DuelDebug] TransitionToPhaseWithTagAsync('{triggerTag}') from {DescribePhase(node)}. transitions=[{DescribeTransitions(node)}]; {DescribeDuelDebugState()}");
+            if (node == null) return false;
             foreach (var trans in node.Transitions)
             {
+                if (trans?.Condition == null) continue;
                 if (trans.Condition.Type == ConditionType.TagActive &&
                     trans.Condition.TagTrigger == triggerTag)
                 {
+                    Debug.Log($"[DuelDebug] Matched terminal tag '{triggerTag}' -> {DescribePhase(trans.Target)}");
                     await TransitionToPhaseAsync(trans.Target);
+                    return true;
+                }
+            }
+
+            Debug.LogWarning($"[DuelDebug] No transition matched tag '{triggerTag}' from {DescribePhase(node)}. transitions=[{DescribeTransitions(node)}]");
+            return false;
+        }
+
+        private bool IsDuelTerminal()
+        {
+            if (_duelState == null || _encounter == null)
+            {
+                Debug.Log($"[DuelDebug] IsDuelTerminal => false because state or encounter is missing. stateNull={_duelState == null}; encounterNull={_encounter == null}");
+                return false;
+            }
+
+            // Town death is the authoritative terminal state for this duel outcome policy.
+            // The WinCondition asset/ID remains supported for non-town terminal rules, but
+            // tutorial encounters must not get stuck if that lookup/reference is absent.
+            var townOutcome = EvaluateDuelOutcome();
+            if (townOutcome != DuelOutcome.InProgress)
+            {
+                Debug.Log($"[DuelDebug] IsDuelTerminal => true from town outcome {townOutcome}. {DescribeDuelDebugState()}");
+                return true;
+            }
+
+            var winCondition = _encounter.WinCondition ?? WinConditionDatabase.GetWinCondition(_encounter.WinConditionId);
+            bool winConditionResult = winCondition?.Check(_duelState) == true;
+            Debug.Log($"[DuelDebug] IsDuelTerminal => {winConditionResult} from win condition. conditionId='{_encounter.WinConditionId}'; hasCondition={winCondition != null}; {DescribeDuelDebugState()}");
+            return winConditionResult;
+        }
+
+        private DuelOutcome EvaluateDuelOutcome()
+        {
+            if (_duelState == null)
+                return DuelOutcome.InProgress;
+
+            // A missing town occupant is also terminal: some board paths remove dead occupants,
+            // so null here means destroyed, not merely "unknown", once DuelState exists.
+            bool playerAlive = _duelState.PlayerTown?.IsAlive == true;
+            bool opponentAlive = _duelState.OpponentTown?.IsAlive == true;
+
+            if (playerAlive && opponentAlive) return DuelOutcome.InProgress;
+            if (playerAlive && !opponentAlive) return DuelOutcome.PlayerWon;
+            if (!playerAlive && opponentAlive) return DuelOutcome.PlayerLost;
+            return DuelOutcome.Draw;
+        }
+
+        private void CaptureDuelOutcomeIfFinished()
+        {
+            if (_duelOutcome != DuelOutcome.InProgress)
+            {
+                Debug.Log($"[DuelDebug] CaptureDuelOutcomeIfFinished skipped; already captured {_duelOutcome}. {DescribeDuelDebugState()}");
+                return;
+            }
+
+            _duelOutcome = EvaluateDuelOutcome();
+            _duelFinished = _duelOutcome != DuelOutcome.InProgress;
+            Debug.Log($"[DuelDebug] CaptureDuelOutcomeIfFinished captured outcome={_duelOutcome}; finished={_duelFinished}; {DescribeDuelDebugState()}");
+            PublishDuelResultIfNeeded();
+        }
+
+        private void PublishDuelResultIfNeeded()
+        {
+            if (_duelResultPublished || !_duelFinished || _encounter == null) return;
+
+            bool playerWon = _duelOutcome == DuelOutcome.PlayerWon;
+            GlobalServices.EventBus.Publish(new DuelResultEvent
+            {
+                PlayerWon = playerWon,
+                Outcome = _duelOutcome,
+                EncounterId = _encounter.EncounterId,
+                WinFlag = _encounter.WinFlag,
+                LoseFlag = _encounter.LoseFlag
+            });
+            _duelResultPublished = true;
+
+            if (!string.IsNullOrEmpty(_tableId))
+                GlobalServices.SaveSystem.ClearActiveBattle(_tableId);
+
+            Debug.Log($"[DuelManager] Published duel result: {_duelOutcome} for encounter {_encounter.EncounterId}");
+        }
+
+        private async UniTask TransitionToOutcomePhaseAsync()
+        {
+            // Terminal outcomes should enter the phase graph's terminal branch before Combat exits.
+            // EndOfTurn has both the normal TurnStart transition and a terminal TagActive transition;
+            // choose the terminal tag explicitly so the default transition cannot win by list order.
+            Debug.Log($"[DuelDebug] TransitionToOutcomePhaseAsync entered. {DescribeDuelDebugState()}");
+            CompleteTutorialIfTerminalDuel();
+
+            string triggerTag = _duelOutcome == DuelOutcome.PlayerLost ? "Defeat" : "WinConditionMet";
+            Debug.Log($"[DuelDebug] Trying terminal transition tag '{triggerTag}' for outcome {_duelOutcome}.");
+            if (await TransitionToPhaseWithTagAsync(triggerTag))
+            {
+                Debug.Log($"[DuelDebug] Terminal transition tag '{triggerTag}' succeeded.");
+                return;
+            }
+
+            if (triggerTag != "WinConditionMet")
+            {
+                Debug.Log("[DuelDebug] Primary terminal tag failed; trying fallback 'WinConditionMet'.");
+                if (await TransitionToPhaseWithTagAsync("WinConditionMet"))
+                {
+                    Debug.Log("[DuelDebug] Fallback terminal transition tag 'WinConditionMet' succeeded.");
                     return;
                 }
             }
+
+            Debug.LogWarning($"[DuelManager] No terminal phase transition found for outcome {_duelOutcome}. Returning to exploration immediately. {DescribeDuelDebugState()}");
+            await ReturnToExplorationAsync();
+        }
+
+        private void CompleteTutorialIfTerminalDuel()
+        {
+            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            Debug.Log($"[DuelDebug] CompleteTutorialIfTerminalDuel: tutorialFound={tutorial != null}.");
+            tutorial?.CompleteTutorialForTerminalDuel();
+        }
+
+        private async UniTask ReturnToExplorationAsync()
+        {
+            Debug.Log($"[DuelDebug] ReturnToExplorationAsync requested. leaveAlreadyRequested={_leaveDuelRequested}; {DescribeDuelDebugState()}");
+            if (_leaveDuelRequested) return;
+
+            var director = ResolveGameDirector();
+            Debug.Log($"[DuelDebug] ReturnToExplorationAsync directorFound={director != null}.");
+            if (director == null)
+            {
+                Debug.LogWarning("[DuelManager] Cannot return to exploration: GameDirector service is not available.");
+                return;
+            }
+
+            _leaveDuelRequested = true;
+            await director.PopModeAsync();
         }
 
         private async UniTask CheckAutoTransitionsAsync()
         {
             var node = _duelState?.CurrentPhase;
+            Debug.Log($"[DuelDebug] CheckAutoTransitionsAsync entered from {DescribePhase(node)}. transitions=[{DescribeTransitions(node)}]; {DescribeDuelDebugState()}");
             if (node?.Transitions == null) return;
+
+            bool terminalBeforeDefault = IsDuelTerminal();
+            Debug.Log($"[DuelDebug] CheckAutoTransitionsAsync terminal-before-default => {terminalBeforeDefault}; {DescribeDuelDebugState()}");
+            if (terminalBeforeDefault)
+            {
+                CaptureDuelOutcomeIfFinished();
+                await TransitionToOutcomePhaseAsync();
+                return;
+            }
 
             foreach (var trans in node.Transitions)
             {
                 if (trans == null || trans.Target == null) continue;
+                if (trans.Condition == null)
+                {
+                    Debug.LogWarning($"[DuelDebug] Skipping transition with null condition from {DescribePhase(node)} to {DescribePhase(trans.Target)}.");
+                    continue;
+                }
+                Debug.Log($"[DuelDebug] Considering auto transition {DescribePhase(node)} -> {DescribePhase(trans.Target)}; condition={trans.Condition.Type}; tag='{trans.Condition.TagTrigger}'");
                 if (trans.Condition.Type != ConditionType.None) continue;
                 if (trans.Target == node) continue;
 
+                Debug.Log($"[DuelDebug] Taking default auto transition {DescribePhase(node)} -> {DescribePhase(trans.Target)}.");
                 await TransitionToPhaseAsync(trans.Target);
                 return;
             }
+
+            Debug.Log($"[DuelDebug] No auto transition taken from {DescribePhase(node)}.");
+        }
+
+        private string DescribeDuelDebugState()
+        {
+            if (_duelState == null)
+                return $"state=null; capturedOutcome={_duelOutcome}; finished={_duelFinished}; resultPublished={_duelResultPublished}; leaveRequested={_leaveDuelRequested}";
+
+            return $"phase={DescribePhase(_duelState.CurrentPhase)}; playerTown={DescribeTown(_duelState.PlayerTown)}; opponentTown={DescribeTown(_duelState.OpponentTown)}; townOutcome={EvaluateDuelOutcome()}; capturedOutcome={_duelOutcome}; finished={_duelFinished}; resultPublished={_duelResultPublished}; queue={_actionQueue.Count}; leaveRequested={_leaveDuelRequested}";
+        }
+
+        private string DescribePhase(PhaseNode phase)
+        {
+            if (phase == null) return "<null phase>";
+            return $"{phase.PhaseId}[{string.Join(",", phase.Tags ?? new List<string>())}]";
+        }
+
+        private string DescribeTransitions(PhaseNode node)
+        {
+            if (node?.Transitions == null) return "<none>";
+            return string.Join(" | ", node.Transitions.Select((trans, index) =>
+            {
+                if (trans == null) return $"#{index}:<null>";
+                var condition = trans.Condition;
+                string conditionText = condition == null
+                    ? "<null condition>"
+                    : $"{condition.Type}:tag='{condition.TagTrigger}' threshold={condition.Threshold}";
+                return $"#{index}:{conditionText}->{DescribePhase(trans.Target)}";
+            }));
+        }
+
+        private string DescribeTown(IGameEntity entity)
+        {
+            if (entity == null) return "<null>";
+            if (entity is BoardCard card)
+                return $"{card.SourceCard?.CardName ?? card.SourceCard?.name ?? "<unnamed>"}#id={card.Id} hp={card.Health}/{card.MaxHealth} atk={card.Attack} alive={card.IsAlive}";
+            return entity.ToString();
         }
 
         private async UniTask ResolveClashesAsync()
         {
-            var attackers = GetAllVanguardAttackers()
+            var attackers = GetAllAttackers()
                 .OrderByDescending(a => a.CurrentSpeed)
                 .ToList();
 
@@ -421,39 +835,66 @@ namespace Combat
                     else if (cardWins)
                     {
                         QueueAction(new DamageAction(target, card.Attack, card));
+                        QueueDoubleAttackIfApplicable(card, target);
+                        QueueRitualistSacrificeIfApplicable(card);
                         target.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(card, target));
                     }
                     else if (targetWins)
                     {
                         QueueAction(new DamageAction(card, target.Attack, target));
+                        QueueDoubleAttackIfApplicable(target, card);
+                        QueueRitualistSacrificeIfApplicable(target);
                         card.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(target, card));
                     }
                 }
             }
             await ProcessActionsAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+        }
+
+        private void QueueDoubleAttackIfApplicable(BoardCard attacker, IGameEntity target)
+        {
+            if (!CardBehaviorTags.HasDoubleAttackWhenAlone(attacker)) return;
+            var side = SideLookup.FindSideOf(attacker, _duelState);
+            if (side == null) return;
+            if (!CardBehaviorTags.IsAloneOnVanguard(attacker, side)) return;
+            if (target == null) return;
+            if (target is BoardCard bc && !bc.IsAlive) return;
+            QueueAction(new DamageAction(target, attacker.Attack, attacker));
+        }
+
+        private void QueueRitualistSacrificeIfApplicable(BoardCard attacker)
+        {
+            if (!CardBehaviorTags.DiesAfterAttacking(attacker)) return;
+            var side = SideLookup.FindSideOf(attacker, _duelState);
+            if (side == null) return;
+            QueueAction(new SacrificeAction(attacker, side.Board));
         }
 
         private async UniTask ResolveOneSidedAttacksAsync()
         {
-            var attackers = GetAllVanguardAttackers()
+            var attackers = GetAllAttackers()
                         .Where(a => a.PlannedTarget != null && a.PlannedTarget.IsAlive)
                         .OrderByDescending(a => a.CurrentSpeed);
 
             foreach (var card in attackers)
             {
                 QueueAction(new DamageAction(card.PlannedTarget, card.Attack, card));
+                QueueDoubleAttackIfApplicable(card, card.PlannedTarget);
+                QueueRitualistSacrificeIfApplicable(card);
             }
             await ProcessActionsAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
         }
 
-        private IEnumerable<BoardCard> GetAllVanguardAttackers()
+        private IEnumerable<BoardCard> GetAllAttackers()
         {
             var all = new List<BoardCard>();
             foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-                foreach (var slot in side.Board.VanguardRow)
-                    if (slot.Occupant != null && slot.Occupant.PlannedTarget != null && slot.Occupant.IsAlive)
+                foreach (var slot in side.Board.AllSlots())
+                    if (IsAttackCapable(slot.Occupant) && slot.Occupant.PlannedTarget != null)
                         all.Add(slot.Occupant);
             return all;
         }
@@ -461,9 +902,57 @@ namespace Combat
         private void ClearAllPlannedTargets()
         {
             foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-                foreach (var slot in side.Board.VanguardRow)
+                foreach (var slot in side.Board.AllSlots())
                     if (slot.Occupant != null)
                         slot.Occupant.PlannedTarget = null;
+        }
+
+        private void RemoveDeadNonTownCardsFromBoards()
+        {
+            if (_duelState == null) return;
+
+            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
+            {
+                var board = side?.Board;
+                if (board == null) continue;
+
+                var deadCards = board.AllSlots()
+                    .Select(slot => slot?.Occupant)
+                    .Where(card => card != null && !card.IsTown && !card.IsAlive)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var deadCard in deadCards)
+                {
+                    ClearPlannedTargetsPointingTo(deadCard);
+                    board.RemoveCard(deadCard);
+                    Debug.Log($"[DuelManager] Removed defeated card from board: {deadCard.SourceCard?.CardName ?? deadCard.Id.ToString()}");
+                }
+            }
+        }
+
+        private void ClearPlannedTargetsPointingTo(BoardCard removedCard)
+        {
+            if (_duelState == null || removedCard == null) return;
+
+            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
+            {
+                var board = side?.Board;
+                if (board == null) continue;
+
+                foreach (var slot in board.AllSlots())
+                {
+                    if (slot?.Occupant != null && slot.Occupant.PlannedTarget == removedCard)
+                    {
+                        slot.Occupant.PlannedTarget = null;
+                    }
+                }
+            }
+        }
+
+        private static bool IsAttackCapable(BoardCard card)
+        {
+            return card != null && card.IsAlive && card.Attack > 0;
         }
 
         private enum ClashForce { None, Win, Lose }
@@ -502,56 +991,69 @@ namespace Combat
             return clashAttack;
         }
 
+        private async UniTask ExecuteOpponentBuildingTurnAsync()
+        {
+            if (_opponentAI == null)
+            {
+                Debug.LogWarning("[AI] OpponentAI is null, skipping opponent building turn");
+                return;
+            }
+
+            var enemySide = _duelState.OpponentSide;
+            const int maxIterations = 16;
+
+            for (int i = 0; i < maxIterations; i++)
+            {
+                var decision = _opponentAI.DecideCardToPlay(enemySide, _duelState.PlayerSide);
+                if (decision == null) break;
+
+                foreach (var cost in decision.Card.Def.Costs)
+                {
+                    ICostContext ctx = cost is SacrificeCost sacrificeCost
+                        ? new SacrificeCostContext
+                        {
+                            PlayerSide = enemySide,
+                            Amount = sacrificeCost.Amount,
+                            Cost = sacrificeCost
+                        }
+                        : new CostContext { PlayerSide = enemySide, Amount = cost.GetAmount() };
+                    QueueAction(cost.GetPaymentAction(ctx));
+                }
+
+                enemySide.Hand.Remove(decision.Card);
+                QueueAction(new PlaceCardIntoSlotAction(enemySide.Board, decision.Card.Def, decision.TargetSlot));
+                Debug.Log($"[AI] Opponent plays {decision.Card.Def.CardName} in {decision.Card.Def.RowType}[{decision.TargetSlot.Index}]");
+
+                await ProcessActionsAsync();
+                if (_leaveDuelRequested || _duelState == null) return;
+            }
+        }
+
         private async UniTask SimulatePlanningAsync()
         {
-            var rng = new System.Random();
-            var enemyVanguard = _duelState.OpponentSide.Board.VanguardRow
-                .Where(s => s.Occupant != null && s.Occupant.IsAlive).ToArray();
-            var playerVanguard = _duelState.PlayerSide.Board.VanguardRow
-                .Where(s => s.Occupant != null && s.Occupant.IsAlive).ToArray();
-            var playerTown = _duelState.PlayerSide.Board.TownSlot?.Occupant;
+            var enemyAttackers = _duelState.OpponentSide.Board.AllSlots()
+                .Where(s => IsAttackCapable(s.Occupant))
+                .Select(s => s.Occupant)
+                .ToArray();
 
-            foreach (var slot in enemyVanguard)
+            foreach (var card in enemyAttackers)
             {
-                var card = slot.Occupant;
                 if (card == null || !card.IsAlive) continue;
 
-                bool smartPlay = rng.NextDouble() < 0.7;
-
-                if (smartPlay)
+                var target = _opponentAI?.DecideAttackTarget(card, _duelState.PlayerSide);
+                if (target != null)
                 {
-                    bool pathToTownClear = !playerVanguard.Any();
-                    if (pathToTownClear && playerTown != null && playerTown.IsAlive)
-                    {
-                        card.PlannedTarget = playerTown;
-                        continue;
-                    }
-
-                    if (playerVanguard.Length > 0)
-                    {
-                        var weakest = playerVanguard.OrderBy(v => v.Occupant.Health).First();
-                        card.PlannedTarget = weakest.Occupant;
-                        continue;
-                    }
-                }
-                else
-                {
-                    var allTargets = new List<IGameEntity>();
-                    if (playerTown != null && playerTown.IsAlive) allTargets.Add(playerTown);
-                    foreach (var v in playerVanguard)
-                        if (v.Occupant != null && v.Occupant.IsAlive)
-                            allTargets.Add(v.Occupant);
-
-                    if (allTargets.Count > 0)
-                        card.PlannedTarget = allTargets[rng.Next(allTargets.Count)];
+                    card.PlannedTarget = target;
+                    Debug.Log($"[AI] {card.SourceCard.CardName} targets {(target as BoardCard)?.SourceCard.CardName ?? "Town"}");
                 }
             }
+
             await UniTask.Yield();
         }
         private async UniTask ShowLootSelectionAsync()
         {
-            bool playerWon = _duelState.PlayerTown.IsAlive && !_duelState.OpponentTown.IsAlive;
-            if (!playerWon)
+            CaptureDuelOutcomeIfFinished();
+            if (_duelOutcome != DuelOutcome.PlayerWon)
                 return;
 
             var rewardPool = _encounter.RewardCardPool;
@@ -621,7 +1123,8 @@ namespace Combat
             
         public void SaveCurrentDuel()
         {
-            if (_duelState != null && _encounter != null)
+            CaptureDuelOutcomeIfFinished();
+            if (_duelState != null && _encounter != null && _duelOutcome == DuelOutcome.InProgress)
             {
                 var dto = MatchStateDTO.FromDuelState(_duelState);
                 string json = JsonUtility.ToJson(dto);

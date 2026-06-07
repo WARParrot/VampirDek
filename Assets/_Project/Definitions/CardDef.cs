@@ -12,6 +12,8 @@ namespace Definitions
     public class CardDef : ScriptableObject
     {
         public string CardName;
+        [Tooltip("Stable localization key for the display name. Leave empty to use card.<CardName>.name with CardName as fallback.")]
+        public string CardNameKey;
         public AssetReferenceSprite Artwork;
         public CardType Type;
         public RowType RowType;
@@ -22,5 +24,11 @@ namespace Definitions
         public List<CardCost> Costs;
         public List<EffectActionDefinition> Effects;
         public List<EnchantmentData> InnateEnchantments;
+
+        [Tooltip("Optional combat VFX profile id used by CombatVFX for card-specific attack/clash presentation. Examples: blood, shadow, ritual, town. Leave empty for default.")]
+        public string CombatVfxProfileId;
+
+        [Tooltip("Optional combat VFX accent color. Transparent/clear means CombatVFX chooses a profile/default color.")]
+        public Color CombatVfxTint = Color.clear;
     }
 }

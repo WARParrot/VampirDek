@@ -1,11 +1,16 @@
 ﻿<Solution>
   <Project Path="Combat.csproj" />
   <Project Path="Core.csproj" />
+  <Project Path="FMODUnityResonanceEditor.csproj" />
+  <Project Path="FMODUnityEditor.csproj" />
+  <Project Path="FMODUnity.csproj" />
   <Project Path="Novel.csproj" />
   <Project Path="Shared.csproj" />
   <Project Path="Definitions.csproj" />
   <Project Path="Exploration.csproj" />
+  <Project Path="Unity.ProjectGate.Editor.csproj" />
   <Project Path="Bootstrap.csproj" />
+  <Project Path="FMODUnityResonance.csproj" />
   <Project Path="Data.csproj" />
   <Project Path="Core.Editor.csproj" />
 </Solution>
