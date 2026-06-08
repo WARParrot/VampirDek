@@ -102,6 +102,14 @@ namespace Exploration
         {
             if (!_isActive || _camera == null) return;
 
+            // While the pause/deck menu is open the cursor is free for UI;
+            // keep look input from accumulating and rotating the camera behind it.
+            if (GlobalServices.IsMenuOpen)
+            {
+                _lookDelta = Vector2.zero;
+                return;
+            }
+
             // Обновление взгляда
             _yaw += _lookDelta.x * _mouseSensitivity;
             _pitch -= _lookDelta.y * _mouseSensitivity;

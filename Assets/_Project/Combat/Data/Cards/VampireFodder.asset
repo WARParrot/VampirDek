@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: VampireFodder
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Vampire
-  CardNameKey: 
+  CardNameKey:
+  Description: "Базовый вампир. Простой солдат тёмной стороны."
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 

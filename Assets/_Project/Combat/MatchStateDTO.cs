@@ -30,11 +30,9 @@ namespace Combat
         {
             var state = new DuelState(encounter, playerDeckDefinitions, opponentDeckDefinitions);
 
-            state.PlayerSide.Mana = PlayerSide.Mana;
             state.PlayerSide.HumanResources = PlayerSide.HumanResources;
             RestoreBoard(PlayerSide, state.PlayerSide.Board);
 
-            state.OpponentSide.Mana = OpponentSide.Mana;
             state.OpponentSide.HumanResources = OpponentSide.HumanResources;
             RestoreBoard(OpponentSide, state.OpponentSide.Board);
 
@@ -151,7 +149,6 @@ namespace Combat
     [Serializable]
     public class SideSnapshot
     {
-        public int Mana;
         public int HumanResources;
         public List<string> DeckCardIds;
         public int DeckDrawIndex;
@@ -163,7 +160,6 @@ namespace Combat
         {
             return new SideSnapshot
             {
-                Mana = side.Mana,
                 HumanResources = side.HumanResources,
                 DeckCardIds = side.Deck.Cards.Select(c => c.Def.CardName).ToList(),
                 DeckDrawIndex = side.Deck.DrawIndex,

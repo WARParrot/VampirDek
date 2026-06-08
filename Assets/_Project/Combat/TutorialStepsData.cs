@@ -21,13 +21,31 @@ namespace Combat
                 {
                     Message = "Первая дуэль. Задача простая: защитить свой город и разрушить город противника.",
                     MessageKey = "tutorial.duel_intro",
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 7f
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance
+                },
+                new TutorialStep
+                {
+                    Message = "Карта в руке: сверху — стоимость, посередине — иллюстрация, снизу — название и характеристики (HP/ATK). Стоимость платится тем ресурсом, который указан рядом с цифрой.",
+                    MessageKey = "tutorial.card_anatomy",
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance
+                },
+                new TutorialStep
+                {
+                    Message = "На столе перед вами — не карты, а пустые слоты. В них вы выкладываете карты из руки. Ряды:\n• Vanguard — атакующая линия\n• Building — здания\n• Human — люди (запас HR и жертвы)",
+                    MessageKey = "tutorial.board_slots",
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance
                 },
                 new TutorialStep
                 {
                     Message = "HR — это запас людей. Чаще всего он нужен для зданий.\n\nВ начале хода HR становится равен числу живых карт в вашем ряду Human.",
                     MessageKey = "tutorial.hr_intro",
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 8f, DynamicArrow = DynamicArrowTarget.PlayerHumanResourcesText
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance, DynamicArrow = DynamicArrowTarget.PlayerHumanResourcesText
+                },
+                new TutorialStep
+                {
+                    Message = "Фаза драфта: в начале каждого хода вам показывают несколько новых карт. Human — исключение и появляется всегда, остальные тянутся из колоды и тратятся при выборе. Возьмите Human (для туториала он обязателен) и одну дополнительную карту.",
+                    MessageKey = "tutorial.draft_intro",
+                    DimScreen = false, CompletionCondition = TutorialStepCondition.DraftCompleted, RequiredPhaseTag = "StartOfTurn"
                 },
                 new TutorialStep
                 {
@@ -57,7 +75,7 @@ namespace Combat
                 {
                     Message = "Отлично: на поле есть Human и атакующий Vampire. Дальше подтвердим строительство и выберем цель атаки.",
                     MessageKey = "tutorial.confirm_building_intro",
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 5f, RequiredPhaseTag = "BuildingPhase"
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance, RequiredPhaseTag = "BuildingPhase"
                 },
                 new TutorialStep
                 {
@@ -79,6 +97,12 @@ namespace Combat
                 },
                 new TutorialStep
                 {
+                    Message = "Здания работают как щит. Пока у противника живо хотя бы одно здание, оно прикрывает двух людей за собой. Но город всё ещё можно бить — пока стоит лишь одно здание. Как только оба здания живы — город под прикрытием, и сначала придётся пробить хотя бы одно из них.",
+                    MessageKey = "tutorial.buildings_shield",
+                    DimScreen = false, CompletionCondition = TutorialStepCondition.ManualAdvance
+                },
+                new TutorialStep
+                {
                     Message = "Цель выбрана. Подтвердите Planning Phase — дальше бой разыграется автоматически.",
                     MessageKey = "tutorial.confirm_planning",
                     DimScreen = true, CompletionCondition = TutorialStepCondition.PhaseConfirmed, TimeToWait = 0f, RequiredPhaseTag = "PlanningPhase", DynamicArrow = DynamicArrowTarget.PhaseConfirmationButton
@@ -87,19 +111,19 @@ namespace Combat
                 {
                     Message = "Бой: если две карты атакуют друг друга, происходит столкновение. Урон считается автоматически.",
                     MessageKey = "tutorial.clash_intro",
-                    DimScreen = false, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 4f
+                    DimScreen = false, CompletionCondition = TutorialStepCondition.ManualAdvance
                 },
                 new TutorialStep
                 {
                     Message = "Если атака не встречена ответной атакой, карта просто наносит урон выбранной цели.",
                     MessageKey = "tutorial.one_sided_attack",
-                    DimScreen = false, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 4f
+                    DimScreen = false, CompletionCondition = TutorialStepCondition.ManualAdvance
                 },
                 new TutorialStep
                 {
                     Message = "Ход почти закончен. На следующем ходу HR обновится по числу живых Human, игроки возьмут карты, а временный урон зданий сбросится.",
                     MessageKey = "tutorial.turn_end",
-                    DimScreen = false, CompletionCondition = TutorialStepCondition.TimeElapsed, TimeToWait = 7f
+                    DimScreen = false, CompletionCondition = TutorialStepCondition.ManualAdvance
                 },
                 new TutorialStep
                 {

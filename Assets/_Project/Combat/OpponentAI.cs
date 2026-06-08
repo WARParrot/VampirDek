@@ -59,29 +59,34 @@ namespace Combat
             if (attacker == null || playerSide == null || playerSide.Board == null) return null;
 
             var provoker = CardBehaviorTags.GetActiveProvokerOn(playerSide);
-            if (provoker != null) return provoker;
+            if (provoker != null && DuelManager.CanAttackerTarget(attacker, provoker))
+                return provoker;
 
             var liveTargets = playerSide.Board.AllCards()
-                .Where(c => c != null && c.IsAlive)
+                .Where(c => c != null && c.IsAlive && DuelManager.CanAttackerTarget(attacker, c))
                 .ToList();
 
+            var townTargetable = playerSide.Town != null && DuelManager.CanAttackerTarget(attacker, playerSide.Town);
+
             if (liveTargets.Count == 0)
-                return playerSide.Town;
+                return townTargetable ? playerSide.Town : null;
+
+            IGameEntity townOrNull = townTargetable ? (IGameEntity)playerSide.Town : null;
 
             if (_strategy == AIStrategy.Aggressive)
-                return liveTargets.OrderBy(c => c.Health).FirstOrDefault() ?? playerSide.Town;
+                return liveTargets.OrderBy(c => c.Health).FirstOrDefault() ?? townOrNull;
 
             if (_strategy == AIStrategy.Defensive)
-                return liveTargets.OrderByDescending(c => c.Attack).FirstOrDefault() ?? playerSide.Town;
+                return liveTargets.OrderByDescending(c => c.Attack).FirstOrDefault() ?? townOrNull;
 
             // Balanced: prefer a vulnerable unit, occasionally pressure the town so the duel can end.
-            if (_rng.NextDouble() > _skillLevel && playerSide.Town != null)
-                return playerSide.Town;
+            if (_rng.NextDouble() > _skillLevel && townOrNull != null)
+                return townOrNull;
 
             return liveTargets
                 .OrderBy(c => c.Health)
                 .ThenByDescending(c => c.Attack)
-                .FirstOrDefault() ?? playerSide.Town;
+                .FirstOrDefault() ?? townOrNull;
         }
 
         private IEnumerable<Card> GetPlayableCards(SideState side)
@@ -126,7 +131,13 @@ namespace Combat
         private static int ScoreCard(Card card)
         {
             if (card?.Def == null) return 0;
-            return card.Def.Attack + card.Def.Health + (card.Def.RowType == Definitions.RowType.Vanguard ? 2 : 0);
+            // Humans are the AI's fuel for SacrificeCost vampires — keep at least one on the board
+            // by giving them high priority when no Human is currently down. Building cards cost HR,
+            // so they only get a modest bonus.
+            int score = card.Def.Attack + card.Def.Health;
+            if (card.Def.RowType == Definitions.RowType.Vanguard) score += 2;
+            if (card.Def.RowType == Definitions.RowType.Human) score += 5;
+            return score;
         }
     }
 }

@@ -49,6 +49,12 @@ namespace Combat.UI
                 lines.Add(LocalizationService.T("ui.card.passives_none", "Passives: none"));
             }
 
+            if (def != null && !string.IsNullOrWhiteSpace(def.Description))
+            {
+                lines.Add(string.Empty);
+                lines.Add(def.Description.Trim());
+            }
+
             return string.Join("\n", lines);
         }
 

@@ -19,5 +19,5 @@ MonoBehaviour:
     PhaseFilter: EndOfTurn
     OwnerOnly: 0
     Actions:
-    - {fileID: 11400000, guid: 5b60f002922c86549af5c1241cf790ba, type: 2}
+    - {fileID: 11400000, guid: 9c62213d7beaa4e49b17a97e7881f425, type: 2}
   Modifiers: []

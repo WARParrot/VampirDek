@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: Ritualist
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Ritualist
-  CardNameKey: 
+  CardNameKey:
+  Description: "Вампир рисует на полу круг с рунами.\nРитуал: за каждый прожитый раунд получает +2 к атаке.\nСмертник: после атаки сразу умирает."
   Artwork:
-    m_AssetGUID: 
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
+    m_AssetGUID:
+    m_SubObjectName:
+    m_SubObjectType:
+    m_SubObjectGUID:
     m_EditorAssetChanged: 0
   Type: 0
   RowType: 0
@@ -27,9 +28,9 @@ MonoBehaviour:
   Health: 1
   Attack: 1
   Costs:
-  - {fileID: 11400000, guid: a70d8a9629083ab4596dcfc7f7929152, type: 2}
+  - {fileID: 11400000, guid: cc15bc8810ceeb446a0d4ac0c60adcb1, type: 2}
   Effects: []
   InnateEnchantments:
   - {fileID: 11400000, guid: 03401e58f842d5344adda91c22670b0b, type: 2}
-  CombatVfxProfileId: 
+  CombatVfxProfileId:
   CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

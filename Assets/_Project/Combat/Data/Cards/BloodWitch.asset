@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: BloodWitch
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: BloodWitch
-  CardNameKey: 
+  CardNameKey:
+  Description: "Девушка, разведя руки, формирует кровавые шипы над головой.\nПри спавне трижды бьёт по 1 урона случайному противнику — каждый шип выбирает цель заново.\nЕсли доживает до конца хода — дважды бьёт по 1 урона случайной цели."
   Artwork:
-    m_AssetGUID: 
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
+    m_AssetGUID:
+    m_SubObjectName:
+    m_SubObjectType:
+    m_SubObjectGUID:
     m_EditorAssetChanged: 0
   Type: 0
   RowType: 0
@@ -27,9 +28,9 @@ MonoBehaviour:
   Health: 1
   Attack: 3
   Costs:
-  - {fileID: 11400000, guid: db7683ae68a21ce4c9c072b7820175f8, type: 2}
+  - {fileID: 11400000, guid: a5c2f1e8b3d74e94a8f6c2d931e4b7a9, type: 2}
   Effects: []
   InnateEnchantments:
   - {fileID: 11400000, guid: cfbda7d5238f87d4587876e74d8885af, type: 2}
-  CombatVfxProfileId: 
+  CombatVfxProfileId:
   CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

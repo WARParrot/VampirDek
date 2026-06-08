@@ -23,6 +23,10 @@ namespace Combat
 
         public int DamageReceivedThisTurn { get; set; }
 
+        // Used by Gourmet's passive: cards it has already attacked (by id) cannot be targeted again.
+        public HashSet<int> PreviouslyAttackedCardIds { get; } = new();
+        public bool AttackedTownBefore { get; set; }
+
         public BoardCard(CardDef sourceCard)
         {
             Id = _nextId++;

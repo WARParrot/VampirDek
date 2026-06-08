@@ -139,7 +139,14 @@ public class HandUIManager : MonoBehaviour
     {
         Debug.Log($"[HandUI] RefreshHand - count: {side.Hand.Count}");
         foreach (var kv in _cardViews)
-            Destroy(kv.Value.gameObject);
+        {
+            // ResumeFromSaveAsync can run after a scene reload that already destroyed
+            // the previous duel's hand prefabs. Guard against the dangling handler so
+            // the Unity-side null check fires before we touch gameObject.
+            var handler = kv.Value;
+            if (handler == null) continue;
+            Destroy(handler.gameObject);
+        }
         _cardViews.Clear();
         foreach (var card in side.Hand)
         {
@@ -366,11 +373,7 @@ public class HandUIManager : MonoBehaviour
     {
         if (ResourceWarningUI == null) return;
         string warningMessage = "";
-        if (cost is ManaCost manaCost)
-        {
-            warningMessage = LocalizationService.TFormat("warning.not_enough_mana", "Cannot play — not enough mana\nRequired: {0}, Available: {1}", manaCost.Amount, side.Mana);
-        }
-        else if (cost is HumanResourceCost hrCost)
+        if (cost is HumanResourceCost hrCost)
         {
             warningMessage = LocalizationService.TFormat("warning.not_enough_hr", "Cannot play — not enough HR\nRequired: {0}, Available: {1}", hrCost.Amount, side.HumanResources);
         }

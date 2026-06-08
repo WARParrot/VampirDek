@@ -12,5 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c37a46e6ac8440841a5261037dbd1498, type: 3}
   m_Name: BloodWitch_EoT
   m_EditorClassIdentifier: Combat::Combat.DealDamageToRandomEnemyActionDefinition
-  _amount: 2
+  _amount: 1
   _includeTown: 1
+  _shots: 2

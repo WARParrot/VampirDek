@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: FreshSpawn
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: FreshSpawn
+  CardNameKey:
+  Description: "Молодняк: вампир, намеренно искупавшийся в людской крови, манит врагов жестом «нападайте».\nПровокация — пока он жив, противник не может атаковать никого другого."
   Artwork:
-    m_AssetGUID: 
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
+    m_AssetGUID:
+    m_SubObjectName:
+    m_SubObjectType:
+    m_SubObjectGUID:
     m_EditorAssetChanged: 0
   Type: 0
   RowType: 0
@@ -26,6 +28,8 @@ MonoBehaviour:
   Health: 4
   Attack: 2
   Costs:
-  - {fileID: 11400000, guid: 484baab2c3b5903418debbc793751316, type: 2}
+  - {fileID: 11400000, guid: a5c2f1e8b3d74e94a8f6c2d931e4b7a9, type: 2}
   Effects: []
   InnateEnchantments: []
+  CombatVfxProfileId:
+  CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}

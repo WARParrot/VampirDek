@@ -19,10 +19,10 @@ MonoBehaviour:
     PhaseFilter: 
     OwnerOnly: 1
     Actions:
-    - {fileID: 11400000, guid: 90b55e7b35f2c924180ce59ddda0d393, type: 2}
+    - {fileID: 11400000, guid: 363697eaf0403c94c806fff5eda0ad85, type: 2}
   - EventType: Combat.PhaseExitEvent
     PhaseFilter: EndOfTurn
     OwnerOnly: 0
     Actions:
-    - {fileID: 11400000, guid: c51af738d1568a64caebad7d74b5ffb8, type: 2}
+    - {fileID: 11400000, guid: 9f98f0ca0d965c640af36c1dea51015e, type: 2}
   Modifiers: []

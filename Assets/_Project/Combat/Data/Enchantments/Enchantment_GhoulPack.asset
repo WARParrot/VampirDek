@@ -19,10 +19,10 @@ MonoBehaviour:
     PhaseFilter: 
     OwnerOnly: 0
     Actions:
-    - {fileID: 11400000, guid: 581458712b53a894694bdbcb23c19517, type: 2}
+    - {fileID: 11400000, guid: 8db78bcf5bb153f42a9c3708ea200725, type: 2}
   - EventType: Combat.EntityDiedEvent
     PhaseFilter: 
     OwnerOnly: 0
     Actions:
-    - {fileID: 11400000, guid: 581458712b53a894694bdbcb23c19517, type: 2}
+    - {fileID: 11400000, guid: 8db78bcf5bb153f42a9c3708ea200725, type: 2}
   Modifiers: []

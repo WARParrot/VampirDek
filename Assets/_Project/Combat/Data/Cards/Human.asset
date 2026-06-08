@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Human
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Human
-  CardNameKey: 
+  CardNameKey:
+  Description: "Человек. Можно принести в жертву, чтобы оплатить призыв вампира."
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 

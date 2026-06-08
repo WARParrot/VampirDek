@@ -37,14 +37,32 @@ namespace Combat
         private bool _waitingForRequiredPhase = false;
         private bool _advancePending = false;
         private bool _tutorialLeaveRequested = false;
+        private bool _draftStepReached = false;
         private float _stepShownAt = 0f;
-        private const float MinimumInteractiveReadSeconds = 2.5f;
+        private bool _tutorialFullyAcknowledged = false;
+        private const float MinimumInteractiveReadSeconds = 5f;
+        private const float MinimumManualAdvanceSeconds = 3f;
+        private const float TimeElapsedManualGracePadding = 1.5f;
+        private const string TutorialCompletedKey = "combat_tutorial_completed";
+        private const string TutorialStartCountKey = "combat_tutorial_start_count";
+        private const int MaxTutorialStartCount = 1;
+
+        private static bool ShouldSkipDueToStartLimit()
+        {
+            return PlayerPrefs.GetInt(TutorialStartCountKey, 0) >= MaxTutorialStartCount;
+        }
+
         private void Start()
         {
             if (!_isTutorialEncounter) return;
             if (!_forceShowAlways && PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1)
             {
                 Debug.Log("[TutorialSystem] Tutorial already completed, skipping.");
+                return;
+            }
+            if (!_forceShowAlways && ShouldSkipDueToStartLimit())
+            {
+                Debug.Log("[TutorialSystem] Tutorial already shown the maximum number of times, skipping.");
                 return;
             }
             if (_handUIManager == null)
@@ -59,7 +77,6 @@ namespace Combat
             }
             SubscribeToEvents();
         }
-        private const string TutorialCompletedKey = "combat_tutorial_completed";
         private void Update()
         {
             if (!_isTutorialEncounter) return;
@@ -74,12 +91,21 @@ namespace Combat
                 {
                     TryLeaveTutorialDuelFromPrompt();
                 }
+                if (step != null && IsManuallyAdvanceable(step) && IsContinuePressed())
+                {
+                    var elapsed = Time.unscaledTime - _stepShownAt;
+                    if (elapsed >= MinimumManualAdvanceSeconds)
+                    {
+                        AdvanceManually();
+                    }
+                }
                 return;
             }
             // _forceShowAlways means "show on every tutorial duel even if PlayerPrefs says completed".
             // It must not restart the tutorial in a loop after it completed in the same duel scene.
             if (_tutorialCompletedThisSession) return;
             if (!_forceShowAlways && PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1) return;
+            if (!_forceShowAlways && ShouldSkipDueToStartLimit()) return;
             if (_duelManager == null)
             {
                 _duelManager = FindObjectOfType<DuelManager>();
@@ -99,12 +125,44 @@ namespace Combat
         {
             _eventBus.Subscribe<PhaseEnterEvent>(OnPhaseEnter);
             _eventBus.Subscribe<ActionExecutedEvent>(OnActionExecuted);
+            _eventBus.Subscribe<HintEvent>(OnHint);
         }
         private void UnsubscribeFromEvents()
         {
             if (_eventBus == null) return;
             _eventBus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
             _eventBus.Unsubscribe<ActionExecutedEvent>(OnActionExecuted);
+            _eventBus.Unsubscribe<HintEvent>(OnHint);
+        }
+        /// <summary>
+        /// Returns true if the duel may open the draft UI right now. During the tutorial we
+        /// hold the draft closed until the intro steps reach the dedicated "draft" step so
+        /// the player only sees the board + empty hand while reading the explainers.
+        /// </summary>
+        public bool IsReadyForDraft()
+        {
+            if (!_isTutorialEncounter) return true;
+            if (!_tutorialActive) return true;
+            // Once we've shown the draft step at least once, all subsequent drafts open
+            // immediately — only the very first draft is gated by the intro chain.
+            if (_draftStepReached) return true;
+            var step = GetCurrentStep();
+            if (step != null && step.CompletionCondition == TutorialStepCondition.DraftCompleted)
+            {
+                _draftStepReached = true;
+                return true;
+            }
+            return false;
+        }
+        private void OnHint(HintEvent evt)
+        {
+            if (!_tutorialActive) return;
+            var step = GetCurrentStep();
+            if (step == null) return;
+            if (step.CompletionCondition == TutorialStepCondition.DraftCompleted && evt.Tag == "DraftCompleted")
+            {
+                AdvanceAfterReadTime().Forget();
+            }
         }
         private void OnPhaseEnter(PhaseEnterEvent evt)
         {
@@ -140,67 +198,45 @@ namespace Combat
         }
         private void StartTutorial()
         {
+            // Count every time we actually begin the tutorial flow so we can cap how often the
+            // player re-sees it after sitting at the duel table.
+            var startCount = PlayerPrefs.GetInt(TutorialStartCountKey, 0) + 1;
+            PlayerPrefs.SetInt(TutorialStartCountKey, startCount);
+            PlayerPrefs.Save();
+            Debug.Log($"[TutorialSystem] Tutorial start count is now {startCount}/{MaxTutorialStartCount}.");
+
             // Keep tutorial content data-driven from TutorialStepsData instead of stale scene-serialized lists.
             // Older scene overrides are easy to forget and were the reason dynamic arrows silently disappeared.
             var defaultSteps = TutorialStepsData.CreateDefaultSteps();
             _tutorialSteps = defaultSteps;
-            EnsureTutorialOpeningHand();
+            SeedTutorialDraft();
             _tutorialActive = true;
             _tutorialCompletedThisSession = false;
             _currentStepIndex = 0;
             _tutorialLeaveRequested = false;
+            _draftStepReached = false;
             _cts = new CancellationTokenSource();
             Debug.Log("[TutorialSystem] Tutorial started!");
             ShowCurrentStep();
         }
-        private int _tutorialCardInstanceId = -100000;
-        private void EnsureTutorialOpeningHand()
+        private void SeedTutorialDraft()
         {
-            var side = _duelManager?.CurrentDuelState?.PlayerSide;
-            if (side == null) return;
-            EnsureCardInHand(side, "Human");
-            EnsureCardInHand(side, "Vampire");
-            _handUIManager?.RefreshHandImmediately();
-        }
-
-        private void EnsureCardInHand(SideState side, string cardName)
-        {
-            if (side == null || string.IsNullOrEmpty(cardName)) return;
-            foreach (var card in side.Hand)
-            {
-                if (card?.Def != null && card.Def.CardName == cardName) return;
-            }
-            if (side.Hand.Count >= SideState.MaxHandSize)
-            {
-                for (int i = side.Hand.Count - 1; i >= 0; i--)
-                {
-                    var existingName = side.Hand[i]?.Def?.CardName;
-                    if (existingName != "Human" && existingName != "Vampire")
-                    {
-                        side.Hand.RemoveAt(i);
-                        break;
-                    }
-                }
-            }
-            if (side.Hand.Count >= SideState.MaxHandSize)
-            {
-                Debug.LogWarning($"[TutorialSystem] Cannot add tutorial card '{cardName}': hand is full of protected tutorial cards.");
-                return;
-            }
-            var def = CardDatabase.GetCard(cardName);
-            if (def == null)
-            {
-                Debug.LogWarning($"[TutorialSystem] Cannot add tutorial card '{cardName}': card definition was not found.");
-                return;
-            }
-            side.AddCardToHand(new Card(def, _tutorialCardInstanceId--));
-            Debug.Log($"[TutorialSystem] Added guaranteed tutorial card to hand: {cardName}");
+            // With empty starting hands + a draft on every StartOfTurn, we can't rely on the
+            // player happening to roll Vampire from the random portion of the draft. Force it
+            // into the next draft so the tutorial's Vanguard step can actually fire.
+            if (_duelManager == null) return;
+            _duelManager.PendingDraftCardNames.Clear();
+            _duelManager.PendingDraftCardNames.Add("Vampire");
+            _duelManager.PendingMandatoryDraftCardName = "Human";
+            Debug.Log("[TutorialSystem] Seeded next draft with Vampire; Human marked mandatory.");
         }
 
         private void ShowCurrentStep()
         {
             if (_currentStepIndex >= _tutorialSteps.Count)
             {
+                // Reaching the natural end of the step list means the player went through everything.
+                _tutorialFullyAcknowledged = true;
                 EndTutorial();
                 return;
             }
@@ -367,7 +403,38 @@ namespace Combat
                     : LocalizationService.T("tutorial.hand_initializing", "Tutorial is waiting for the hand to initialize.");
                 message = message.Replace("{PlayableCardHint}", hint);
             }
+            if (IsManuallyAdvanceable(step))
+            {
+                var continuePrompt = LocalizationService.T(
+                    "tutorial.continue_prompt",
+                    "Нажмите Space или E, чтобы продолжить.");
+                message += $"\n\n<size=80%><color=#FFD36A>▶ {continuePrompt}</color></size>";
+            }
             return message;
+        }
+
+        private static bool IsManuallyAdvanceable(TutorialStep step)
+        {
+            if (step == null) return false;
+            return step.CompletionCondition == TutorialStepCondition.ManualAdvance ||
+                   step.CompletionCondition == TutorialStepCondition.None ||
+                   step.CompletionCondition == TutorialStepCondition.TimeElapsed;
+        }
+
+        private static bool IsContinuePressed()
+        {
+            var kb = Keyboard.current;
+            if (kb == null) return false;
+            return kb.spaceKey.wasPressedThisFrame ||
+                   kb.eKey.wasPressedThisFrame ||
+                   kb.enterKey.wasPressedThisFrame;
+        }
+
+        private void AdvanceManually()
+        {
+            if (!_tutorialActive || _advancePending) return;
+            _advancePending = true;
+            NextStep();
         }
         private bool ShouldSkipStepForCurrentState(TutorialStep step)
         {
@@ -428,12 +495,18 @@ namespace Combat
                 switch (step.CompletionCondition)
                 {
                     case TutorialStepCondition.TimeElapsed:
-                        await UniTask.Delay(TimeSpan.FromSeconds(step.TimeToWait), cancellationToken: _cts.Token);
-                        NextStep();
+                    {
+                        // TimeElapsed used to auto-advance with a hard timer.
+                        // Players reported steps changing before they could read them, so we now
+                        // treat the configured time as a *minimum* and wait for Space/E afterwards.
+                        var minTime = Mathf.Max(step.TimeToWait, MinimumManualAdvanceSeconds) + TimeElapsedManualGracePadding;
+                        await UniTask.Delay(TimeSpan.FromSeconds(minTime), cancellationToken: _cts.Token);
+                        // After the read window the Update loop handles Space/E. Nothing else to do.
                         break;
+                    }
                     case TutorialStepCondition.None:
-                        await UniTask.Delay(TimeSpan.FromSeconds(4f), cancellationToken: _cts.Token);
-                        NextStep();
+                    case TutorialStepCondition.ManualAdvance:
+                        // Wait for the player to press Space/E. Update() drives the advance.
                         break;
                 }
             }
@@ -479,6 +552,7 @@ namespace Combat
             if (IsLeaveDuelPromptActive())
             {
                 _tutorialLeaveRequested = true;
+                _tutorialFullyAcknowledged = true;
                 EndTutorial();
                 return true;
             }
@@ -526,8 +600,18 @@ namespace Combat
         {
             _tutorialActive = false;
             _tutorialCompletedThisSession = true;
-            PlayerPrefs.SetInt(TutorialCompletedKey, 1);
-            PlayerPrefs.Save();
+            // Only persist completion when the player explicitly worked through to the
+            // final acknowledgement step. Terminal-duel early exits (win/loss before the
+            // tutorial finished) used to mark it completed and skip onboarding on relaunch.
+            if (_tutorialFullyAcknowledged)
+            {
+                PlayerPrefs.SetInt(TutorialCompletedKey, 1);
+                PlayerPrefs.Save();
+            }
+            else
+            {
+                Debug.Log("[TutorialSystem] Tutorial ended early; not persisting completion so the player sees it again.");
+            }
             if (_screenDimmer != null)
             {
                 _screenDimmer.alpha = 0f;

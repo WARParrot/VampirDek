@@ -125,6 +125,26 @@ namespace Combat.UI
                 if (provoker != null && card != provoker)
                 {
                     Debug.Log($"[Planner] Provocation: {provoker.SourceCard.CardName} forces attack target. Ignoring click on {card.SourceCard.CardName}");
+                    Shared.UI.EffectFlashOverlay.ShowProvokerBlock(provoker.SourceCard.CardName);
+                    return;
+                }
+                if (!Combat.DuelManager.CanAttackerTarget(_selectedAttacker, card))
+                {
+                    Debug.Log($"[Planner] Cannot target {card.SourceCard.CardName}: blocked by Elusive / Gourmet / Building shield.");
+                    if (Combat.CardBehaviorTags.IsElusive(card))
+                    {
+                        // The flash only makes sense when Elusive is actually active right now —
+                        // i.e. the loner is alone on his vanguard.
+                        Shared.UI.EffectFlashOverlay.ShowElusiveBlock();
+                    }
+                    else if (Combat.CardBehaviorTags.NeverRepeatsTarget(_selectedAttacker))
+                    {
+                        Shared.UI.EffectFlashOverlay.ShowGourmetRefusal();
+                    }
+                    else if (Combat.DuelManager.IsTargetShieldedByBuildings(card, state.OpponentSide))
+                    {
+                        Shared.UI.EffectFlashOverlay.ShowBuildingShield();
+                    }
                     return;
                 }
                 Debug.Log($"[Planner] Assigning target {card.SourceCard.CardName} to {_selectedAttacker.SourceCard.CardName}");

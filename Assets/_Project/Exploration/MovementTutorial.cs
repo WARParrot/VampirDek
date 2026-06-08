@@ -25,12 +25,16 @@ namespace Exploration
         [SerializeField] private bool _forceShowAlways = false;
 
         private const string TutorialCompletedKey = "exploration_tutorial_completed";
+        private const float TimeElapsedMinimumReadSeconds = 4.5f;
+        private const float NonTimeElapsedDefaultRead = 3.5f;
 
         private int _currentStepIndex = 0;
         private bool _tutorialActive = false;
         private bool _tutorialCompletedThisSession = false;
+        private bool _tutorialFullyAcknowledged = false;
         private bool _stepCompleted = false;
         private bool _actionPromptShown = false;
+        private bool _continuePromptShown = false;
         private float _targetAlpha = 0f;
         private float _stepStartedAt = 0f;
 
@@ -235,6 +239,7 @@ namespace Exploration
         {
             if (_currentStepIndex >= _steps.Length)
             {
+                _tutorialFullyAcknowledged = true;
                 EndTutorial();
                 return;
             }
@@ -270,6 +275,8 @@ namespace Exploration
 
             _targetAlpha = 1f;
             _stepCompleted = false;
+            _continuePromptShown = false;
+            _stepStartedAt = Time.unscaledTime;
 
             Debug.Log($"[MovementTutorial] Target alpha set to 1, current alpha: {_canvasGroup?.alpha}");
         }
@@ -280,6 +287,15 @@ namespace Exploration
 
             var instruction = ResolveStepText(step.InstructionKey, step.InstructionText);
             var actionPrompt = ResolveStepText(step.ActionPromptKey, step.ActionPrompt);
+
+            // For pure read-and-continue steps we synthesise a localized continue prompt instead
+            // of leaving the player guessing how to move on.
+            if (string.IsNullOrWhiteSpace(actionPrompt) && step.CompletionType == MovementCompletionType.TimeElapsed)
+            {
+                actionPrompt = LocalizationService.T(
+                    "tutorial.continue_prompt",
+                    "Нажмите Space или E, чтобы продолжить.");
+            }
 
             if (showActionPrompt && !string.IsNullOrWhiteSpace(actionPrompt))
             {
@@ -328,7 +344,7 @@ namespace Exploration
         private void CheckStepCompletion()
         {
             var step = _steps[_currentStepIndex];
-            var secondsOnStep = Time.time - _stepStartedAt;
+            var secondsOnStep = Time.unscaledTime - _stepStartedAt;
 
             if (!_actionPromptShown && secondsOnStep >= step.MinimumReadSeconds)
             {
@@ -341,9 +357,23 @@ namespace Exploration
                 return;
             }
 
+            // For pure-info steps (TimeElapsed) we wait the configured minimum, then require
+            // Space/E to confirm. This used to auto-advance and players couldn't keep up.
+            if (step.CompletionType == MovementCompletionType.TimeElapsed)
+            {
+                var minRead = Mathf.Max(step.DelayBeforeNext, TimeElapsedMinimumReadSeconds);
+                if (secondsOnStep < minRead) return;
+                if (!_continuePromptShown)
+                {
+                    _continuePromptShown = true;
+                    ApplyStepText(step, true);
+                }
+                if (!IsContinuePressed()) return;
+            }
+
             bool completed = step.CompletionType switch
             {
-                MovementCompletionType.TimeElapsed => Time.time - _stepStartedAt >= step.DelayBeforeNext,
+                MovementCompletionType.TimeElapsed => true,
                 MovementCompletionType.MoveForward => Keyboard.current != null && Keyboard.current.wKey.isPressed,
                 MovementCompletionType.MoveBackward => Keyboard.current != null && Keyboard.current.sKey.isPressed,
                 MovementCompletionType.MoveLeft => Keyboard.current != null && Keyboard.current.aKey.isPressed,
@@ -367,6 +397,15 @@ namespace Exploration
             }
         }
 
+        private static bool IsContinuePressed()
+        {
+            var kb = Keyboard.current;
+            if (kb == null) return false;
+            return kb.spaceKey.wasPressedThisFrame ||
+                   kb.eKey.wasPressedThisFrame ||
+                   kb.enterKey.wasPressedThisFrame;
+        }
+
         private void NextStep()
         {
             _currentStepIndex++;
@@ -377,7 +416,14 @@ namespace Exploration
         {
             _tutorialActive = false;
             _tutorialCompletedThisSession = true;
-            MarkTutorialCompleted();
+            if (_tutorialFullyAcknowledged)
+            {
+                MarkTutorialCompleted();
+            }
+            else
+            {
+                Debug.Log("[MovementTutorial] Tutorial ended early; not persisting completion so the player sees it again next launch.");
+            }
             _targetAlpha = 0f;
             Invoke(nameof(HideTutorialPanel), 1f / _fadeSpeed);
         }
@@ -403,6 +449,7 @@ namespace Exploration
         /// </summary>
         public void SkipTutorial()
         {
+            _tutorialFullyAcknowledged = true;
             EndTutorial();
         }
     }

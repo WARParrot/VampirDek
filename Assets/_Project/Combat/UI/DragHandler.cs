@@ -10,10 +10,12 @@ namespace Combat.UI
     {
         private Canvas _canvas;
         private RectTransform _rectTransform;
+        private RectTransform _canvasRect;
         private CanvasGroup _canvasGroup;
         private LayoutElement _layoutElement;
         private ICard _card;
         private HandUIManager _handManager;
+        private Vector2 _pointerOffset;
 
         public bool IsDragging { get; private set; }
 
@@ -22,10 +24,26 @@ namespace Combat.UI
             _rectTransform = GetComponent<RectTransform>();
             _canvasGroup = GetComponent<CanvasGroup>();
             _canvas = GetComponentInParent<Canvas>();
+            if (_canvas != null)
+                _canvasRect = _canvas.transform as RectTransform;
 
             _layoutElement = GetComponent<LayoutElement>();
             if (_layoutElement == null)
                 _layoutElement = gameObject.AddComponent<LayoutElement>();
+        }
+
+        private Camera GetDragCamera()
+        {
+            if (_canvas == null) return null;
+            return _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
+        }
+
+        private bool TryGetLocalPointer(PointerEventData eventData, out Vector2 local)
+        {
+            local = Vector2.zero;
+            if (_canvasRect == null) return false;
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                _canvasRect, eventData.position, GetDragCamera(), out local);
         }
 
         public void Setup(ICard card, HandUIManager manager)
@@ -48,13 +66,32 @@ namespace Combat.UI
             _canvasGroup.blocksRaycasts = false;
             IsDragging = true;
             if (_layoutElement != null) _layoutElement.ignoreLayout = true;
+
+            // Free the card from layout BEFORE measuring its pointer offset so the
+            // recorded grab point matches where the player actually clicked.
+            if (TryGetLocalPointer(eventData, out var localPointer))
+            {
+                _pointerOffset = (Vector2)_rectTransform.localPosition - localPointer;
+            }
+            else
+            {
+                _pointerOffset = Vector2.zero;
+            }
+
             _handManager.OnCardDragStarted(this);
         }
 
         public void OnDrag(PointerEventData eventData)
         {
             if (!IsDragging) return;
-            _rectTransform.anchoredPosition += eventData.delta / _canvas.scaleFactor;
+            if (TryGetLocalPointer(eventData, out var localPointer))
+            {
+                _rectTransform.localPosition = (Vector3)(localPointer + _pointerOffset);
+            }
+            else
+            {
+                _rectTransform.anchoredPosition += eventData.delta / Mathf.Max(_canvas.scaleFactor, 0.0001f);
+            }
         }
 
         public void OnEndDrag(PointerEventData eventData)

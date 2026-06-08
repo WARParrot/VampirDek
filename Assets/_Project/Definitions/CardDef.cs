@@ -14,6 +14,9 @@ namespace Definitions
         public string CardName;
         [Tooltip("Stable localization key for the display name. Leave empty to use card.<CardName>.name with CardName as fallback.")]
         public string CardNameKey;
+        [TextArea(2, 6)]
+        [Tooltip("Flavor / rules description shown in the card-details overlay.")]
+        public string Description;
         public AssetReferenceSprite Artwork;
         public CardType Type;
         public RowType RowType;

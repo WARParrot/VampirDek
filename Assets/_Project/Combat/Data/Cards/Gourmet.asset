@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: Gourmet
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Gourmet
-  CardNameKey: 
+  CardNameKey:
+  Description: "Вампир-эстет держит сердце или кусок мяса на вилке у лица.\nПри спавне создаёт справа от себя Приманку.\nГурман: никогда не атакует одну и ту же цель дважды."
   Artwork:
-    m_AssetGUID: 
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
+    m_AssetGUID:
+    m_SubObjectName:
+    m_SubObjectType:
+    m_SubObjectGUID:
     m_EditorAssetChanged: 0
   Type: 0
   RowType: 0
@@ -27,9 +28,9 @@ MonoBehaviour:
   Health: 2
   Attack: 4
   Costs:
-  - {fileID: 11400000, guid: 484baab2c3b5903418debbc793751316, type: 2}
+  - {fileID: 11400000, guid: a5c2f1e8b3d74e94a8f6c2d931e4b7a9, type: 2}
   Effects: []
   InnateEnchantments:
   - {fileID: 11400000, guid: 331acb965712cf04499bd382636df339, type: 2}
-  CombatVfxProfileId: 
+  CombatVfxProfileId:
   CombatVfxTint: {r: 0, g: 0, b: 0, a: 0}
