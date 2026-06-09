@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using Cysharp.Threading.Tasks;
 using Definitions;
+using System.Linq;
 
 namespace Combat.UI
 {
