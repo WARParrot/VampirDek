@@ -448,8 +448,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -361.3333, y: -155.9}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: -220, y: -40}
+  m_SizeDelta: {x: 180, y: 260}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2843392415796830143
 CanvasRenderer:
@@ -545,8 +545,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0712ef91451e48243bfb73a09fbbad22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Combat::Combat.UI.CardChoiceButton
-  nameText: {fileID: 0}
-  costText: {fileID: 0}
+  cardPrefab: {fileID: 0}
+  container: {fileID: 0}
+  button: {fileID: 0}
+  mandatoryHighlight: {fileID: 0}
+  mandatoryLabel: {fileID: 0}
 --- !u!1 &5190096911368626184
 GameObject:
   m_ObjectHideFlags: 0
@@ -584,8 +587,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -361.3333, y: -183.6}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 0, y: -40}
+  m_SizeDelta: {x: 180, y: 260}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4206753040288542270
 CanvasRenderer:
@@ -681,8 +684,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0712ef91451e48243bfb73a09fbbad22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Combat::Combat.UI.CardChoiceButton
-  nameText: {fileID: 0}
-  costText: {fileID: 0}
+  cardPrefab: {fileID: 0}
+  container: {fileID: 0}
+  button: {fileID: 0}
+  mandatoryHighlight: {fileID: 0}
+  mandatoryLabel: {fileID: 0}
 --- !u!1 &7322022935730957150
 GameObject:
   m_ObjectHideFlags: 0
@@ -693,6 +699,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5833902248993220594}
   - component: {fileID: 4083709840789085383}
+  - component: {fileID: 1000000000000000001}
   m_Layer: 0
   m_Name: CardSelectionPanel
   m_TagString: Untagged
@@ -726,10 +733,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1159ef0a49da82f48a1b552702c96ebb, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Combat::Combat.UI.CardSelectionUI
   panelRoot: {fileID: 7322022935730957150}
-  choiceButtons: []
+  panelCanvasGroup: {fileID: 1000000000000000001}
+  panelContent: {fileID: 0}
+  titleText: {fileID: 0}
+  counterText: {fileID: 0}
+  choiceButtons:
+  - {fileID: 3210177060679636421}
+  - {fileID: 3379981974876567383}
+  - {fileID: 1525739218928061656}
+  staggerDelay: 0.08
+  panelFadeDuration: 0.2
+--- !u!225 &1000000000000000001
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7322022935730957150}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &7323905966489424005
 GameObject:
   m_ObjectHideFlags: 0
@@ -767,8 +795,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -361.3333, y: -211.5}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 220, y: -40}
+  m_SizeDelta: {x: 180, y: 260}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4432481251336018555
 CanvasRenderer:
@@ -864,8 +892,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0712ef91451e48243bfb73a09fbbad22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Combat::Combat.UI.CardChoiceButton
-  nameText: {fileID: 0}
-  costText: {fileID: 0}
+  cardPrefab: {fileID: 0}
+  container: {fileID: 0}
+  button: {fileID: 0}
+  mandatoryHighlight: {fileID: 0}
+  mandatoryLabel: {fileID: 0}
 --- !u!1 &8910430957631517669
 GameObject:
   m_ObjectHideFlags: 0

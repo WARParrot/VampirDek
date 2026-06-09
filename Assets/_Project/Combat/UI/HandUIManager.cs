@@ -37,12 +37,22 @@ public class HandUIManager : MonoBehaviour
     [SerializeField] private Color _hrPositiveColor = Color.green;
     [SerializeField] private Color _hrNegativeColor = Color.red;
     private int _displayedHR;
+    private string _lastPhaseId = null;
+
     void Update()
     {
         _duelManager = DuelManagerProxy.Instance;
         if (_duelManager?.CurrentDuelState == null) return;
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
+        // Reset the resource-warning counter every time we move to a new phase, so the
+        // "first attempt is silent" rule resets after a turn/phase change.
+        string phaseId = state.CurrentPhase?.PhaseId;
+        if (phaseId != _lastPhaseId)
+        {
+            _failedAttempts.Clear();
+            _lastPhaseId = phaseId;
+        }
         EnsureReadableStatusText();
         PlayerTownHPText.text = LocalizationService.TFormat("ui.town_hp", "Town HP: {0}", side.Town?.Health);
         OpponentTownHPText.text = LocalizationService.TFormat("ui.opponent_town_hp", "Opp Town HP: {0}", state.OpponentSide.Town?.Health);
@@ -369,23 +379,41 @@ public class HandUIManager : MonoBehaviour
         }
         return true;
     }
+    private readonly System.Collections.Generic.Dictionary<string, int> _failedAttempts = new();
+
+    public void ResetFailedAttempts() => _failedAttempts.Clear();
+
     private void ShowResourceWarning(CardCost cost, IPlayerSide side)
     {
-        if (ResourceWarningUI == null) return;
+        if (ResourceWarningUI == null || cost == null) return;
+        // Debounce: only show the warning starting from the SECOND failed attempt for the
+        // same cost. First failure is silent — players often re-try without realising.
+        string key = cost.GetType().FullName ?? "?";
+        _failedAttempts.TryGetValue(key, out int count);
+        count++;
+        _failedAttempts[key] = count;
+        if (count < 2) return;
+        const string RESOURCE = "#ffb14a";   // golden-orange — the resource you lack
         string warningMessage = "";
         if (cost is HumanResourceCost hrCost)
         {
-            warningMessage = LocalizationService.TFormat("warning.not_enough_hr", "Cannot play — not enough HR\nRequired: {0}, Available: {1}", hrCost.Amount, side.HumanResources);
+            warningMessage = LocalizationService.TFormat("warning.not_enough_hr",
+                "Не хватает <color={2}>Human Resources</color>\nТребуется: {0}, доступно: {1}",
+                hrCost.Amount, side.HumanResources, RESOURCE);
         }
         else if (cost is SacrificeCost sacrificeCost)
         {
             var available = side.Board.GetCardsRow(sacrificeCost.RequiredRowType)
                 .Count(slot => slot?.Occupant != null && slot.Occupant.IsAlive);
-            warningMessage = LocalizationService.TFormat("warning.need_sacrifice", "Cannot play — sacrifice required\nRequired: {0} {1}, Available: {2}", sacrificeCost.Amount, LocalizationService.RowTypeName(sacrificeCost.RequiredRowType), available);
+            warningMessage = LocalizationService.TFormat("warning.need_sacrifice",
+                "Нужно <color={3}>жертвоприношение ({1})</color>\nТребуется: {0}, доступно: {2}",
+                sacrificeCost.Amount, LocalizationService.RowTypeName(sacrificeCost.RequiredRowType), available, RESOURCE);
         }
         else
         {
-            warningMessage = LocalizationService.TFormat("warning.not_enough_resources", "Cannot play — not enough resources\n{0}", CardRulesText.FormatCostText(cost));
+            warningMessage = LocalizationService.TFormat("warning.not_enough_resources",
+                "Недостаточно ресурсов: <color={1}>{0}</color>",
+                CardRulesText.FormatCostText(cost), RESOURCE);
         }
         ResourceWarningUI.ShowWarningAsync(warningMessage).Forget();
     }

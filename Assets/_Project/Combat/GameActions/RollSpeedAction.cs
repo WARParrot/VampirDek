@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Definitions;
+using UnityEngine;
 
 namespace Combat
 {
@@ -13,7 +14,22 @@ namespace Combat
         public async UniTask ExecuteAsync()
         {
             foreach (var card in _board.AllCards())
-                card.CurrentSpeed = UnityEngine.Random.Range(card.SourceCard.MinSpeed, card.SourceCard.MaxSpeed + 1);
+            {
+                int min = card.SourceCard.MinSpeed;
+                int max = card.SourceCard.MaxSpeed;
+                // If the card has a fixed speed (Min == Max), give it a ±1 spread so each roll
+                // has variance. Always clamp to >= 1.
+                if (min == max)
+                {
+                    min = Mathf.Max(1, min - 1);
+                    max = max + 1;
+                }
+                else
+                {
+                    min = Mathf.Max(1, min);
+                }
+                card.CurrentSpeed = UnityEngine.Random.Range(min, max + 1);
+            }
         }
     }
 }

@@ -13,7 +13,7 @@ namespace Combat.UI
             if (card == null) return LocalizationService.T("ui.empty", "Empty");
             var stats = LocalizationService.TFormat("ui.card.hp_full", "HP: {0}/{1}", card.Health, card.MaxHealth);
             if (ShouldShowAttack(card)) stats += "   " + LocalizationService.TFormat("ui.card.attack_short", "ATK {0}", card.Attack);
-            if (ShouldShowSpeed(card)) stats += "   " + LocalizationService.TFormat("ui.card.speed_short", "SPD {0}", FormatCurrentSpeedValue(card));
+            if (ShouldShowSpeed(card)) stats += "   " + LocalizationService.TFormat("ui.card.speed_short", "<color=#ffd864>⚡</color>{0}", FormatCurrentSpeedValue(card));
             return stats;
         }
 
@@ -28,7 +28,7 @@ namespace Combat.UI
                 LocalizationService.TFormat("ui.card.hp_full", "HP: {0}/{1}", card.Health, card.MaxHealth)
             };
             if (ShouldShowAttack(card)) lines.Add(LocalizationService.TFormat("ui.card.attack", "Attack: {0}", card.Attack));
-            if (ShouldShowSpeed(card)) lines.Add(LocalizationService.TFormat("ui.card.speed", "Speed: {0}", FormatCurrentSpeed(card)));
+            if (ShouldShowSpeed(card)) lines.Add(LocalizationService.TFormat("ui.card.speed", "<color=#ffd864>⚡ Скорость:</color> {0}", FormatCurrentSpeed(card)));
 
             var targetName = FormatTargetName(card);
             if (!string.IsNullOrEmpty(targetName))

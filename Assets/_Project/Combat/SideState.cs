@@ -9,7 +9,7 @@ namespace Combat
 {
     public class SideState : IPlayerSide
     {
-        public const int MaxHandSize = 7;
+        public const int MaxHandSize = 6;
         public Board Board { get; private set; }
         public Deck Deck { get; set; }
         public int HumanResources { get; set; }
@@ -33,6 +33,7 @@ namespace Combat
                 if (Hand.Count >= MaxHandSize)
                 {
                     Debug.Log("Рука переполнена – карта не взята.");
+                    GlobalServices.EventBus?.Publish(new HandFullEvent(this, count - i));
                     break;
                 }
 

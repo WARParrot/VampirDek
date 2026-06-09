@@ -64,4 +64,11 @@ namespace Combat
         public IPlayerSide Side;
         public EmptyDeckEvent(IPlayerSide side) => Side = side;
     }
+
+    public struct HandFullEvent : IGameEvent
+    {
+        public IPlayerSide Side;
+        public int CardsSkipped;
+        public HandFullEvent(IPlayerSide side, int cardsSkipped) { Side = side; CardsSkipped = cardsSkipped; }
+    }
 }
