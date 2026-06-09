@@ -146,7 +146,7 @@ namespace Combat
         public bool IsReadyForDraft()
         {
             if (!_isTutorialEncounter) return true;
-            if (!_tutorialActive) return true;
+            if (!_tutorialActive) return false;
             // Once we've shown the draft step at least once, all subsequent drafts open
             // immediately — only the very first draft is gated by the intro chain.
             if (_draftStepReached) return true;
@@ -236,8 +236,11 @@ namespace Combat
             if (_duelManager == null) return;
             _duelManager.PendingDraftCardNames.Clear();
             _duelManager.PendingDraftCardNames.Add("Vampire");
+            _duelManager.PendingMandatoryDraftCardNames.Clear();
+            _duelManager.PendingMandatoryDraftCardNames.Add("Human");
+            _duelManager.PendingMandatoryDraftCardNames.Add("Vampire");
             _duelManager.PendingMandatoryDraftCardName = "Human";
-            Debug.Log("[TutorialSystem] Seeded next draft with Vampire; Human marked mandatory.");
+            Debug.Log("[TutorialSystem] Seeded next draft with Vampire; Human and Vampire marked mandatory.");
         }
 
         private void ShowCurrentStep()
@@ -690,7 +693,7 @@ namespace Combat
 
         public bool AllowsPhaseConfirmation()
         {
-            if (!_tutorialActive) return true;
+            if (!_tutorialActive) return false;
             var step = GetCurrentStep();
             return step != null &&
                    step.CompletionCondition == TutorialStepCondition.PhaseConfirmed &&
@@ -699,7 +702,7 @@ namespace Combat
 
         public bool AllowsCardDragging()
         {
-            if (!_tutorialActive) return true;
+            if (!_tutorialActive) return false;
             var step = GetCurrentStep();
             return step != null &&
                    IsStepPhaseReady(step) &&

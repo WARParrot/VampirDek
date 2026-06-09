@@ -363,6 +363,11 @@ namespace Combat
         /// </summary>
         public string PendingMandatoryDraftCardName { get; set; }
 
+        /// <summary>
+        /// One-shot override list for multiple mandatory cards in the next draft.
+        /// </summary>
+        public List<string> PendingMandatoryDraftCardNames { get; } = new List<string>();
+
         private async UniTask DraftPlayerHandAsync(SideState side, int picksAllowed)
         {
             if (side == null) return;
@@ -397,9 +402,18 @@ namespace Combat
 
             GlobalServices.EventBus.Publish(new HintEvent { Tag = "DraftPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
 
-            var mandatory = PendingMandatoryDraftCardName;
+            var mandatoryNames = new List<string>();
+            if (!string.IsNullOrEmpty(PendingMandatoryDraftCardName))
+            {
+                mandatoryNames.Add(PendingMandatoryDraftCardName);
+            }
+            if (PendingMandatoryDraftCardNames.Count > 0)
+            {
+                mandatoryNames.AddRange(PendingMandatoryDraftCardNames);
+            }
             PendingMandatoryDraftCardName = null;
-            var chosenIndices = await ui.ShowDraftAsync(candidates, actualPicks, mandatory);
+            PendingMandatoryDraftCardNames.Clear();
+            var chosenIndices = await ui.ShowDraftAsync(candidates, actualPicks, mandatoryNames);
             if (chosenIndices == null) return;
 
             ApplyDraftPicks(side, candidates, candidateDeckCards, chosenIndices);

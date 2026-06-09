@@ -48,7 +48,7 @@ namespace Combat.UI
         private readonly HashSet<int> _disabledIndices = new();
         private int _picksAllowed = 1;
         private List<CardDef> _candidateRefs;
-        private string _mandatoryCardName;
+        private readonly HashSet<string> _mandatoryCardNames = new();
 
         private bool _initialized;
 
@@ -375,17 +375,29 @@ namespace Combat.UI
 
         public async UniTask<List<int>> ShowDraftAsync(List<CardDef> candidates, int picksAllowed, string mandatoryCardName = null)
         {
+            var mandatory = string.IsNullOrEmpty(mandatoryCardName)
+                ? null
+                : new List<string> { mandatoryCardName };
+            return await ShowDraftAsync(candidates, picksAllowed, mandatory);
+        }
+
+        public async UniTask<List<int>> ShowDraftAsync(List<CardDef> candidates, int picksAllowed, IReadOnlyCollection<string> mandatoryCardNames)
+        {
             EnsureInitialized();
             _multiTcs = new UniTaskCompletionSource<List<int>>();
             _pickedIndices.Clear();
             _pickedDefs.Clear();
             _disabledIndices.Clear();
+            _mandatoryCardNames.Clear();
             _picksAllowed = Mathf.Clamp(picksAllowed, 1, candidates.Count);
             _candidateRefs = candidates;
-            _mandatoryCardName = !string.IsNullOrEmpty(mandatoryCardName) &&
-                                 candidates.Exists(c => c != null && c.CardName == mandatoryCardName)
-                                 ? mandatoryCardName
-                                 : null;
+            if (mandatoryCardNames != null)
+            {
+                foreach (var name in mandatoryCardNames.Where(name => !string.IsNullOrEmpty(name) && candidates.Exists(c => c != null && c.CardName == name)))
+                {
+                    _mandatoryCardNames.Add(name);
+                }
+            }
 
             ParkButtonsIntoOverlay();
             await ShowOverlayAsync();
@@ -410,7 +422,7 @@ namespace Combat.UI
                         cg.blocksRaycasts = true;
                     }
                     choiceButtons[i].Setup(candidates[i], def => OnDraftCardChosen(capturedIndex, def));
-                    bool isMandatory = !string.IsNullOrEmpty(_mandatoryCardName) && candidates[i].CardName == _mandatoryCardName;
+                    bool isMandatory = _mandatoryCardNames.Contains(candidates[i].CardName);
                     choiceButtons[i].SetMandatory(isMandatory);
                     int delayIdx = shown++;
                     _ = choiceButtons[i].PlayAppearAsync(delayIdx * staggerDelay);
@@ -459,12 +471,12 @@ namespace Combat.UI
             int existingPickSlot = _pickedIndices.IndexOf(index);
             if (existingPickSlot >= 0)
             {
-                // Mandatory cards can't be un-picked when removing them would leave too few slots
-                // to re-pick the mandatory in time.
-                if (!string.IsNullOrEmpty(_mandatoryCardName) && chosen.CardName == _mandatoryCardName)
+                // Mandatory cards can't be un-picked when there would no longer be enough
+                // remaining pick slots to recover every required name.
+                if (_mandatoryCardNames.Contains(chosen.CardName) && WouldBreakMandatoryCoverage(index))
                 {
-                    // Always allow unpick of mandatory — player can re-pick it; FlashMandatory
-                    // will catch any final-pick attempt that omits it.
+                    _ = FlashMandatoryAsync();
+                    return;
                 }
 
                 _pickedIndices.RemoveAt(existingPickSlot);
@@ -477,16 +489,11 @@ namespace Combat.UI
                 return;
             }
 
-            // Picking a new card: enforce mandatory rule.
-            if (!string.IsNullOrEmpty(_mandatoryCardName) && chosen.CardName != _mandatoryCardName)
+            // Picking a new card: enforce the full mandatory set, not just one name.
+            if (WouldBreakMandatoryCoverage(index, chosen.CardName))
             {
-                bool mandatoryAlreadyPicked = _pickedDefs.Exists(c => c != null && c.CardName == _mandatoryCardName);
-                int picksRemainingAfterThis = _picksAllowed - (_pickedDefs.Count + 1);
-                if (!mandatoryAlreadyPicked && picksRemainingAfterThis <= 0)
-                {
-                    _ = FlashMandatoryAsync();
-                    return;
-                }
+                _ = FlashMandatoryAsync();
+                return;
             }
 
             if (_pickedIndices.Count >= _picksAllowed) return; // safety
@@ -520,19 +527,33 @@ namespace Combat.UI
             if (_candidateRefs == null) return;
             for (int i = 0; i < _candidateRefs.Count && i < choiceButtons.Count; i++)
             {
-                if (_candidateRefs[i] != null && _candidateRefs[i].CardName == _mandatoryCardName)
+                if (_candidateRefs[i] == null || !_mandatoryCardNames.Contains(_candidateRefs[i].CardName)) continue;
+                var rect = choiceButtons[i].transform as RectTransform;
+                if (rect == null) continue;
+                Vector2 origin = rect.anchoredPosition;
+                for (int s = 0; s < 6; s++)
                 {
-                    var rect = choiceButtons[i].transform as RectTransform;
-                    if (rect == null) continue;
-                    Vector2 origin = rect.anchoredPosition;
-                    for (int s = 0; s < 6; s++)
-                    {
-                        rect.anchoredPosition = origin + new Vector2((s % 2 == 0 ? 1 : -1) * 8f, 0f);
-                        await UniTask.Delay(TimeSpan.FromSeconds(0.03f), DelayType.UnscaledDeltaTime);
-                    }
-                    rect.anchoredPosition = origin;
+                    rect.anchoredPosition = origin + new Vector2((s % 2 == 0 ? 1 : -1) * 8f, 0f);
+                    await UniTask.Delay(TimeSpan.FromSeconds(0.03f), DelayType.UnscaledDeltaTime);
                 }
+                rect.anchoredPosition = origin;
             }
+        }
+
+        private bool WouldBreakMandatoryCoverage(int indexToRemove, string candidateName = null)
+        {
+            var remainingSlotsAfterAction = _picksAllowed - (_pickedIndices.Count + (candidateName == null ? -1 : 1));
+            var pickedNames = _pickedDefs
+                .Where((_, i) => i != _pickedIndices.IndexOf(indexToRemove))
+                .Select(card => card?.CardName)
+                .Where(name => !string.IsNullOrEmpty(name))
+                .ToList();
+            if (!string.IsNullOrEmpty(candidateName) && !pickedNames.Contains(candidateName))
+            {
+                pickedNames.Add(candidateName);
+            }
+            var missingMandatory = _mandatoryCardNames.Count(name => !pickedNames.Contains(name));
+            return missingMandatory > remainingSlotsAfterAction;
         }
     }
 }
