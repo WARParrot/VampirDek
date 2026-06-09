@@ -120,8 +120,6 @@ namespace Combat.UI
             if (_layoutElement != null) _layoutElement.ignoreLayout = false;
             _handManager.OnCardDragEnded(this, eventData);
         }
-    }
-}
 
         public void OnPointerEnter(PointerEventData eventData)
         {
@@ -142,3 +140,5 @@ namespace Combat.UI
             _rectTransform.localScale = hovered ? _restScale * 1.08f : _restScale;
             _rectTransform.anchoredPosition = hovered ? _restAnchoredPosition + new Vector2(0f, 18f) : _restAnchoredPosition;
         }
+    }
+}
