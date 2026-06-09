@@ -183,6 +183,11 @@ public class BoardView : MonoBehaviour
             {
                 var go = Instantiate(SlotPrefab, rowParent);
                 go.name = $"{GeneratedPrefix}{sideName}_{rowType}_{displayIndex}";
+                
+                if (sideName == "Opponent")
+                {
+                    go.transform.localRotation = Quaternion.Euler(0, 0, 180);
+                }
 
                 var slotUI = go.GetComponent<BoardSlotUI>();
                 if (slotUI == null)

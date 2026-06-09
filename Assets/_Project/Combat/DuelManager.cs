@@ -1098,7 +1098,7 @@ namespace Combat
             int aliveBuildings = buildingRow == null ? 0 : buildingRow.Count(s => s?.Occupant != null && s.Occupant.IsAlive);
 
             if (target.IsTown)
-                return aliveBuildings >= 2;
+                return aliveBuildings >= 1;
 
             var humanRow = defenderSide.Board.HumanRow;
             if (humanRow == null) return false;
