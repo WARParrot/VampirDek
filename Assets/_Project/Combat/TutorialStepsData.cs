@@ -25,7 +25,19 @@ namespace Combat
                 },
                 new TutorialStep
                 {
-                    Message = "Карта в руке: сверху — стоимость, посередине — иллюстрация, снизу — название и характеристики (HP/ATK). Стоимость платится тем ресурсом, который указан рядом с цифрой.",
+                    Message = "Карта в руке: сверху — стоимость, посередине — иллюстрация, снизу — название и характеристики.
+
+Пример:
+```
++---------------------------+
+|        Card Name          |
+|        [ artwork ]        |
+| Cost: top-right           |
+| ATK: bottom-left  HP: bottom-right |
+| Speed / effects: lower strip      |
++---------------------------+
+```
+Стоимость платится тем ресурсом, который указан рядом с цифрой.",
                     MessageKey = "tutorial.card_anatomy",
                     DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance
                 },
