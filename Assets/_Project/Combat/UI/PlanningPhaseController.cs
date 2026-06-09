@@ -87,15 +87,21 @@ namespace Combat.UI
             var card = slotUI.Occupant;
             Debug.Log($"[Planner] Occupant={card?.SourceCard?.CardName} alive={card?.IsAlive}");
 
+            bool isPlayerSide = slotUI.Board == state.PlayerSide.Board;
+            bool isOpponentSide = slotUI.Board == state.OpponentSide.Board;
+            Debug.Log($"[Planner] isPlayer={isPlayerSide} isOpponent={isOpponentSide} row={card?.TypeOfRow}");
+
+            if (_selectedAttacker != null && (card == null || !card.IsAlive || isPlayerSide))
+            {
+                CancelSelectedTarget(card == null ? "empty slot" : "friendly card");
+                return;
+            }
+
             if (card == null || !card.IsAlive)
             {
                 Debug.Log("[Planner] No valid occupant - ignore");
                 return;
             }
-
-            bool isPlayerSide = slotUI.Board == state.PlayerSide.Board;
-            bool isOpponentSide = slotUI.Board == state.OpponentSide.Board;
-            Debug.Log($"[Planner] isPlayer={isPlayerSide} isOpponent={isOpponentSide} row={card.TypeOfRow}");
 
             if (isPlayerSide && IsAttackCapable(card))
             {
@@ -224,6 +230,14 @@ namespace Combat.UI
         private static bool IsAttackCapable(BoardCard card)
         {
             return card != null && card.IsAlive && card.Attack > 0;
+        }
+
+        private void CancelSelectedTarget(string reason)
+        {
+            if (_selectedAttacker == null) return;
+            Debug.Log($"[Planner] Cancelling target for {_selectedAttacker.SourceCard.CardName}: {reason}");
+            _selectedAttacker.PlannedTarget = null;
+            ClearSelection();
         }
 
         private void ClearSelection()
