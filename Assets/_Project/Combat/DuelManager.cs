@@ -28,6 +28,7 @@ namespace Combat
 
         private InputAction _leaveAction;
         private bool _leaveDuelRequested;
+        private bool _victoryScreenShown;
 
         public DeckData _playerPersistentDeck;
         public DuelState CurrentDuelState => _duelState;
@@ -43,6 +44,7 @@ namespace Combat
 
         // AI System
         private OpponentAI _opponentAI;
+        [SerializeField] private VictoryScreen _victoryScreenPrefab;
 
         public void ConfirmCurrentPhase()
         {
@@ -603,7 +605,6 @@ namespace Combat
                 Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
                 if (terminalAfterAction)
                 {
-                    Debug.Log($"[DuelDebug] Terminal detected during action processing; routing to outcome phase. action='{action.Description}'");
                     CaptureDuelOutcomeIfFinished();
                     await TransitionToOutcomePhaseAsync();
                     return;
@@ -716,7 +717,8 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("Loot"))
             {
-                Debug.Log("[Phase] Loot phase entered");
+                Debug.LogError($"[DEBUG] Loot phase entered. Outcome={_duelOutcome}");
+
                 await ShowLootSelectionAsync();
                 await ReturnToExplorationAsync();
                 return;
@@ -870,6 +872,15 @@ namespace Combat
             Debug.Log($"[DuelDebug] ReturnToExplorationAsync requested. leaveAlreadyRequested={_leaveDuelRequested}; {DescribeDuelDebugState()}");
             if (_leaveDuelRequested) return;
 
+            if (_duelOutcome == DuelOutcome.PlayerLost)
+            {
+                var victoryScreen = FindObjectOfType<VictoryScreen>(true);
+                if (victoryScreen != null)
+                {
+                    await victoryScreen.ShowDefeatAsync();
+                }
+            }
+            
             var director = ResolveGameDirector();
             Debug.Log($"[DuelDebug] ReturnToExplorationAsync directorFound={director != null}.");
             if (director == null)
