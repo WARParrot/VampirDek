@@ -188,7 +188,7 @@ namespace Combat.UI
             // Speed band (only if meaningful).
             if (card.MaxSpeed > 0)
             {
-                CreateLabel(rt, "Speed", $"<color=#ffd864>⚡</color> {card.MinSpeed}-{card.MaxSpeed}",
+                CreateLabel(rt, "Speed", $"<color=#ffd864>SPD</color> {card.MinSpeed}-{card.MaxSpeed}",
                     11, FontStyles.Italic, TextAlignmentOptions.Center,
                     new Color(0.85f, 0.85f, 0.85f, 0.9f),
                     new Vector2(0f, 0f), new Vector2(1f, 0f),
@@ -278,12 +278,14 @@ namespace Combat.UI
 
         private static string GlyphForType(CardType type)
         {
+            // Keep these labels ASCII-only: several TMP fallback assets miss emoji/symbol glyphs,
+            // which renders tofu boxes on procedural cards.
             switch (type)
             {
-                case CardType.Vanguard: return "⚔";
-                case CardType.Building: return "🏰";
-                case CardType.Human:    return "♟";
-                case CardType.Town:     return "✦";
+                case CardType.Vanguard: return "ATK";
+                case CardType.Building: return "BLD";
+                case CardType.Human:    return "HUM";
+                case CardType.Town:     return "TWN";
             }
             return "?";
         }

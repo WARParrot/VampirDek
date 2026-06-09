@@ -401,12 +401,12 @@ public class TargetPlanArrowsUI : MonoBehaviour
         }
         else if (targetDies)
         {
-            label = $"{effectiveHpBefore} → <color=#ff5e4a>✕</color>";
+            label = $"{effectiveHpBefore} -> <color=#ff5e4a>KO</color>";
             textColor = new Color(1f, 0.42f, 0.32f, 1f);
         }
         else
         {
-            label = $"{effectiveHpBefore} → {targetHpAfter}";
+            label = $"{effectiveHpBefore} -> {targetHpAfter}";
             textColor = new Color(1f, 0.95f, 0.85f, 1f);
         }
         // Mark the order so player can see who hits first.
@@ -425,9 +425,9 @@ public class TargetPlanArrowsUI : MonoBehaviour
 
             string initColor;
             string initIcon;
-            if (srcMin > tMax)        { initColor = "#7ad48b"; initIcon = "⚡▲"; }   // strictly first
-            else if (srcMax < tMin)   { initColor = "#ff7a6e"; initIcon = "⚡▼"; }   // strictly second
-            else                      { initColor = "#ffd864"; initIcon = "⚡≈"; }   // overlap
+            if (srcMin > tMax)        { initColor = "#7ad48b"; initIcon = "SPD+"; }   // strictly first
+            else if (srcMax < tMin)   { initColor = "#ff7a6e"; initIcon = "SPD-"; }   // strictly second
+            else                      { initColor = "#ffd864"; initIcon = "SPD="; }   // overlap
 
             label += $"\n<size=12><color={initColor}>{initIcon} {srcMin}-{srcMax} vs {tMin}-{tMax}</color></size>";
             var wanted = new Vector2(96f, 42f);
@@ -497,7 +497,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
         var tipGo = new GameObject("Text", typeof(RectTransform));
         tipGo.transform.SetParent(go.transform, false);
         var tip = tipGo.AddComponent<TextMeshProUGUI>();
-        tip.text = "Цифры у стрелки = HP цели <b>до</b> → <b>после</b> удара.  <color=#ff5e4a><b>✕</b></color> — карта погибнет.  Если в цель бьют двое, у второй стрелки показано HP <b>после</b> первого удара (с пометкой <color=#9c9aa0>#2</color>).";
+        tip.text = "Цифры у стрелки = HP цели <b>до</b> -> <b>после</b> удара.  <color=#ff5e4a><b>KO</b></color> — карта погибнет.  Если в цель бьют двое, у второй стрелки показано HP <b>после</b> первого удара (с пометкой <color=#9c9aa0>#2</color>).";
         tip.fontSize = 20f;
         tip.alignment = TextAlignmentOptions.Center;
         tip.color = new Color(1f, 0.95f, 0.88f, 1f);

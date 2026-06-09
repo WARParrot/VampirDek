@@ -318,7 +318,7 @@ namespace Combat.UI
         {
             string winner = SafeEntityName(e.Winner);
             string loser = SafeEntityName(e.Loser);
-            AddLine($"<color=#ffd864>⚔</color> {winner} побеждает {loser}");
+            AddLine($"<color=#ffd864>ATK</color> {winner} побеждает {loser}");
         }
 
         private void OnCardDrawn(CardDrawnEvent e)
