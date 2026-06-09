@@ -34,6 +34,10 @@ namespace Combat
         private bool _cardPlaced = false;
         private bool _targetSelected = false;
         private bool _phaseConfirmed = false;
+        // Set if a PlaceCardIntoSlotAction lands while a CardDragged step is still
+        // counting down its read-time. The upcoming CardPlaced step would otherwise
+        // hang waiting for a second placement that never happens.
+        private bool _placeObservedDuringDragStep = false;
         private bool _waitingForRequiredPhase = false;
         private bool _advancePending = false;
         private bool _tutorialLeaveRequested = false;
@@ -190,6 +194,10 @@ namespace Combat
                 {
                     AdvanceAfterReadTime().Forget();
                 }
+                else if (step.CompletionCondition == TutorialStepCondition.CardDragged)
+                {
+                    _placeObservedDuringDragStep = true;
+                }
             }
             if (step.CompletionCondition == TutorialStepCondition.ActionExecuted)
             {
@@ -215,6 +223,7 @@ namespace Combat
             _currentStepIndex = 0;
             _tutorialLeaveRequested = false;
             _draftStepReached = false;
+            _placeObservedDuringDragStep = false;
             _cts = new CancellationTokenSource();
             Debug.Log("[TutorialSystem] Tutorial started!");
             ShowCurrentStep();
@@ -292,6 +301,12 @@ namespace Combat
                 }
             }
             ResetStepFlags();
+            if (step.CompletionCondition == TutorialStepCondition.CardPlaced && _placeObservedDuringDragStep)
+            {
+                _placeObservedDuringDragStep = false;
+                AdvanceAfterReadTime().Forget();
+                return;
+            }
             ProcessStepCondition(step).Forget();
         }
         private bool IsStepPhaseReady(TutorialStep step)
