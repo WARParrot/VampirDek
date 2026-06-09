@@ -146,7 +146,13 @@ namespace Combat
         public bool IsReadyForDraft()
         {
             if (!_isTutorialEncounter) return true;
-            if (!_tutorialActive) return false;
+            if (!_tutorialActive)
+            {
+                // If the tutorial has already been skipped or completed, do not hold up drafting.
+                if (!_forceShowAlways && (PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1 || ShouldSkipDueToStartLimit()))
+                    return true;
+                return false;
+            }
             // Once we've shown the draft step at least once, all subsequent drafts open
             // immediately — only the very first draft is gated by the intro chain.
             if (_draftStepReached) return true;
