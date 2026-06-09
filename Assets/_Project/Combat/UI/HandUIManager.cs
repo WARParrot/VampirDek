@@ -161,6 +161,12 @@ public class HandUIManager : MonoBehaviour
         foreach (var card in side.Hand)
         {
             var go = Instantiate(CardViewPrefab, HandContainer);
+            var rt = go.transform as RectTransform;
+            if (rt != null)
+            {
+                rt.localScale = Vector3.one;
+                rt.anchoredPosition = Vector2.zero;
+            }
             var handler = go.AddComponent<DragHandler>();
             handler.Setup(card, this);
             handler.enabled = CanStartCardDrag();

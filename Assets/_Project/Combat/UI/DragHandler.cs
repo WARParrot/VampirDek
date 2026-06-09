@@ -6,7 +6,7 @@ using Definitions;
 namespace Combat.UI
 {
     [RequireComponent(typeof(CanvasGroup))]
-    public class DragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public class DragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
     {
         private Canvas _canvas;
         private RectTransform _rectTransform;
@@ -16,12 +16,20 @@ namespace Combat.UI
         private ICard _card;
         private HandUIManager _handManager;
         private Vector2 _pointerOffset;
+        private Vector3 _restScale = Vector3.one;
+        private Vector2 _restAnchoredPosition;
+        private bool _isHovered;
 
         public bool IsDragging { get; private set; }
 
         private void Awake()
         {
             _rectTransform = GetComponent<RectTransform>();
+            if (_rectTransform != null)
+            {
+                _restScale = _rectTransform.localScale;
+                _restAnchoredPosition = _rectTransform.anchoredPosition;
+            }
             _canvasGroup = GetComponent<CanvasGroup>();
             _canvas = GetComponentInParent<Canvas>();
             if (_canvas != null)
@@ -50,6 +58,11 @@ namespace Combat.UI
         {
             _card = card;
             _handManager = manager;
+            if (_rectTransform != null)
+            {
+                _restScale = _rectTransform.localScale;
+                _restAnchoredPosition = _rectTransform.anchoredPosition;
+            }
         }
 
         public ICard GetCard() => _card;
@@ -62,9 +75,11 @@ namespace Combat.UI
                 return;
             }
 
-            _canvasGroup.alpha = 0.6f;
+            _canvasGroup.alpha = 0.75f;
             _canvasGroup.blocksRaycasts = false;
             IsDragging = true;
+            _isHovered = false;
+            ApplyHoverState(false);
             if (_layoutElement != null) _layoutElement.ignoreLayout = true;
 
             // Free the card from layout BEFORE measuring its pointer offset so the
@@ -101,8 +116,29 @@ namespace Combat.UI
             _canvasGroup.alpha = 1f;
             _canvasGroup.blocksRaycasts = true;
             IsDragging = false;
+            ApplyHoverState(_isHovered);
             if (_layoutElement != null) _layoutElement.ignoreLayout = false;
             _handManager.OnCardDragEnded(this, eventData);
         }
     }
 }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            _isHovered = true;
+            if (!IsDragging) ApplyHoverState(true);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            _isHovered = false;
+            if (!IsDragging) ApplyHoverState(false);
+        }
+
+        private void ApplyHoverState(bool hovered)
+        {
+            if (_rectTransform == null) return;
+            _rectTransform.SetAsLastSibling();
+            _rectTransform.localScale = hovered ? _restScale * 1.08f : _restScale;
+            _rectTransform.anchoredPosition = hovered ? _restAnchoredPosition + new Vector2(0f, 18f) : _restAnchoredPosition;
+        }
