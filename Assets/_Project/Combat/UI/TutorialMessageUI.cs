@@ -86,8 +86,8 @@ namespace Combat
             if (_canvasGroup != null)
             {
                 _canvasGroup.alpha = 1f;
-                _canvasGroup.blocksRaycasts = false;
-                _canvasGroup.interactable = false;
+                _canvasGroup.blocksRaycasts = hasPreview;
+                _canvasGroup.interactable = hasPreview;
                 _targetAlpha = 1f;
                 Debug.Log($"[TutorialMessageUI] CanvasGroup alpha set to 1, gameObject active: {gameObject.activeInHierarchy}");
             }
@@ -127,12 +127,12 @@ namespace Combat
             var dragHandler = cardInstance.GetComponent<Combat.UI.DragHandler>();
             if (dragHandler != null) dragHandler.enabled = false;
             var button = cardInstance.GetComponent<Button>();
-            if (button != null) button.interactable = false;
+            if (button != null) button.interactable = true;
             var canvasGroup = cardInstance.GetComponent<CanvasGroup>();
             if (canvasGroup != null)
             {
-                canvasGroup.blocksRaycasts = false;
-                canvasGroup.interactable = false;
+                canvasGroup.blocksRaycasts = true;
+                canvasGroup.interactable = true;
                 canvasGroup.alpha = 1f;
             }
 

@@ -872,7 +872,7 @@ namespace Combat
 
                     "tutorial.continue_prompt",
 
-                    "Нажмите Space или E, чтобы продолжить.");
+                    "Нажмите Space, чтобы продолжить.");
 
                 message += $"\n\n<size=80%><color=#FFD36A>▶ {continuePrompt}</color></size>";
 
@@ -909,8 +909,6 @@ namespace Combat
             if (kb == null) return false;
 
             return kb.spaceKey.wasPressedThisFrame ||
-
-                   kb.eKey.wasPressedThisFrame ||
 
                    kb.enterKey.wasPressedThisFrame;
 
@@ -1054,13 +1052,13 @@ namespace Combat
 
                         // Players reported steps changing before they could read them, so we now
 
-                        // treat the configured time as a *minimum* and wait for Space/E afterwards.
+                        // treat the configured time as a *minimum* and wait for Space afterwards.
 
                         var minTime = Mathf.Max(step.TimeToWait, MinimumManualAdvanceSeconds) + TimeElapsedManualGracePadding;
 
                         await UniTask.Delay(TimeSpan.FromSeconds(minTime), cancellationToken: _cts.Token);
 
-                        // After the read window the Update loop handles Space/E. Nothing else to do.
+                        // After the read window the Update loop handles Space. Nothing else to do.
 
                         break;
 
@@ -1070,7 +1068,7 @@ namespace Combat
 
                     case TutorialStepCondition.ManualAdvance:
 
-                        // Wait for the player to press Space/E. Update() drives the advance.
+                        // Wait for the player to press Space. Update() drives the advance.
 
                         break;
 
