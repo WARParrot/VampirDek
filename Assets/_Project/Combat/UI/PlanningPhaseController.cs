@@ -16,6 +16,7 @@ namespace Combat.UI
         private int _lastHandledClickFrame = -1;
         private BoardSlotUI _lastHandledClickSlot;
         private BoardSlotUI _pressedSlot;
+        private bool _pressedSlotSelectedAttacker;
 
         [Header("Highlight Colors")]
         public Color AttackerHighlight = Color.cyan;
@@ -45,12 +46,14 @@ namespace Combat.UI
             if (!IsPlanningPhase())
             {
                 _pressedSlot = null;
+                _pressedSlotSelectedAttacker = false;
                 return;
             }
 
             if (mouse.leftButton.wasPressedThisFrame)
             {
                 _pressedSlot = FindSlotUnderMouse(mouse.position.ReadValue());
+                _pressedSlotSelectedAttacker = TrySelectPressedAttacker(_pressedSlot);
             }
 
             if (!mouse.leftButton.wasReleasedThisFrame) return;
@@ -58,14 +61,18 @@ namespace Combat.UI
             var slot = FindSlotUnderMouse(mouse.position.ReadValue());
             if (_pressedSlot != null && slot != null && slot != _pressedSlot)
             {
-                HandleSlotClick(_pressedSlot);
+                // The source was selected on mouse-down so enemy target highlights stay visible
+                // during drag/hold. On release, only apply the target slot.
                 HandleSlotClick(slot);
                 _pressedSlot = null;
+                _pressedSlotSelectedAttacker = false;
                 return;
             }
 
+            var selectedOnPress = _pressedSlotSelectedAttacker;
             _pressedSlot = null;
-            if (slot != null)
+            _pressedSlotSelectedAttacker = false;
+            if (slot != null && !selectedOnPress)
             {
                 HandleSlotClick(slot);
             }
@@ -126,25 +133,7 @@ namespace Combat.UI
 
             if (isPlayerSide && IsAttackCapable(card))
             {
-                Debug.Log($"[Planner] Selecting friendly attacker {card.SourceCard.CardName} ATK={card.Attack}");
-                if (_selectedAttacker != null) ClearSelection();
-                _selectedAttacker = card;
-                _boardView.SetCardHighlight(card, AttackerHighlight);
-
-                foreach (var enemySlot in state.OpponentSide.Board.AllSlots())
-                {
-                    if (enemySlot.Occupant != null && enemySlot.Occupant.IsAlive)
-                    {
-                        Debug.Log($"[Planner] Highlight enemy {enemySlot.Occupant.SourceCard.CardName}");
-                        _boardView.SetCardHighlight(enemySlot.Occupant, TargetHighlight);
-                    }
-                }
-
-                var tutorial = FindObjectOfType<Combat.TutorialSystem>(true);
-                if (tutorial != null && tutorial.IsTutorialActive)
-                {
-                    tutorial.OnAttackerCardSelected();
-                }
+                SelectAttacker(card, state);
             }
             else if (isOpponentSide && _selectedAttacker != null)
             {
@@ -189,6 +178,49 @@ namespace Combat.UI
             else
             {
                 Debug.Log("[Planner] Click condition not met");
+            }
+        }
+
+        private bool TrySelectPressedAttacker(BoardSlotUI slotUI)
+        {
+            if (slotUI == null) return false;
+            var duelManager = DuelManagerProxy.Instance;
+            var state = duelManager?.CurrentDuelState;
+            if (state == null) return false;
+            var phase = state.CurrentPhase;
+            if (phase == null || !phase.Tags.Contains("PlanningPhase")) return false;
+            if (slotUI.Board != state.PlayerSide.Board) return false;
+
+            var card = slotUI.Occupant;
+            if (_selectedAttacker != null) return false;
+            if (!IsAttackCapable(card)) return false;
+
+            SelectAttacker(card, state);
+            return true;
+        }
+
+        private void SelectAttacker(BoardCard card, DuelState state)
+        {
+            if (card == null || state == null || _boardView == null) return;
+
+            Debug.Log($"[Planner] Selecting friendly attacker {card.SourceCard.CardName} ATK={card.Attack}");
+            if (_selectedAttacker != null && _selectedAttacker != card) ClearSelection();
+            _selectedAttacker = card;
+            _boardView.SetCardHighlight(card, AttackerHighlight);
+
+            foreach (var enemySlot in state.OpponentSide.Board.AllSlots())
+            {
+                if (enemySlot.Occupant != null && enemySlot.Occupant.IsAlive)
+                {
+                    Debug.Log($"[Planner] Highlight enemy {enemySlot.Occupant.SourceCard.CardName}");
+                    _boardView.SetCardHighlight(enemySlot.Occupant, TargetHighlight);
+                }
+            }
+
+            var tutorial = FindObjectOfType<Combat.TutorialSystem>(true);
+            if (tutorial != null && tutorial.IsTutorialActive)
+            {
+                tutorial.OnAttackerCardSelected();
             }
         }
 

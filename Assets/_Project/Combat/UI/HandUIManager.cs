@@ -29,6 +29,7 @@ public class HandUIManager : MonoBehaviour
     private DuelManager _duelManager;
     private Dictionary<ICard, DragHandler> _cardViews = new();
     private DragHandler _currentlyDragging;
+    private DragHandler _dropPreviewCard;
     private int _lastHandCount = -1;
     private bool _lastDragAllowed = false;
     [Header("HR Animation")]
@@ -204,12 +205,22 @@ public class HandUIManager : MonoBehaviour
         if (handler == null || BoardView == null || !CanStartCardDrag()) return;
         var card = handler.GetCard();
         if (card?.Def == null) return;
+
+        if (_dropPreviewCard == handler)
+        {
+            _dropPreviewCard = null;
+            BoardView.HideAllHighlights();
+            return;
+        }
+
+        _dropPreviewCard = handler;
         BoardView.ShowValidDropZones(card.Def.RowType);
     }
 
     public void OnCardDragStarted(DragHandler handler)
     {
         _currentlyDragging = handler;
+        _dropPreviewCard = handler;
         BoardView.ShowValidDropZones(handler.GetCard().Def.RowType);
         if (TutorialSystem == null)
         {
@@ -224,6 +235,7 @@ public class HandUIManager : MonoBehaviour
     public void OnCardDragEnded(DragHandler handler, PointerEventData eventData)
     {
         _currentlyDragging = null;
+        if (_dropPreviewCard == handler) _dropPreviewCard = null;
         var card = handler.GetCard();
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
