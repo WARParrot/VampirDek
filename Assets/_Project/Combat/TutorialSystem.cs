@@ -88,6 +88,8 @@ namespace Combat
 
         private bool _deferLeavePromptUntilDraftComplete = false;
 
+        private bool _leavePromptReadyAfterDeferredDraft = false;
+
         private float _stepShownAt = 0f;
 
         private bool _tutorialFullyAcknowledged = false;
@@ -366,6 +368,8 @@ namespace Combat
 
                 _deferLeavePromptUntilDraftComplete = false;
 
+                _leavePromptReadyAfterDeferredDraft = true;
+
                 ShowCurrentStep();
 
                 return;
@@ -517,6 +521,8 @@ namespace Combat
             _draftStepReached = false;
 
             _deferLeavePromptUntilDraftComplete = false;
+
+            _leavePromptReadyAfterDeferredDraft = false;
 
             _placeObservedDuringDragStep = false;
 
@@ -739,6 +745,8 @@ namespace Combat
             if (step == null || step.CompletionCondition != TutorialStepCondition.LeaveDuel) return false;
 
             if (!_draftStepReached || _deferLeavePromptUntilDraftComplete) return false;
+
+            if (_leavePromptReadyAfterDeferredDraft) return false;
 
             var tags = _duelManager?.CurrentDuelState?.CurrentPhase?.Tags;
 
