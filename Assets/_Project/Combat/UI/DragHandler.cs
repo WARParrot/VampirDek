@@ -54,6 +54,12 @@ namespace Combat.UI
 
         public ICard GetCard() => _card;
 
+        public void OnCardTapped(ICard tappedCard)
+        {
+            if (tappedCard != _card) return;
+            _handManager?.OnCardTapped(this);
+        }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (_handManager != null && !_handManager.CanStartCardDrag())

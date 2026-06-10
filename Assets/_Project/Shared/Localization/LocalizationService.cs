@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Text;
 using Definitions;
 using UnityEngine;
-
 namespace Shared.Localization
 {
     /// <summary>
@@ -16,26 +15,22 @@ namespace Shared.Localization
     {
         public string Key;
         [TextArea(2, 6)] public string Fallback;
-
         public LocalizedString(string key, string fallback)
         {
             Key = key;
             Fallback = fallback;
         }
-
         public string Resolve()
         {
             return LocalizationService.T(Key, Fallback);
         }
     }
-
     [Serializable]
     public class LocalizedEntry
     {
         public string Key;
         [TextArea(1, 8)] public string Value;
     }
-
     /// <summary>
     /// Optional table asset for the production transition: designers/translators can move entries out of
     /// code into ScriptableObject/CSV-generated assets without changing call sites.
@@ -45,13 +40,11 @@ namespace Shared.Localization
     {
         public string LanguageCode = "ru";
         public List<LocalizedEntry> Entries = new List<LocalizedEntry>();
-
         private void OnEnable()
         {
             LocalizationService.RegisterTable(LanguageCode, Entries);
         }
     }
-
     /// <summary>
     /// Thin project-local localization facade. It intentionally mirrors a production localization boundary:
     /// stable keys in content, formatting through templates, missing-key diagnostics, and pluggable tables.
@@ -61,14 +54,11 @@ namespace Shared.Localization
         private const string PlayerPrefsLanguageKey = "locale.language";
         private const string DefaultLanguage = "ru";
         private const string FallbackLanguage = "en";
-
         private static readonly Dictionary<string, Dictionary<string, string>> Tables = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> MissingKeys = new HashSet<string>();
         private static bool _initialized;
         private static string _currentLanguage = DefaultLanguage;
-
         public static event Action<string> LanguageChanged;
-
         public static string CurrentLanguage
         {
             get
@@ -77,20 +67,17 @@ namespace Shared.Localization
                 return _currentLanguage;
             }
         }
-
         public static void SetLanguage(string languageCode)
         {
             EnsureInitialized();
             if (string.IsNullOrWhiteSpace(languageCode)) languageCode = DefaultLanguage;
             languageCode = languageCode.Trim().ToLowerInvariant();
             if (_currentLanguage == languageCode) return;
-
             _currentLanguage = languageCode;
             PlayerPrefs.SetString(PlayerPrefsLanguageKey, _currentLanguage);
             PlayerPrefs.Save();
             LanguageChanged?.Invoke(_currentLanguage);
         }
-
         public static void RegisterTable(string languageCode, IEnumerable<LocalizedEntry> entries)
         {
             if (string.IsNullOrWhiteSpace(languageCode) || entries == null) return;
@@ -102,7 +89,6 @@ namespace Shared.Localization
                 table[NormalizeKey(entry.Key)] = entry.Value ?? string.Empty;
             }
         }
-
         public static void RegisterTable(string languageCode, IReadOnlyDictionary<string, string> entries)
         {
             if (string.IsNullOrWhiteSpace(languageCode) || entries == null) return;
@@ -114,21 +100,17 @@ namespace Shared.Localization
                 table[NormalizeKey(pair.Key)] = pair.Value ?? string.Empty;
             }
         }
-
         public static string T(string key, string fallback = null)
         {
             EnsureInitialized();
             if (string.IsNullOrWhiteSpace(key)) return fallback ?? string.Empty;
-
             key = NormalizeKey(key);
             if (TryLookup(_currentLanguage, key, out var value)) return value;
             if (!string.Equals(_currentLanguage, FallbackLanguage, StringComparison.OrdinalIgnoreCase) && TryLookup(FallbackLanguage, key, out value)) return value;
             if (TryLookup(DefaultLanguage, key, out value)) return value;
-
             if (MissingKeys.Add(key)) Debug.LogWarning($"[Localization] Missing key '{key}' for language '{_currentLanguage}'.");
             return fallback ?? key;
         }
-
         public static string TFormat(string key, string fallback, params object[] args)
         {
             var template = T(key, fallback);
@@ -143,7 +125,6 @@ namespace Shared.Localization
                 return template;
             }
         }
-
         public static string CardName(CardDef def)
         {
             if (def == null) return T("ui.card.default", "Card");
@@ -151,7 +132,6 @@ namespace Shared.Localization
             var key = FirstNonEmpty(def.CardNameKey, KeyFromName("card", def.name, "name"), KeyFromName("card", fallback, "name"));
             return T(key, fallback);
         }
-
         public static string EnchantmentName(EnchantmentData data)
         {
             if (data == null) return T("ui.passive.default", "Passive");
@@ -159,7 +139,6 @@ namespace Shared.Localization
             var key = FirstNonEmpty(data.DisplayNameKey, KeyFromName("enchantment", data.name, "name"), KeyFromName("enchantment", fallback, "name"));
             return T(key, fallback);
         }
-
         public static string HintMessage(HintData hint)
         {
             if (hint == null) return string.Empty;
@@ -170,25 +149,21 @@ namespace Shared.Localization
         {
             return T("row." + rowType.ToString().ToLowerInvariant(), rowType.ToString());
         }
-
         public static string ShortRowTypeName(Definitions.RowType rowType)
         {
             return T("row.short." + rowType.ToString().ToLowerInvariant(), RowTypeName(rowType));
         }
-
         public static string StatName(string stat)
         {
             if (string.IsNullOrWhiteSpace(stat)) return T("stat.default", "Stat");
             return T("stat." + SafeKey(stat), stat);
         }
-
         public static string KeyFromName(string prefix, string name, string suffix)
         {
             var safe = SafeKey(name);
             if (string.IsNullOrEmpty(safe)) return string.Empty;
             return string.IsNullOrWhiteSpace(suffix) ? $"{prefix}.{safe}" : $"{prefix}.{safe}.{suffix}";
         }
-
         public static string SafeKey(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return string.Empty;
@@ -201,7 +176,6 @@ namespace Shared.Localization
             }
             return builder.ToString().Trim('_');
         }
-
         public static string FirstNonEmpty(params string[] values)
         {
             if (values == null) return string.Empty;
@@ -211,7 +185,6 @@ namespace Shared.Localization
             }
             return string.Empty;
         }
-
         private static void EnsureInitialized(bool registerBuiltIns = true)
         {
             if (_initialized) return;
@@ -220,7 +193,6 @@ namespace Shared.Localization
             if (string.IsNullOrWhiteSpace(_currentLanguage)) _currentLanguage = DefaultLanguage;
             if (registerBuiltIns) RegisterBuiltInTables();
         }
-
         private static Dictionary<string, string> GetOrCreateTable(string languageCode)
         {
             languageCode = string.IsNullOrWhiteSpace(languageCode) ? DefaultLanguage : languageCode.Trim().ToLowerInvariant();
@@ -231,18 +203,15 @@ namespace Shared.Localization
             }
             return table;
         }
-
         private static bool TryLookup(string languageCode, string key, out string value)
         {
             value = null;
             return Tables.TryGetValue(languageCode, out var table) && table.TryGetValue(key, out value) && value != null;
         }
-
         private static string NormalizeKey(string key)
         {
             return key.Trim();
         }
-
         private static void RegisterBuiltInTables()
         {
             RegisterTable("ru", new Dictionary<string, string>
@@ -372,8 +341,8 @@ namespace Shared.Localization
                 ["tutorial.play_vampire_place"] = "Положите Вампира в подсвеченный слот Авангарда.\n\n{PlayableCardHint}\n\nРяды поля:\n• Авангард — атакующие карты\n• Здания — обычно играются за HR\n• Люди — для HR, эффектов и жертв",
                 ["tutorial.confirm_building_intro"] = "Отлично: на поле есть атакующий Вампир. Дальше подтвердим строительство и выберем цель атаки.",
                 ["tutorial.confirm_building"] = "Нажмите подтверждение фазы, чтобы перейти к планированию атак.",
-                ["tutorial.planning_intro"] = "Фаза планирования: здесь назначаются атаки.\n\nНажмите своего живого бойца с АТК > 0 — например Вампира в Авангарде.",
-                ["tutorial.select_target"] = "Теперь нажмите живую карту противника. Выбранный Вампир будет атаковать её в бою.",
+                ["tutorial.planning_intro"] = "Фаза планирования: здесь назначаются атаки.\n\nЗажмите своего живого бойца с АТК > 0 — например Вампира в Авангарде — и протяните линию к цели.",
+                ["tutorial.select_target"] = "Отпустите на живой карте противника. Выбранный Вампир будет атаковать её в бою.",
                 ["tutorial.confirm_planning"] = "Цель выбрана. Подтвердите фазу планирования — дальше бой разыграется автоматически.",
                 ["tutorial.buildings_shield"] = "Здания работают как щит. Пока у противника живо хотя бы одно здание — оно прикрывает двух людей за собой. Город пока бить можно. Но если у противника живы оба здания, город становится недосягаем: сначала придётся снести хотя бы одно из них.",
                 ["tutorial.clash_intro"] = "Бой: если две карты атакуют друг друга, происходит столкновение. Урон считается автоматически.",
@@ -381,7 +350,6 @@ namespace Shared.Localization
                 ["tutorial.turn_end"] = "Ход почти закончен. На следующем ходу HR обновится по числу живых Людей, игроки возьмут карты, а временный урон зданий сбросится.",
                 ["tutorial.leave_duel"] = "Основы дуэли разобраны. Теперь можно отойти от стола и осмотреться вокруг — бой сохранится.\n\nЧтобы открыть дальнейший путь, вернитесь к столу и доведите дуэль до победы: разрушьте город противника.\n\nНажмите S, чтобы покинуть стол. Когда будете готовы продолжить бой, подойдите к нему снова и нажмите E."
             });
-
             RegisterTable("en", new Dictionary<string, string>
             {
                 ["card.town.name"] = "Town",
@@ -500,8 +468,8 @@ namespace Shared.Localization
                 ["tutorial.play_vampire_place"] = "Place Vampire into the highlighted Vanguard slot.\n\n{PlayableCardHint}\n\nBoard rows:\n• Vanguard — attacking cards\n• Building — buildings, usually played for HR\n• Human — people for HR, effects, and sacrifices",
                 ["tutorial.confirm_building_intro"] = "Great: you have a Human and an attacking Vampire on the board. Next, confirm building and choose an attack target.",
                 ["tutorial.confirm_building"] = "Press phase confirm to move to attack planning.",
-                ["tutorial.planning_intro"] = "Planning Phase: assign attacks here.\n\nClick your living fighter with ATK > 0 — for example, Vampire in Vanguard.",
-                ["tutorial.select_target"] = "Now click a living enemy card. The selected Vampire will attack it in combat.",
+                ["tutorial.planning_intro"] = "Planning Phase: assign attacks here.\n\nDrag from your living fighter with ATK > 0 — for example, Vampire in Vanguard — to the target.",
+                ["tutorial.select_target"] = "Release on a living enemy card. The selected Vampire will attack it in combat.",
                 ["tutorial.confirm_planning"] = "Target selected. Confirm Planning Phase — combat will resolve automatically.",
                 ["tutorial.clash_intro"] = "Combat: if two cards attack each other, they clash. Damage is calculated automatically.",
                 ["tutorial.one_sided_attack"] = "If an attack is not answered by a counterattack, the card simply deals damage to the selected target.",

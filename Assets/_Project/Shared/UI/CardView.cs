@@ -27,6 +27,7 @@ namespace Shared.UI
         {
             if (_model?.Def == null) return;
             CardDetailOverlay.Show(CardRulesText.FormatHandCardDetails(_model.Def), transform);
+            gameObject.SendMessage("OnCardTapped", _model, SendMessageOptions.DontRequireReceiver);
         }
 
         private void Refresh()

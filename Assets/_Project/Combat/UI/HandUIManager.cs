@@ -199,6 +199,14 @@ public class HandUIManager : MonoBehaviour
         return TutorialSystem == null || !TutorialSystem.IsTutorialActive || TutorialSystem.AllowsCardDragging();
     }
 
+    public void OnCardTapped(DragHandler handler)
+    {
+        if (handler == null || BoardView == null || !CanStartCardDrag()) return;
+        var card = handler.GetCard();
+        if (card?.Def == null) return;
+        BoardView.ShowValidDropZones(card.Def.RowType);
+    }
+
     public void OnCardDragStarted(DragHandler handler)
     {
         _currentlyDragging = handler;

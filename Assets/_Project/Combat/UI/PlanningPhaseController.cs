@@ -15,6 +15,7 @@ namespace Combat.UI
         private BoardCard _selectedAttacker;
         private int _lastHandledClickFrame = -1;
         private BoardSlotUI _lastHandledClickSlot;
+        private BoardSlotUI _pressedSlot;
 
         [Header("Highlight Colors")]
         public Color AttackerHighlight = Color.cyan;
@@ -40,10 +41,30 @@ namespace Combat.UI
         void Update()
         {
             var mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasReleasedThisFrame) return;
-            if (!IsPlanningPhase()) return;
+            if (mouse == null) return;
+            if (!IsPlanningPhase())
+            {
+                _pressedSlot = null;
+                return;
+            }
+
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                _pressedSlot = FindSlotUnderMouse(mouse.position.ReadValue());
+            }
+
+            if (!mouse.leftButton.wasReleasedThisFrame) return;
 
             var slot = FindSlotUnderMouse(mouse.position.ReadValue());
+            if (_pressedSlot != null && slot != null && slot != _pressedSlot)
+            {
+                HandleSlotClick(_pressedSlot);
+                HandleSlotClick(slot);
+                _pressedSlot = null;
+                return;
+            }
+
+            _pressedSlot = null;
             if (slot != null)
             {
                 HandleSlotClick(slot);

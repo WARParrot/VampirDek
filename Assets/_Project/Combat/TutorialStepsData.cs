@@ -177,7 +177,7 @@ namespace Combat
 
                 {
 
-                    Message = "Planning Phase: здесь назначаются атаки.\n\nНажмите своего живого бойца с ATK > 0 — например Vampire в Vanguard.",
+                    Message = "Planning Phase: здесь назначаются атаки.\n\nЗажмите своего живого бойца с ATK > 0 — например Vampire в Vanguard — и протяните линию к цели.",
 
                     MessageKey = "tutorial.planning_intro",
 
@@ -189,7 +189,7 @@ namespace Combat
 
                 {
 
-                    Message = "Теперь нажмите живую карту противника. Выбранный Vampire будет атаковать её в бою.",
+                    Message = "Отпустите на живой карте противника. Выбранный Vampire будет атаковать её в бою.",
 
                     MessageKey = "tutorial.select_target",
 
