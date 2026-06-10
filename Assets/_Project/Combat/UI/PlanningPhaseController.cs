@@ -40,7 +40,7 @@ namespace Combat.UI
         void Update()
         {
             var mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            if (mouse == null || !mouse.leftButton.wasReleasedThisFrame) return;
             if (!IsPlanningPhase()) return;
 
             var slot = FindSlotUnderMouse(mouse.position.ReadValue());

@@ -49,7 +49,7 @@ namespace Combat.UI
                 return;
             }
 
-            if (Input.GetMouseButtonDown(0))
+            if (Input.GetMouseButtonUp(0))
             {
                 var slotUI = GetBoardSlotUnderMouse();
                 if (slotUI == null) return;
