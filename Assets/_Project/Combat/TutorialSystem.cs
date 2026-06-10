@@ -326,6 +326,14 @@ namespace Combat
 
             if (step != null && IsTurnEndPrompt(step)) return false;
 
+            if (_draftStepReached && IsCurrentPhaseTag("StartOfTurn") && !HasAcknowledgedStep("tutorial.turn_end"))
+
+            {
+
+                return false;
+
+            }
+
             if (_draftStepReached) return true;
 
             if (step != null && step.CompletionCondition == TutorialStepCondition.DraftCompleted)
@@ -743,6 +751,42 @@ namespace Combat
         {
 
             return step != null && step.MessageKey == "tutorial.turn_end";
+
+        }
+
+        private bool HasAcknowledgedStep(string messageKey)
+
+        {
+
+            if (string.IsNullOrEmpty(messageKey)) return true;
+
+            for (var i = 0; i < _tutorialSteps.Count; i++)
+
+            {
+
+                if (_tutorialSteps[i]?.MessageKey == messageKey)
+
+                {
+
+                    return _currentStepIndex > i;
+
+                }
+
+            }
+
+            return true;
+
+        }
+
+        private bool IsCurrentPhaseTag(string phaseTag)
+
+        {
+
+            if (string.IsNullOrEmpty(phaseTag)) return false;
+
+            var tags = _duelManager?.CurrentDuelState?.CurrentPhase?.Tags;
+
+            return tags != null && tags.Contains(phaseTag);
 
         }
 
