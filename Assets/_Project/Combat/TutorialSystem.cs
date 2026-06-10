@@ -450,7 +450,13 @@ namespace Combat
 
             {
 
+                // With interactive delays removed, do not advance from CardDragged as soon
+                // as the drag begins: that can swap tutorial overlays while the pointer is
+                // still held and make the active card drop feel blocked. Latch the placement
+                // and advance only after the card actually lands.
                 _placeObservedDuringDragStep = true;
+
+                AdvanceAfterReadTime().Forget();
 
             }
 
@@ -1488,7 +1494,9 @@ namespace Combat
 
             {
 
-                AdvanceAfterReadTime().Forget();
+                // Keep the current hand-card instruction stable during the active drag.
+                // The placement/action event advances this step after a successful drop.
+                return;
 
             }
 
