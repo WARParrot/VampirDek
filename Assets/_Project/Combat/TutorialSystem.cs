@@ -86,6 +86,8 @@ namespace Combat
 
         private bool _draftStepReached = false;
 
+        private bool _deferLeavePromptUntilDraftComplete = false;
+
         private float _stepShownAt = 0f;
 
         private bool _tutorialFullyAcknowledged = false;
@@ -308,16 +310,19 @@ namespace Combat
 
             }
 
-            // Once we've shown the draft step at least once, all subsequent drafts open
+            // Once we've shown the draft step at least once, later drafts may open immediately,
 
-            // immediately — only the very first draft is gated by the intro chain.
+            // except when the player is still reading the end-of-turn explanation. The final
 
-            // Keep the final leave-duel prompt readable if the next turn starts before the player leaves.
-            if (GetCurrentStep()?.CompletionCondition == TutorialStepCondition.LeaveDuel) return false;
+            // leave-duel prompt is intentionally held until that next draft closes.
 
-            if (_draftStepReached) return true;
+            if (_deferLeavePromptUntilDraftComplete) return true;
 
             var step = GetCurrentStep();
+
+            if (step != null && IsTurnEndPrompt(step)) return false;
+
+            if (_draftStepReached) return true;
 
             if (step != null && step.CompletionCondition == TutorialStepCondition.DraftCompleted)
 
@@ -342,6 +347,18 @@ namespace Combat
             var step = GetCurrentStep();
 
             if (step == null) return;
+
+            if (_deferLeavePromptUntilDraftComplete && evt.Tag == "DraftCompleted")
+
+            {
+
+                _deferLeavePromptUntilDraftComplete = false;
+
+                ShowCurrentStep();
+
+                return;
+
+            }
 
             if (step.CompletionCondition == TutorialStepCondition.DraftCompleted && evt.Tag == "DraftCompleted")
 
@@ -463,6 +480,8 @@ namespace Combat
 
             _draftStepReached = false;
 
+            _deferLeavePromptUntilDraftComplete = false;
+
             _placeObservedDuringDragStep = false;
 
             _cts = new CancellationTokenSource();
@@ -522,6 +541,34 @@ namespace Combat
             }
 
             var step = _tutorialSteps[_currentStepIndex];
+
+            if (ShouldDeferLeavePromptUntilDraftComplete(step))
+
+            {
+
+                _deferLeavePromptUntilDraftComplete = true;
+
+                _messageUI?.Hide();
+
+                _arrowUI?.Hide();
+
+                if (_screenDimmer != null)
+
+                {
+
+                    _screenDimmer.alpha = 0f;
+
+                    _screenDimmer.blocksRaycasts = false;
+
+                    _screenDimmer.interactable = false;
+
+                }
+
+                Debug.Log("[TutorialSystem] Deferring leave-duel prompt until the current draft completes.");
+
+                return;
+
+            }
 
             if (ShouldSkipStepForCurrentState(step))
 
@@ -646,6 +693,28 @@ namespace Combat
             }
 
             ProcessStepCondition(step).Forget();
+
+        }
+
+        private bool ShouldDeferLeavePromptUntilDraftComplete(TutorialStep step)
+
+        {
+
+            if (step == null || step.CompletionCondition != TutorialStepCondition.LeaveDuel) return false;
+
+            if (!_draftStepReached || _deferLeavePromptUntilDraftComplete) return false;
+
+            var tags = _duelManager?.CurrentDuelState?.CurrentPhase?.Tags;
+
+            return tags != null && tags.Contains("StartOfTurn");
+
+        }
+
+        private static bool IsTurnEndPrompt(TutorialStep step)
+
+        {
+
+            return step != null && step.MessageKey == "tutorial.turn_end";
 
         }
 
