@@ -5,6 +5,7 @@ using Core;
 using Definitions;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class BoardView : MonoBehaviour
 {
@@ -198,6 +199,23 @@ public class BoardView : MonoBehaviour
                 }
 
                 ConfigureSlotUI(board, rowType, boardSlots[displayIndex].Index, slotUI);
+            }
+
+            var label = rowParent.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (label != null)
+            {
+                label.text = rowType switch
+                {
+                    Definitions.RowType.Vanguard => "Авангард",
+                    Definitions.RowType.Building => "Постройки",
+                    Definitions.RowType.Human => "Люди",
+                    Definitions.RowType.Town => "",
+                    _ => rowType.ToString()
+                };
+                label.fontSize = 36;
+                label.alignment = TextAlignmentOptions.Center;
+                label.rectTransform.sizeDelta = new Vector2(400, 100);
+                label.rectTransform.anchoredPosition = Vector2.zero;
             }
         }
     }

@@ -46,6 +46,21 @@ namespace Shared.UI
                 ApplyReadableTextSettings(_costText);
                 _costText.text = CardRulesText.FormatHandCardSummary(_model.Def);
             }
+
+            if (_artwork != null)
+            {
+                var tex = Resources.Load<Texture2D>("Textures/" + _model.Def.CardName);
+                if (tex != null)
+                {
+                    var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.one * 0.5f);
+                    _artwork.sprite = sprite;
+                    _artwork.enabled = true;
+                }
+                else
+                {
+                    _artwork.enabled = false;
+                }
+            }
         }
 
         private static void ApplyReadableTextSettings(TextMeshProUGUI text)
@@ -63,6 +78,7 @@ namespace Shared.UI
         {
             _nameText ??= transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
             _costText ??= transform.Find("CardCost")?.GetComponent<TextMeshProUGUI>();
+            _artwork ??= transform.Find("Artwork")?.GetComponent<Image>();
 
             var texts = GetComponentsInChildren<TextMeshProUGUI>(true);
             if (_nameText == null && texts.Length > 0) _nameText = texts[0];

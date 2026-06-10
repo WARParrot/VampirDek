@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: Human
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Human
-  CardNameKey:
-  Description: "Человек. Можно принести в жертву, чтобы оплатить призыв вампира."
+  CardNameKey: 
+  Description: "\u0427\u0435\u043B\u043E\u0432\u0435\u043A. \u041C\u043E\u0436\u043D\u043E
+    \u043F\u0440\u0438\u043D\u0435\u0441\u0442\u0438 \u0432 \u0436\u0435\u0440\u0442\u0432\u0443,
+    \u0447\u0442\u043E\u0431\u044B \u043E\u043F\u043B\u0430\u0442\u0438\u0442\u044C
+    \u043F\u0440\u0438\u0437\u044B\u0432 \u0432\u0430\u043C\u043F\u0438\u0440\u0430."
   Artwork:
-    m_AssetGUID: 
+    m_AssetGUID: deac293e90db850499b5a96043bdc73d
     m_SubObjectName: 
     m_SubObjectType: 
     m_SubObjectGUID: 

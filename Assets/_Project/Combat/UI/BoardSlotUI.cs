@@ -18,6 +18,8 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
     public Board Board;
     public Definitions.RowType RowType;
+    [SerializeField] private Image _cardImage;
+    [SerializeField] private Sprite _fallbackSprite;
     public int Index;
 
     public BoardCard Occupant => Board?.GetSlot(RowType, Index)?.Occupant;
@@ -40,7 +42,9 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         if (occupant == null)
         {
             if (CardNameText != null) CardNameText.text = ShortRowName(RowType);
-            if (CardStatsText != null) CardStatsText.text = LocalizationService.T("ui.empty", "Empty");
+            if (CardStatsText != null) CardStatsText.text = "";
+            if (SlotIndexText != null) SlotIndexText.text = "";
+            if (_cardImage != null) _cardImage.enabled = false;
             return;
         }
 
@@ -49,6 +53,22 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         if (CardStatsText != null)
         {
             CardStatsText.text = BoardCardRulesText.FormatBoardCardStats(occupant);
+        }
+
+        if (_cardImage != null)
+        {
+            var tex = Resources.Load<Texture2D>("Textures/" + occupant.SourceCard.CardName);
+            if (tex != null)
+            {
+                var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.one * 0.5f);
+                _cardImage.sprite = sprite;
+                _cardImage.color = Color.white;
+                _cardImage.enabled = true;
+            }
+            else
+            {
+                _cardImage.enabled = false;
+            }
         }
     }
 
@@ -74,6 +94,7 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         CardNameText ??= FindText("CardName");
         CardStatsText ??= FindText("CardStats");
         SlotIndexText ??= FindText("SlotIndex");
+        _cardImage ??= transform.Find("CardImage")?.GetComponent<Image>();
 
         var texts = GetComponentsInChildren<TextMeshProUGUI>(true);
         if (CardNameText == null && texts.Length > 0) CardNameText = texts[0];

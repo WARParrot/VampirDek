@@ -27,6 +27,7 @@ namespace Definitions
         public List<CardCost> Costs;
         public List<EffectActionDefinition> Effects;
         public List<EnchantmentData> InnateEnchantments;
+        [System.NonSerialized] public Sprite CachedSprite;
 
         [Tooltip("Optional combat VFX profile id used by CombatVFX for card-specific attack/clash presentation. Examples: blood, shadow, ritual, town. Leave empty for default.")]
         public string CombatVfxProfileId;
