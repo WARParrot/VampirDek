@@ -1,3 +1,5 @@
+using Definitions;
+using Shared.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +17,7 @@ namespace Combat
 
         private float _targetAlpha = 0f;
         private Image _backgroundImage;
+        private GameObject _previewRoot;
 
         private void Awake()
         {
@@ -29,7 +32,7 @@ namespace Combat
             _backgroundImage.color = new Color(0.02f, 0.018f, 0.012f, 0.92f);
             _backgroundImage.raycastTarget = false;
 
-            EnsureReadableTextArea();
+            EnsureReadableTextArea(false);
 
             if (_canvasGroup != null)
             {
@@ -54,17 +57,30 @@ namespace Combat
         /// </summary>
         public void ShowMessage(string message)
         {
+            ShowMessage(message, null, null, null);
+        }
+
+        public void ShowMessage(string message, CardDef previewCard, GameObject cardPrefab, string previewCaption)
+        {
             Debug.Log($"[TutorialMessageUI] ShowMessage called: {message}");
+
+            ClearPreview();
+            bool hasPreview = previewCard != null && cardPrefab != null;
 
             if (_messageText != null)
             {
-                EnsureReadableTextArea();
+                EnsureReadableTextArea(hasPreview);
                 _messageText.text = message;
                 Debug.Log($"[TutorialMessageUI] Text set to: {message}");
             }
             else
             {
                 Debug.LogError("[TutorialMessageUI] _messageText is NULL!");
+            }
+
+            if (hasPreview)
+            {
+                ShowCardPreview(previewCard, cardPrefab, previewCaption);
             }
 
             if (_canvasGroup != null)
@@ -81,7 +97,84 @@ namespace Combat
             }
         }
 
-        private void EnsureReadableTextArea()
+        private void ShowCardPreview(CardDef cardDef, GameObject cardPrefab, string previewCaption)
+        {
+            _previewRoot = new GameObject("TutorialCardPreview", typeof(RectTransform));
+            _previewRoot.transform.SetParent(transform, false);
+
+            var rootRect = _previewRoot.transform as RectTransform;
+            if (rootRect != null)
+            {
+                rootRect.anchorMin = new Vector2(1f, 0.5f);
+                rootRect.anchorMax = new Vector2(1f, 0.5f);
+                rootRect.pivot = new Vector2(1f, 0.5f);
+                rootRect.anchoredPosition = new Vector2(-40f, 8f);
+                rootRect.sizeDelta = new Vector2(320f, 420f);
+            }
+
+            var cardInstance = Instantiate(cardPrefab, _previewRoot.transform, false);
+            cardInstance.name = $"TutorialPreview_{cardDef.CardName}";
+            var cardRect = cardInstance.transform as RectTransform;
+            if (cardRect != null)
+            {
+                cardRect.anchorMin = new Vector2(0.5f, 1f);
+                cardRect.anchorMax = new Vector2(0.5f, 1f);
+                cardRect.pivot = new Vector2(0.5f, 1f);
+                cardRect.anchoredPosition = new Vector2(0f, -8f);
+                cardRect.localScale = Vector3.one;
+            }
+
+            var dragHandler = cardInstance.GetComponent<Combat.UI.DragHandler>();
+            if (dragHandler != null) dragHandler.enabled = false;
+            var button = cardInstance.GetComponent<Button>();
+            if (button != null) button.interactable = false;
+            var canvasGroup = cardInstance.GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
+            {
+                canvasGroup.blocksRaycasts = false;
+                canvasGroup.interactable = false;
+                canvasGroup.alpha = 1f;
+            }
+
+            var cardView = cardInstance.GetComponent<CardView>();
+            if (cardView == null) cardView = cardInstance.AddComponent<CardView>();
+            cardView.Bind(new Card(cardDef, -900001));
+
+            if (!string.IsNullOrWhiteSpace(previewCaption))
+            {
+                var labelObj = new GameObject("PreviewCaption", typeof(RectTransform));
+                labelObj.transform.SetParent(_previewRoot.transform, false);
+                var labelRect = labelObj.transform as RectTransform;
+                if (labelRect != null)
+                {
+                    labelRect.anchorMin = new Vector2(0f, 0f);
+                    labelRect.anchorMax = new Vector2(1f, 0f);
+                    labelRect.pivot = new Vector2(0.5f, 0f);
+                    labelRect.anchoredPosition = new Vector2(0f, 10f);
+                    labelRect.sizeDelta = new Vector2(0f, 82f);
+                }
+                var label = labelObj.AddComponent<TextMeshProUGUI>();
+                label.text = previewCaption;
+                label.alignment = TextAlignmentOptions.Center;
+                label.enableWordWrapping = true;
+                label.fontSize = 18f;
+                label.color = new Color(1f, 0.92f, 0.65f, 1f);
+                label.raycastTarget = false;
+            }
+        }
+
+        private void ClearPreview()
+        {
+            if (_previewRoot != null)
+            {
+                Destroy(_previewRoot);
+                _previewRoot = null;
+            }
+
+            EnsureReadableTextArea(false);
+        }
+
+        private void EnsureReadableTextArea(bool reservePreviewSpace)
         {
             if (_messageText == null)
                 _messageText = GetComponentInChildren<TextMeshProUGUI>(true);
@@ -104,7 +197,7 @@ namespace Combat
                 textRect.anchorMin = Vector2.zero;
                 textRect.anchorMax = Vector2.one;
                 textRect.offsetMin = new Vector2(36f, 30f);
-                textRect.offsetMax = new Vector2(-36f, -30f);
+                textRect.offsetMax = reservePreviewSpace ? new Vector2(-350f, -30f) : new Vector2(-36f, -30f);
             }
 
             _messageText.raycastTarget = false;
@@ -113,7 +206,7 @@ namespace Combat
             _messageText.enableAutoSizing = true;
             _messageText.fontSizeMin = 24f;
             _messageText.fontSizeMax = 36f;
-            _messageText.alignment = TextAlignmentOptions.Center;
+            _messageText.alignment = reservePreviewSpace ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.Center;
             _messageText.color = Color.white;
         }
 
@@ -122,6 +215,7 @@ namespace Combat
         /// </summary>
         public void Hide()
         {
+            ClearPreview();
             if (_canvasGroup != null)
             {
                 _targetAlpha = 0f;
