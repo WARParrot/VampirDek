@@ -55,8 +55,7 @@ namespace Bootstrap.UI
             if (GlobalServices.IsMenuOpen)
             {
                 Time.timeScale = _previousTimeScale > 0f ? _previousTimeScale : 1f;
-                Cursor.lockState = _previousCursorLockState;
-                Cursor.visible = _previousCursorVisible;
+                RestoreCursorAfterMenu();
                 GlobalServices.IsMenuOpen = false;
             }
         }
@@ -156,6 +155,18 @@ namespace Bootstrap.UI
             GlobalServices.IsMenuOpen = false;
 
             Time.timeScale = _previousTimeScale > 0f ? _previousTimeScale : 1f;
+            RestoreCursorAfterMenu();
+        }
+
+        private void RestoreCursorAfterMenu()
+        {
+            if (GlobalServices.Director?.CurrentMode is global::Exploration.ExplorationMode)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                return;
+            }
+
             Cursor.lockState = _previousCursorLockState;
             Cursor.visible = _previousCursorVisible;
         }
