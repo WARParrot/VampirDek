@@ -312,6 +312,9 @@ namespace Combat
 
             // immediately — only the very first draft is gated by the intro chain.
 
+            // Keep the final leave-duel prompt readable if the next turn starts before the player leaves.
+            if (GetCurrentStep()?.CompletionCondition == TutorialStepCondition.LeaveDuel) return false;
+
             if (_draftStepReached) return true;
 
             var step = GetCurrentStep();
