@@ -422,21 +422,31 @@ namespace Combat
 
             if (!_tutorialActive) return;
 
-            HandleCardPlacedForCurrentStep();
+            HandleCardPlacedForCurrentStep(evt.Card);
 
         }
 
-        private void HandleCardPlacedForCurrentStep()
+        private void HandleCardPlacedForCurrentStep(BoardCard placedCard)
 
         {
 
             if (!_tutorialActive) return;
 
-            _cardPlaced = true;
-
             var step = GetCurrentStep();
 
             if (step == null) return;
+
+            if (!MatchesExpectedPlacedCard(step, placedCard))
+
+            {
+
+                Debug.Log($"[TutorialSystem] Ignoring placed card '{placedCard?.SourceCard?.CardName ?? "?"}' for step {_currentStepIndex} expecting '{step.PreferredCardName ?? "any"}'.");
+
+                return;
+
+            }
+
+            _cardPlaced = true;
 
             if (step.CompletionCondition == TutorialStepCondition.CardPlaced)
 
@@ -450,15 +460,29 @@ namespace Combat
 
             {
 
-                // With interactive delays removed, do not advance from CardDragged as soon
-                // as the drag begins: that can swap tutorial overlays while the pointer is
-                // still held and make the active card drop feel blocked. Latch the placement
-                // and advance only after the card actually lands.
+                // Keep the drag instruction stable until a real placement of the expected
+                // card lands. The following CardPlaced step may consume this latch, but
+                // unrelated/duplicate placement callbacks must not cascade into the next
+                // tutorial action.
                 _placeObservedDuringDragStep = true;
 
                 AdvanceAfterReadTime().Forget();
 
             }
+
+        }
+
+        private static bool MatchesExpectedPlacedCard(TutorialStep step, BoardCard placedCard)
+
+        {
+
+            if (step == null) return false;
+
+            if (string.IsNullOrEmpty(step.PreferredCardName)) return true;
+
+            var cardName = placedCard?.SourceCard?.CardName;
+
+            return string.Equals(cardName, step.PreferredCardName, StringComparison.OrdinalIgnoreCase);
 
         }
 
@@ -472,15 +496,11 @@ namespace Combat
 
             if (step == null) return;
 
-            if (evt.Action is PlaceCardIntoSlotAction)
-
-            {
-
-                HandleCardPlacedForCurrentStep();
-
-            }
-
-            if (step.CompletionCondition == TutorialStepCondition.ActionExecuted)
+            // Card placement is handled by PlacedCardEvent, which carries the semantic
+            // card identity. ActionExecutedEvent can arrive later for the same physical
+            // placement and used to advance adjacent tutorial steps accidentally.
+            if (step.CompletionCondition == TutorialStepCondition.ActionExecuted &&
+                evt.Action is not PlaceCardIntoSlotAction)
 
             {
 
