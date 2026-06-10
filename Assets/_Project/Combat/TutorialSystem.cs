@@ -94,7 +94,9 @@ namespace Combat
 
         private bool _tutorialFullyAcknowledged = false;
 
-        private const float MinimumInteractiveReadSeconds = 5f;
+        // Interactive tutorial steps are already held by input/control gates; once the
+        // requested action happens, advance without an extra post-action read delay.
+        private const float MinimumInteractiveReadSeconds = 0f;
 
         private const float MinimumManualAdvanceSeconds = 3f;
 
