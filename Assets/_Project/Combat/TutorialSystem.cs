@@ -262,6 +262,8 @@ namespace Combat
 
             _eventBus.Subscribe<ActionExecutedEvent>(OnActionExecuted);
 
+            _eventBus.Subscribe<PlacedCardEvent>(OnPlacedCard);
+
             _eventBus.Subscribe<HintEvent>(OnHint);
 
         }
@@ -275,6 +277,8 @@ namespace Combat
             _eventBus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
 
             _eventBus.Unsubscribe<ActionExecutedEvent>(OnActionExecuted);
+
+            _eventBus.Unsubscribe<PlacedCardEvent>(OnPlacedCard);
 
             _eventBus.Unsubscribe<HintEvent>(OnHint);
 
@@ -398,6 +402,46 @@ namespace Combat
 
         }
 
+        private void OnPlacedCard(PlacedCardEvent evt)
+
+        {
+
+            if (!_tutorialActive) return;
+
+            HandleCardPlacedForCurrentStep();
+
+        }
+
+        private void HandleCardPlacedForCurrentStep()
+
+        {
+
+            if (!_tutorialActive) return;
+
+            _cardPlaced = true;
+
+            var step = GetCurrentStep();
+
+            if (step == null) return;
+
+            if (step.CompletionCondition == TutorialStepCondition.CardPlaced)
+
+            {
+
+                AdvanceAfterReadTime().Forget();
+
+            }
+
+            else if (step.CompletionCondition == TutorialStepCondition.CardDragged)
+
+            {
+
+                _placeObservedDuringDragStep = true;
+
+            }
+
+        }
+
         private void OnActionExecuted(ActionExecutedEvent evt)
 
         {
@@ -412,23 +456,7 @@ namespace Combat
 
             {
 
-                _cardPlaced = true;
-
-                if (step.CompletionCondition == TutorialStepCondition.CardPlaced)
-
-                {
-
-                    AdvanceAfterReadTime().Forget();
-
-                }
-
-                else if (step.CompletionCondition == TutorialStepCondition.CardDragged)
-
-                {
-
-                    _placeObservedDuringDragStep = true;
-
-                }
+                HandleCardPlacedForCurrentStep();
 
             }
 
@@ -680,7 +708,7 @@ namespace Combat
 
             ResetStepFlags();
 
-            if (step.CompletionCondition == TutorialStepCondition.CardPlaced && _placeObservedDuringDragStep)
+            if (step.CompletionCondition == TutorialStepCondition.CardPlaced && (_placeObservedDuringDragStep || _cardPlaced))
 
             {
 
