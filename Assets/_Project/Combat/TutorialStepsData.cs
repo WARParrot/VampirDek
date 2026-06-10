@@ -109,7 +109,7 @@ namespace Combat
 
                     MessageKey = "tutorial.play_human_drag",
 
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance, TimeToWait = 0f, RequiredPhaseTag = "BuildingPhase", DynamicArrow = DynamicArrowTarget.PlayerPlayableHandCard, PreferredCardName = "Human"
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.CardDragged, TimeToWait = 2.5f, RequiredPhaseTag = "BuildingPhase", DynamicArrow = DynamicArrowTarget.PlayerPlayableHandCard, PreferredCardName = "Human"
 
                 },
 
@@ -133,7 +133,7 @@ namespace Combat
 
                     MessageKey = "tutorial.play_vampire_drag",
 
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance, TimeToWait = 0f, RequiredPhaseTag = "BuildingPhase", DynamicArrow = DynamicArrowTarget.PlayerPlayableHandCard, PreferredCardName = "Vampire"
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.CardDragged, TimeToWait = 2.5f, RequiredPhaseTag = "BuildingPhase", DynamicArrow = DynamicArrowTarget.PlayerPlayableHandCard, PreferredCardName = "Vampire"
 
                 },
 
@@ -181,19 +181,7 @@ namespace Combat
 
                     MessageKey = "tutorial.planning_intro",
 
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.ManualAdvance, TimeToWait = 0f, RequiredPhaseTag = "PlanningPhase", DynamicArrow = DynamicArrowTarget.PlayerVanguardCard
-
-                },
-
-                new TutorialStep
-
-                {
-
-                    Message = "Зажмите своего живого бойца с ATK > 0 — например Vampire в Vanguard — и протяните линию к карте противника.",
-
-                    MessageKey = "tutorial.select_attacker",
-
-                    DimScreen = true, CompletionCondition = TutorialStepCondition.AttackerCardSelected, TimeToWait = 0f, RequiredPhaseTag = "PlanningPhase", DynamicArrow = DynamicArrowTarget.PlayerVanguardCard
+                    DimScreen = true, CompletionCondition = TutorialStepCondition.AttackerCardSelected, TimeToWait = 3f, RequiredPhaseTag = "PlanningPhase", DynamicArrow = DynamicArrowTarget.PlayerVanguardCard
 
                 },
 

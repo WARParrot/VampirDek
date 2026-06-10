@@ -96,7 +96,7 @@ namespace Combat
 
         // Interactive tutorial steps are already held by input/control gates; once the
         // requested action happens, advance without an extra post-action read delay.
-        private const float MinimumInteractiveReadSeconds = 0f;
+        private const float MinimumInteractiveReadSeconds = 2.5f;
 
         private const float MinimumManualAdvanceSeconds = 3f;
 
@@ -434,7 +434,7 @@ namespace Combat
 
             var step = GetCurrentStep();
 
-            if (step == null) return;
+            if (step == null || !IsInteractiveActionReady(step)) return;
 
             if (!MatchesExpectedPlacedCard(step, placedCard))
 
@@ -1296,33 +1296,37 @@ namespace Combat
 
             _advancePending = true;
 
-            var remaining = MinimumInteractiveReadSeconds - (Time.unscaledTime - _stepShownAt);
-
-            if (remaining > 0f)
+            try
 
             {
 
-                try
+                await UniTask.Yield(PlayerLoopTiming.Update, _cts?.Token ?? this.GetCancellationTokenOnDestroy());
 
-                {
+            }
 
-                    await UniTask.Delay(TimeSpan.FromSeconds(remaining), cancellationToken: _cts?.Token ?? this.GetCancellationTokenOnDestroy());
+            catch (OperationCanceledException)
 
-                }
+            {
 
-                catch (OperationCanceledException)
-
-                {
-
-                    return;
-
-                }
+                return;
 
             }
 
             _advancePending = false;
 
             NextStep();
+
+        }
+
+        private bool IsInteractiveActionReady(TutorialStep step)
+
+        {
+
+            if (step == null || !IsStepPhaseReady(step)) return false;
+
+            var readSeconds = step.TimeToWait >= 0f ? step.TimeToWait : MinimumInteractiveReadSeconds;
+
+            return Time.unscaledTime - _stepShownAt >= readSeconds;
 
         }
 
@@ -1534,7 +1538,9 @@ namespace Combat
 
             Debug.Log($"[TutorialSystem] OnTargetSelected. CurrentStep={_currentStepIndex}, Condition={step?.CompletionCondition}");
 
-            if (step != null && step.CompletionCondition == TutorialStepCondition.TargetSelected)
+            if (step != null && step.CompletionCondition == TutorialStepCondition.TargetSelected &&
+
+                IsInteractiveActionReady(step))
 
             {
 
@@ -1554,7 +1560,9 @@ namespace Combat
 
             Debug.Log($"[TutorialSystem] OnAttackerCardSelected. CurrentStep={_currentStepIndex}, Condition={step?.CompletionCondition}");
 
-            if (step != null && step.CompletionCondition == TutorialStepCondition.AttackerCardSelected)
+            if (step != null && step.CompletionCondition == TutorialStepCondition.AttackerCardSelected &&
+
+                IsInteractiveActionReady(step))
 
             {
 
@@ -1596,11 +1604,29 @@ namespace Combat
 
                    step.CompletionCondition == TutorialStepCondition.PhaseConfirmed &&
 
-                   IsStepPhaseReady(step);
+                   IsInteractiveActionReady(step);
 
         }
 
 
+
+        public bool AllowsPlanningSelection()
+
+        {
+
+            if (!_tutorialActive) return true;
+
+            var step = GetCurrentStep();
+
+            return step != null &&
+
+                   IsInteractiveActionReady(step) &&
+
+                   (step.CompletionCondition == TutorialStepCondition.AttackerCardSelected ||
+
+                    step.CompletionCondition == TutorialStepCondition.TargetSelected);
+
+        }
 
         public bool AllowsCardDragging()
 
@@ -1612,7 +1638,7 @@ namespace Combat
 
             return step != null &&
 
-                   IsStepPhaseReady(step) &&
+                   IsInteractiveActionReady(step) &&
 
                    (step.CompletionCondition == TutorialStepCondition.CardDragged ||
 
