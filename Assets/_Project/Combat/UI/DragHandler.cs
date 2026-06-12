@@ -122,10 +122,14 @@ namespace Combat.UI
             if (!IsDragging) return;
 
             _canvasGroup.alpha = 1f;
-            _canvasGroup.blocksRaycasts = true;
+            // Keep the dragged card non-raycastable while HandUIManager raycasts the drop target.
+            // Re-enabling blocksRaycasts before RaycastAll can make the dropped card hit itself
+            // instead of the BoardSlotUI underneath, which makes placement feel unreliable.
+            _canvasGroup.blocksRaycasts = false;
             IsDragging = false;
             if (_layoutElement != null) _layoutElement.ignoreLayout = false;
             _handManager.OnCardDragEnded(this, eventData);
+            if (_canvasGroup != null) _canvasGroup.blocksRaycasts = true;
         }
 
     }
