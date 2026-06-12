@@ -23,6 +23,7 @@ namespace Combat.UI
         private GameObject _cardInstance;
         private CanvasGroup _cardCanvasGroup;
         private RectTransform _cardRect;
+        private CanvasGroup _mandatoryHighlightCanvasGroup;
         private float _glowPulseT;
 
         public void Setup(CardDef card, Action<CardDef> callback)
@@ -317,11 +318,17 @@ namespace Combat.UI
             outline.effectDistance = new Vector2(4f, -4f);
 
             mandatoryHighlight = go;
+            _mandatoryHighlightCanvasGroup = go.GetComponent<CanvasGroup>();
         }
 
         public void SetMandatory(bool isMandatory)
         {
-            if (mandatoryHighlight != null) mandatoryHighlight.SetActive(isMandatory);
+            if (mandatoryHighlight != null)
+            {
+                mandatoryHighlight.SetActive(isMandatory);
+                if (_mandatoryHighlightCanvasGroup == null)
+                    _mandatoryHighlightCanvasGroup = mandatoryHighlight.GetComponent<CanvasGroup>();
+            }
             if (mandatoryLabel != null) mandatoryLabel.gameObject.SetActive(isMandatory);
             enabled = isMandatory;
             _glowPulseT = 0f;
@@ -331,9 +338,8 @@ namespace Combat.UI
         {
             if (mandatoryHighlight == null || !mandatoryHighlight.activeSelf) return;
             _glowPulseT += Time.unscaledDeltaTime;
-            var cg = mandatoryHighlight.GetComponent<CanvasGroup>();
-            if (cg != null)
-                cg.alpha = 0.55f + 0.45f * Mathf.Sin(_glowPulseT * 4f);
+            if (_mandatoryHighlightCanvasGroup != null)
+                _mandatoryHighlightCanvasGroup.alpha = 0.55f + 0.45f * Mathf.Sin(_glowPulseT * 4f);
         }
 
         public async UniTask PlayAppearAsync(float delay, float duration = 0.28f)

@@ -22,6 +22,10 @@ namespace Exploration
         [Header("Interaction")]
         [SerializeField] private float _interactRange = 4f;
         [SerializeField] private LayerMask _interactMask = -1;
+        [SerializeField, Min(0.02f)] private float _interactionCheckInterval = 0.1f;
+
+        [Header("Audio")]
+        [SerializeField, Min(0.05f)] private float _footstepInterval = 0.42f;
 
         [Header("Encounter")]
         [SerializeField] private float _encounterStartRange = 3f;
@@ -49,6 +53,8 @@ namespace Exploration
         private Vector2 _lookDelta;
         private float _yaw;
         private float _pitch;
+        private float _nextFootstepAt;
+        private float _nextInteractionCheckAt;
         private bool _isActive;
 
         private void Awake()
@@ -206,7 +212,12 @@ namespace Exploration
         {
             if (!_isActive || GlobalServices.IsMenuOpen) return;
             ApplyMovement();
-            CheckInteractableInView();
+
+            if (Time.time >= _nextInteractionCheckAt)
+            {
+                _nextInteractionCheckAt = Time.time + _interactionCheckInterval;
+                CheckInteractableInView();
+            }
         }
 
         private void ApplyMovement()
@@ -228,8 +239,11 @@ namespace Exploration
                     transform.rotation, targetRotation, _rotationSpeed * Time.deltaTime);
             }
 
-            if (desiredMove.sqrMagnitude > 0.01f)
+            if (desiredMove.sqrMagnitude > 0.01f && Time.time >= _nextFootstepAt)
+            {
+                _nextFootstepAt = Time.time + _footstepInterval;
                 RuntimeManager.PlayOneShot("event:/Exploration/Player/Footsteps", _camera.transform.position);
+            }
         }
 
         private void OnMove(InputAction.CallbackContext ctx) => _moveInput = ctx.ReadValue<Vector2>();

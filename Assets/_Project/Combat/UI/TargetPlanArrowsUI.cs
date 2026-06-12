@@ -671,8 +671,6 @@ public class TargetPlanArrowsUI : MonoBehaviour
             _label = GetComponent<TextMeshProUGUI>();
         }
 
-        private void LateUpdate() => RefreshPosition();
-
         public void RefreshPosition()
         {
             if (_owner == null || _label == null || _a == null || _b == null) return;

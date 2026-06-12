@@ -39,6 +39,10 @@ public class HandUIManager : MonoBehaviour
     [SerializeField] private Color _hrNegativeColor = Color.red;
     private int _displayedHR;
     private string _lastPhaseId = null;
+    private bool _statusTextConfigured;
+    private int? _lastPlayerTownHp;
+    private int? _lastOpponentTownHp;
+    private int _lastHumanResources = int.MinValue;
 
     void Update()
     {
@@ -46,6 +50,9 @@ public class HandUIManager : MonoBehaviour
         if (_duelManager?.CurrentDuelState == null) return;
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
+
+        EnsureReadableStatusText();
+
         // Reset the resource-warning counter every time we move to a new phase, so the
         // "first attempt is silent" rule resets after a turn/phase change.
         string phaseId = state.CurrentPhase?.PhaseId;
@@ -53,29 +60,59 @@ public class HandUIManager : MonoBehaviour
         {
             _failedAttempts.Clear();
             _lastPhaseId = phaseId;
+            if (PhaseText != null)
+                PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
         }
-        EnsureReadableStatusText();
-        PlayerTownHPText.text = LocalizationService.TFormat("ui.town_hp", "Town HP: {0}", side.Town?.Health);
-        OpponentTownHPText.text = LocalizationService.TFormat("ui.opponent_town_hp", "Opp Town HP: {0}", state.OpponentSide.Town?.Health);
-        PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
+
+        int? playerTownHp = side.Town?.Health;
+        if (playerTownHp != _lastPlayerTownHp)
+        {
+            _lastPlayerTownHp = playerTownHp;
+            if (PlayerTownHPText != null)
+                PlayerTownHPText.text = LocalizationService.TFormat("ui.town_hp", "Town HP: {0}", playerTownHp);
+        }
+
+        int? opponentTownHp = state.OpponentSide.Town?.Health;
+        if (opponentTownHp != _lastOpponentTownHp)
+        {
+            _lastOpponentTownHp = opponentTownHp;
+            if (OpponentTownHPText != null)
+                OpponentTownHPText.text = LocalizationService.TFormat("ui.opponent_town_hp", "Opp Town HP: {0}", opponentTownHp);
+        }
+
         if (_displayedHR != side.HumanResources)
         {
             int delta = side.HumanResources - _displayedHR;
             StartCoroutine(AnimateHRDelta(delta));
             _displayedHR = side.HumanResources;
         }
-        PlayerHumanResText.text = LocalizationService.TFormat("ui.hr", "HR: {0}", side.HumanResources);
-        if (side.Hand.Count != _lastHandCount)
-            RefreshHand(side);
-        bool allowDrag = state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
-        foreach (var kv in _cardViews)
+
+        if (side.HumanResources != _lastHumanResources)
         {
-            if (kv.Value != null) kv.Value.enabled = allowDrag;
+            _lastHumanResources = side.HumanResources;
+            if (PlayerHumanResText != null)
+                PlayerHumanResText.text = LocalizationService.TFormat("ui.hr", "HR: {0}", side.HumanResources);
         }
-        _lastDragAllowed = allowDrag;
+
+        bool handChanged = side.Hand.Count != _lastHandCount;
+        if (handChanged)
+            RefreshHand(side);
+
+        bool allowDrag = state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
+        if (handChanged || allowDrag != _lastDragAllowed)
+        {
+            foreach (var kv in _cardViews)
+            {
+                if (kv.Value != null) kv.Value.enabled = allowDrag;
+            }
+            _lastDragAllowed = allowDrag;
+        }
     }
     private void EnsureReadableStatusText()
     {
+        if (_statusTextConfigured) return;
+        _statusTextConfigured = true;
+
         if (PlayerManaText != null)
             PlayerManaText.gameObject.SetActive(false);
         ConfigureHudText(PlayerTownHPText, 18f, 28f);
