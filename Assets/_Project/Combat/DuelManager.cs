@@ -40,6 +40,7 @@ namespace Combat
         private DuelOutcome _duelOutcome = DuelOutcome.InProgress;
         private bool _duelFinished = false;
         private bool _duelResultPublished = false;
+        private bool _processingQueuedActions = false;
         private GameDirector _director;
 
         // AI System
@@ -589,10 +590,20 @@ namespace Combat
             _actionQueue.Enqueue(action);
         }
 
+        public void RequestProcessQueuedActions()
+        {
+            if (_actionQueue.Count == 0) return;
+            ProcessActionsAsync().Forget();
+        }
+
         private async UniTask ProcessActionsAsync()
         {
-            while (_actionQueue.Count > 0)
+            if (_processingQueuedActions) return;
+            _processingQueuedActions = true;
+            try
             {
+                while (_actionQueue.Count > 0)
+                {
                 if (_state == CombatState.Paused) break;
                 var action = _actionQueue.Dequeue();
                 if (action == null)
@@ -617,12 +628,17 @@ namespace Combat
 
                 bool terminalAfterAction = IsDuelTerminal();
                 Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
-                if (terminalAfterAction)
-                {
-                    CaptureDuelOutcomeIfFinished();
-                    await TransitionToOutcomePhaseAsync();
-                    return;
+                    if (terminalAfterAction)
+                    {
+                        CaptureDuelOutcomeIfFinished();
+                        await TransitionToOutcomePhaseAsync();
+                        return;
+                    }
                 }
+            }
+            finally
+            {
+                _processingQueuedActions = false;
             }
         }
 

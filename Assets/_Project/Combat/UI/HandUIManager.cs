@@ -361,6 +361,7 @@ public class HandUIManager : MonoBehaviour
             return;
         }
         _duelManager.QueueAction(new PlaceCardIntoSlotAction(board, def, targetSlot));
+        _duelManager.RequestProcessQueuedActions();
         BoardView.HideAllHighlights();
     }
     private BoardSlotUI SelectBestDropTarget(IEnumerable<BoardSlotUI> raycastSlots, Vector2 pointerScreenPosition)
