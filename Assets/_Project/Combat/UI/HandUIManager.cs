@@ -99,7 +99,7 @@ public class HandUIManager : MonoBehaviour
         if (handChanged)
             RefreshHand(side);
 
-        bool allowDrag = state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
+        bool allowDrag = CanStartCardDrag();
         bool dragPermissionChanged = allowDrag != _lastDragAllowed;
         if (handChanged || dragPermissionChanged)
         {
@@ -228,8 +228,12 @@ public class HandUIManager : MonoBehaviour
     }
     public bool CanStartCardDrag()
     {
-        var state = _duelManager?.CurrentDuelState;
-        return state != null && state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
+        var duelManager = _duelManager != null ? _duelManager : DuelManagerProxy.Instance;
+        var state = duelManager?.CurrentDuelState;
+        return state != null &&
+               state.CurrentPhase.Tags.Contains("BuildingPhase") &&
+               duelManager.CanConfirmCurrentPhase &&
+               IsCardDragAllowedByTutorial();
     }
 
     private void ApplyHandCardAffordances(IPlayerSide side, bool allowDrag)
