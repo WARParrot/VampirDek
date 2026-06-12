@@ -306,7 +306,13 @@ public class HandUIManager : MonoBehaviour
         var def = card.Def;
         var cardImage = handler.GetComponent<Image>();
         var results = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(eventData, results);
+        var raycastEventData = new PointerEventData(EventSystem.current)
+        {
+            position = handler.LastPointerScreenPosition,
+            pressPosition = eventData != null ? eventData.pressPosition : handler.LastPointerScreenPosition,
+            button = eventData != null ? eventData.button : PointerEventData.InputButton.Left
+        };
+        EventSystem.current.RaycastAll(raycastEventData, results);
         var raycastSlots = results
             .Select(r => r.gameObject.GetComponentInParent<BoardSlotUI>())
             .Where(s => s != null)

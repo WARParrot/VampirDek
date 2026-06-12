@@ -20,6 +20,7 @@ namespace Combat.UI
         private Vector2 _pointerOffset;
 
         public bool IsDragging { get; private set; }
+        public Vector2 LastPointerScreenPosition { get; private set; }
 
         private void Awake()
         {
@@ -45,7 +46,46 @@ namespace Combat.UI
             local = Vector2.zero;
             if (_canvasRect == null) return false;
             return RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                _canvasRect, eventData.position, GetDragCamera(), out local);
+                _canvasRect, GetCurrentPointerScreenPosition(eventData), GetDragCamera(), out local);
+        }
+
+        private Vector2 GetCurrentPointerScreenPosition(PointerEventData eventData)
+        {
+            var position = eventData != null ? eventData.position : LastPointerScreenPosition;
+
+            // On some input paths the end-drag PointerEventData can lag behind the real pointer.
+            // Prefer the live pointer when available, but keep this best-effort so projects that
+            // disable the legacy Input API do not throw and break drag/drop completely.
+            try
+            {
+                if (Input.touchCount > 0)
+                {
+                    var pointerId = eventData != null ? eventData.pointerId : -1;
+                    for (var i = 0; i < Input.touchCount; i++)
+                    {
+                        var touch = Input.GetTouch(i);
+                        if (touch.fingerId == pointerId)
+                        {
+                            position = touch.position;
+                            break;
+                        }
+                    }
+
+                    if (position == (eventData != null ? eventData.position : LastPointerScreenPosition))
+                        position = Input.GetTouch(0).position;
+                }
+                else if (Input.mousePresent)
+                {
+                    position = Input.mousePosition;
+                }
+            }
+            catch (System.InvalidOperationException)
+            {
+                // Legacy Input Manager is disabled; keep EventSystem's last known position.
+            }
+
+            LastPointerScreenPosition = position;
+            return position;
         }
 
         public void Setup(ICard card, HandUIManager manager)
@@ -79,6 +119,7 @@ namespace Combat.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            LastPointerScreenPosition = GetCurrentPointerScreenPosition(eventData);
             if (_handManager != null && !_handManager.CanStartCardDrag())
             {
                 IsDragging = false;
@@ -107,6 +148,7 @@ namespace Combat.UI
         public void OnDrag(PointerEventData eventData)
         {
             if (!IsDragging) return;
+            LastPointerScreenPosition = GetCurrentPointerScreenPosition(eventData);
             if (TryGetLocalPointer(eventData, out var localPointer))
             {
                 _rectTransform.localPosition = (Vector3)(localPointer + _pointerOffset);
@@ -121,6 +163,7 @@ namespace Combat.UI
         {
             if (!IsDragging) return;
 
+            LastPointerScreenPosition = GetCurrentPointerScreenPosition(eventData);
             _canvasGroup.alpha = 1f;
             // Keep the dragged card non-raycastable while HandUIManager raycasts the drop target.
             // Re-enabling blocksRaycasts before RaycastAll can make the dropped card hit itself
