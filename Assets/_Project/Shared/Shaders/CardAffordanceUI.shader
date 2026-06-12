@@ -147,7 +147,7 @@ Shader "VampirDek/UI/CardAffordance"
                     float grey = dot(baseRgb, fixed3(0.299, 0.587, 0.114));
                     col.rgb = lerp(baseRgb, fixed3(grey, grey, grey) * 0.72, 0.58 * _Intensity);
                     col.rgb += aff * (hatch * 0.35 + border * 0.25) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a * 0.55);
+                    col.a = max(col.a, max(border * _AffordanceColor.a * 0.55, hatch * _AffordanceColor.a * 0.28));
                 }
                 else if (mode < 3.5)
                 {
@@ -165,7 +165,7 @@ Shader "VampirDek/UI/CardAffordance"
                 {
                     col.rgb = baseRgb * (1.0 - 0.42 * _Intensity);
                     col.rgb += aff * (hatch * 0.48 + border * 0.35) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a * 0.75);
+                    col.a = max(col.a, max(border * _AffordanceColor.a * 0.75, hatch * _AffordanceColor.a * 0.35));
                 }
                 else if (mode < 6.5)
                 {

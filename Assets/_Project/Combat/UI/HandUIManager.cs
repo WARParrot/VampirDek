@@ -234,23 +234,14 @@ public class HandUIManager : MonoBehaviour
 
     private void ApplyHandCardAffordances(IPlayerSide side, bool allowDrag)
     {
+        // Row compatibility is visualized on board slots while dragging/tapping a card.
+        // Keeping the same compatible/incompatible shader on idle hand cards makes it look
+        // like the row-slot affordance was applied to the wrong surface, so hand cards stay neutral.
         foreach (var kv in _cardViews)
         {
-            var card = kv.Key;
             var handler = kv.Value;
-            if (handler == null) continue;
-
-            if (!allowDrag || card?.Def == null)
-            {
+            if (handler != null)
                 handler.SetAffordanceState(CardAffordanceState.None);
-                continue;
-            }
-
-            bool canPay = CanPayAllCosts(card.Def, side);
-            bool hasCompatibleSlot = BoardView?.FindFirstEmptyPlayerSlot(card.Def.RowType) != null;
-            handler.SetAffordanceState(canPay && hasCompatibleSlot
-                ? CardAffordanceState.Compatible
-                : CardAffordanceState.Incompatible);
         }
     }
 

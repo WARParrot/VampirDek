@@ -19,6 +19,7 @@ public class BoardView : MonoBehaviour
 
     private readonly Dictionary<string, BoardSlotUI> _slotUIs = new();
     private bool _subscribed = false;
+    private Definitions.RowType? _activeDropPreviewRow;
 
     public void Start()
     {
@@ -384,11 +385,17 @@ public class BoardView : MonoBehaviour
         if (slotUI == null) return;
 
         slotUI.SetDisplay(slotUI.Occupant);
-        slotUI.SetHighlight(slotUI.IsValidDropTarget);
-        if (!slotUI.IsValidDropTarget)
-            slotUI.SetCardAffordance(slotUI.Occupant != null && slotUI.Occupant.PlannedTarget != null
-                ? CardAffordanceState.Planned
-                : CardAffordanceState.None);
+
+        if (_activeDropPreviewRow.HasValue)
+        {
+            ApplyDropZoneAffordance(slotUI, _activeDropPreviewRow.Value);
+            return;
+        }
+
+        slotUI.SetSlotAffordance(CardAffordanceState.None);
+        slotUI.SetCardAffordance(slotUI.Occupant != null && slotUI.Occupant.PlannedTarget != null
+            ? CardAffordanceState.Planned
+            : CardAffordanceState.None);
     }
 
     public void ShowValidDropZones(Definitions.RowType rowType)
@@ -397,35 +404,45 @@ public class BoardView : MonoBehaviour
         if (state == null) return;
         if (_slotUIs.Count == 0) BuildSlots();
 
+        _activeDropPreviewRow = rowType;
         foreach (var slotUI in _slotUIs.Values)
         {
-            bool isPlayerSlot = slotUI.Board == state.PlayerSide.Board;
-            var slot = slotUI.Board?.GetSlot(slotUI.RowType, slotUI.Index);
-            bool rowMatches = slotUI.RowType == rowType;
-            bool canDrop = isPlayerSlot && rowMatches && slot != null && slot.IsEmpty;
-            slotUI.IsValidDropTarget = canDrop;
+            ApplyDropZoneAffordance(slotUI, rowType);
+        }
+    }
 
-            if (!isPlayerSlot)
-            {
-                slotUI.SetSlotAffordance(CardAffordanceState.None);
-            }
-            else if (canDrop)
-            {
-                slotUI.SetSlotAffordance(CardAffordanceState.Compatible);
-            }
-            else if (rowMatches && slot != null && !slot.IsEmpty)
-            {
-                slotUI.SetSlotAffordance(CardAffordanceState.Blocked);
-            }
-            else
-            {
-                slotUI.SetSlotAffordance(CardAffordanceState.Incompatible);
-            }
+    private void ApplyDropZoneAffordance(BoardSlotUI slotUI, Definitions.RowType rowType)
+    {
+        var state = DuelManagerProxy.Instance?.CurrentDuelState;
+        if (state == null || slotUI == null) return;
+
+        bool isPlayerSlot = slotUI.Board == state.PlayerSide.Board;
+        var slot = slotUI.Board?.GetSlot(slotUI.RowType, slotUI.Index);
+        bool rowMatches = slotUI.RowType == rowType;
+        bool canDrop = isPlayerSlot && rowMatches && slot != null && slot.IsEmpty;
+        slotUI.IsValidDropTarget = canDrop;
+
+        if (!isPlayerSlot)
+        {
+            slotUI.SetSlotAffordance(CardAffordanceState.None);
+        }
+        else if (canDrop)
+        {
+            slotUI.SetSlotAffordance(CardAffordanceState.Compatible);
+        }
+        else if (rowMatches && slot != null && !slot.IsEmpty)
+        {
+            slotUI.SetSlotAffordance(CardAffordanceState.Blocked);
+        }
+        else
+        {
+            slotUI.SetSlotAffordance(CardAffordanceState.Incompatible);
         }
     }
 
     public void HideAllHighlights()
     {
+        _activeDropPreviewRow = null;
         foreach (var slotUI in _slotUIs.Values)
         {
             slotUI.IsValidDropTarget = false;
