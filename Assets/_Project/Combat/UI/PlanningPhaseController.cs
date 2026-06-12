@@ -17,6 +17,10 @@ namespace Combat.UI
         private BoardSlotUI _lastHandledClickSlot;
         private BoardSlotUI _pressedSlot;
         private bool _pressedSlotSelectedAttacker;
+        private bool _mousePressedSinceCheck;
+        private bool _mouseReleasedSinceCheck;
+        private Vector2 _mousePressPosition;
+        private Vector2 _mouseReleasePosition;
 
         [Header("Highlight Colors")]
         public Color AttackerHighlight = Color.cyan;
@@ -41,24 +45,25 @@ namespace Combat.UI
 
         void Update()
         {
-            var mouse = Mouse.current;
-            if (mouse == null) return;
+            CaptureMouseEdges();
+
             if (!IsPlanningPhase())
             {
                 _pressedSlot = null;
                 _pressedSlotSelectedAttacker = false;
+                ResetCapturedMouseEdges();
                 return;
             }
 
-            if (mouse.leftButton.wasPressedThisFrame)
+            if (Consume(ref _mousePressedSinceCheck))
             {
-                _pressedSlot = FindSlotUnderMouse(mouse.position.ReadValue());
+                _pressedSlot = FindSlotUnderMouse(_mousePressPosition);
                 _pressedSlotSelectedAttacker = TrySelectPressedAttacker(_pressedSlot);
             }
 
-            if (!mouse.leftButton.wasReleasedThisFrame) return;
+            if (!Consume(ref _mouseReleasedSinceCheck)) return;
 
-            var slot = FindSlotUnderMouse(mouse.position.ReadValue());
+            var slot = FindSlotUnderMouse(_mouseReleasePosition);
             if (_pressedSlot != null && slot != null && slot != _pressedSlot)
             {
                 // The source was selected on mouse-down so enemy target highlights stay visible
@@ -76,6 +81,37 @@ namespace Combat.UI
             {
                 HandleSlotClick(slot);
             }
+        }
+
+        private void CaptureMouseEdges()
+        {
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                _mousePressedSinceCheck = true;
+                _mousePressPosition = mouse.position.ReadValue();
+            }
+
+            if (mouse.leftButton.wasReleasedThisFrame)
+            {
+                _mouseReleasedSinceCheck = true;
+                _mouseReleasePosition = mouse.position.ReadValue();
+            }
+        }
+
+        private void ResetCapturedMouseEdges()
+        {
+            _mousePressedSinceCheck = false;
+            _mouseReleasedSinceCheck = false;
+        }
+
+        private static bool Consume(ref bool value)
+        {
+            if (!value) return false;
+            value = false;
+            return true;
         }
 
         public void HandleSlotClick(BoardSlotUI slotUI)

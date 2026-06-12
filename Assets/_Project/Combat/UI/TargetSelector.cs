@@ -14,6 +14,8 @@ namespace Combat.UI
 
         private DuelManager _duelManager;
         private BoardCard _selectedFriendly;
+        private bool _mouseReleasedSinceCheck;
+        private Vector2 _mouseReleasePosition;
 
         [Header("Highlight Colors")]
         public Color FriendlyColor = Color.cyan;
@@ -34,7 +36,13 @@ namespace Combat.UI
 
         void Update()
         {
-            if (_duelManager?.CurrentDuelState == null) return;
+            CaptureMouseEdges();
+
+            if (_duelManager?.CurrentDuelState == null)
+            {
+                ResetCapturedMouseEdges();
+                return;
+            }
             var state = _duelManager.CurrentDuelState;
             var phase = state.CurrentPhase;
 
@@ -46,12 +54,13 @@ namespace Combat.UI
                     ClearSelection();
                     _selectedFriendly = null;
                 }
+                ResetCapturedMouseEdges();
                 return;
             }
 
-            if (Input.GetMouseButtonUp(0))
+            if (Consume(ref _mouseReleasedSinceCheck))
             {
-                var slotUI = GetBoardSlotUnderMouse();
+                var slotUI = GetBoardSlotUnderMouse(_mouseReleasePosition);
                 if (slotUI == null) return;
 
                 // Forward polling/raycast clicks into the same controller used by BoardSlotUI.OnPointerClick.
@@ -94,9 +103,27 @@ namespace Combat.UI
             }
         }
 
-        private BoardSlotUI GetBoardSlotUnderMouse()
+        private void CaptureMouseEdges()
         {
-            var mousePosition = Input.mousePosition;
+            if (!Input.GetMouseButtonUp(0)) return;
+            _mouseReleasedSinceCheck = true;
+            _mouseReleasePosition = Input.mousePosition;
+        }
+
+        private void ResetCapturedMouseEdges()
+        {
+            _mouseReleasedSinceCheck = false;
+        }
+
+        private static bool Consume(ref bool value)
+        {
+            if (!value) return false;
+            value = false;
+            return true;
+        }
+
+        private BoardSlotUI GetBoardSlotUnderMouse(Vector2 mousePosition)
+        {
 
             if (EventSystem.current != null)
             {

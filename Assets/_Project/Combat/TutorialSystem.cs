@@ -90,6 +90,10 @@ namespace Combat
 
         private bool _leavePromptReadyAfterDeferredDraft = false;
 
+        // Frame-local input edges must be captured before any tutorial checks are throttled.
+        private bool _continuePressedSinceCheck = false;
+        private bool _leaveDuelPressedSinceCheck = false;
+
         private float _stepShownAt = 0f;
 
         private bool _tutorialFullyAcknowledged = false;
@@ -176,6 +180,8 @@ namespace Combat
 
             if (!_isTutorialEncounter) return;
 
+            CaptureInputEdges();
+
             if (_tutorialActive)
 
             {
@@ -190,7 +196,7 @@ namespace Combat
 
                 }
 
-                if (IsLeaveDuelPromptActive() && Keyboard.current?.sKey.wasPressedThisFrame == true)
+                if (IsLeaveDuelPromptActive() && Consume(ref _leaveDuelPressedSinceCheck))
 
                 {
 
@@ -553,6 +559,7 @@ namespace Combat
             _leavePromptReadyAfterDeferredDraft = false;
 
             _placeObservedDuringDragStep = false;
+            ResetCapturedInputEdges();
 
             _cts = new CancellationTokenSource();
 
@@ -665,6 +672,7 @@ namespace Combat
             }
 
             _stepShownAt = Time.unscaledTime;
+            ResetCapturedInputEdges();
 
             _advancePending = false;
 
@@ -1080,17 +1088,50 @@ namespace Combat
 
 
 
-        private static bool IsContinuePressed()
+        private void CaptureInputEdges()
 
         {
 
             var kb = Keyboard.current;
+            if (kb == null) return;
 
-            if (kb == null) return false;
+            if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame)
+                _continuePressedSinceCheck = true;
+            if (kb.sKey.wasPressedThisFrame)
+                _leaveDuelPressedSinceCheck = true;
 
-            return kb.spaceKey.wasPressedThisFrame ||
+        }
 
-                   kb.enterKey.wasPressedThisFrame;
+
+
+        private void ResetCapturedInputEdges()
+
+        {
+
+            _continuePressedSinceCheck = false;
+            _leaveDuelPressedSinceCheck = false;
+
+        }
+
+
+
+        private static bool Consume(ref bool value)
+
+        {
+
+            if (!value) return false;
+            value = false;
+            return true;
+
+        }
+
+
+
+        private bool IsContinuePressed()
+
+        {
+
+            return Consume(ref _continuePressedSinceCheck);
 
         }
 
@@ -1437,6 +1478,7 @@ namespace Combat
         {
 
             _tutorialActive = false;
+            ResetCapturedInputEdges();
 
             _tutorialCompletedThisSession = true;
 
