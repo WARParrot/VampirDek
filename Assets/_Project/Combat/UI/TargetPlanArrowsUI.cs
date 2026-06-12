@@ -22,10 +22,12 @@ public class TargetPlanArrowsUI : MonoBehaviour
     private BoardView _boardView;
     private readonly List<ArrowView> _arrows = new();
     private readonly List<TextMeshProUGUI> _clashLabels = new();
+    private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
     private string _lastSignature = string.Empty;
     private float _nextRebuildAt;
     private GameObject _forecastHintRoot;
     private float _forecastHintHideAt;
+    private static readonly Vector3[] s_slotCorners = new Vector3[4];
 
     private static readonly Color EnemyPlanColor = new(1f, 0.22f, 0.16f, 0.78f);
     private static readonly Color PlayerPlanColor = new(0.15f, 0.78f, 1f, 0.78f);
@@ -150,6 +152,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
         bool wasEnabled = _canvas != null && _canvas.enabled;
         if (_canvas != null) _canvas.enabled = false;
         ClearArrows();
+        RebuildSlotLookup();
         AddSideArrows(state.OpponentSide, true);
         AddSideArrows(state.PlayerSide, false);
         ComputeDamageStacking();
@@ -183,6 +186,18 @@ public class TargetPlanArrowsUI : MonoBehaviour
                 list[i].OrderIndex = i;
                 cumulative += Mathf.Max(0, list[i].Source?.Attack ?? 0);
             }
+        }
+    }
+
+    private void RebuildSlotLookup()
+    {
+        _slotByEntity.Clear();
+        if (_boardView == null) return;
+
+        foreach (var ui in _boardView.GetSlotUIs())
+        {
+            var occupant = ui != null ? ui.Occupant : null;
+            if (occupant != null) _slotByEntity[occupant] = ui;
         }
     }
 
@@ -550,9 +565,8 @@ public class TargetPlanArrowsUI : MonoBehaviour
             // canvas cameras in LateUpdate while the camera itself is moving between perspectives.
             // Average actual world corners instead of relying on local rect center so authored
             // slot pivots/scales still produce a visual center that matches the board.
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-            var center = (corners[0] + corners[1] + corners[2] + corners[3]) * 0.25f;
+            rect.GetWorldCorners(s_slotCorners);
+            var center = (s_slotCorners[0] + s_slotCorners[1] + s_slotCorners[2] + s_slotCorners[3]) * 0.25f;
             return RectTransformUtility.WorldToScreenPoint(mainCamera, center);
         }
 
@@ -563,11 +577,18 @@ public class TargetPlanArrowsUI : MonoBehaviour
     private BoardSlotUI FindSlotFor(IGameEntity entity)
     {
         if (entity == null) return null;
+        if (_slotByEntity.TryGetValue(entity, out var cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
+            return cachedSlot;
+
         if (_boardView == null) _boardView = FindObjectOfType<BoardView>(true);
         if (_boardView == null) return null;
         foreach (var ui in _boardView.GetSlotUIs())
         {
-            if (ui != null && ui.Occupant == entity) return ui;
+            if (ui != null && ui.Occupant == entity)
+            {
+                _slotByEntity[entity] = ui;
+                return ui;
+            }
         }
         return null;
     }

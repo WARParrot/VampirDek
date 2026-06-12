@@ -14,6 +14,7 @@ namespace Exploration
 
         private bool _isVisible = false;
         private float _targetAlpha = 0f;
+        private string _lastPromptText;
 
         private void Awake()
         {
@@ -36,7 +37,12 @@ namespace Exploration
         /// </summary>
         public void Show(string promptText)
         {
-            _promptText.text = promptText;
+            if (_promptText != null && promptText != _lastPromptText)
+            {
+                _promptText.text = promptText;
+                _lastPromptText = promptText;
+            }
+
             _targetAlpha = 1f;
             _isVisible = true;
         }
@@ -46,6 +52,8 @@ namespace Exploration
         /// </summary>
         public void Hide()
         {
+            if (!_isVisible && _targetAlpha <= 0f) return;
+
             _targetAlpha = 0f;
             _isVisible = false;
         }
