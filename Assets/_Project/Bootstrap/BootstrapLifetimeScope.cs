@@ -53,7 +53,17 @@ namespace Bootstrap
             
             await stateService.LoadAsync();
 
+            // Start independent Addressables loads together, then register them in dependency order below.
+            // This preserves CardDatabase-before-DeckDatabase semantics while avoiding purely sequential IO waits.
             var cardHandle = Addressables.LoadAssetsAsync<CardDef>("Cards", null);
+            var enchHandle = Addressables.LoadAssetsAsync<EnchantmentData>("Enchantments", null);
+            var deckHandle = Addressables.LoadAssetsAsync<DeckData>("Decks", null);
+            var hintHandle = Addressables.LoadAssetsAsync<HintData>("Hints", null);
+            var encHandle = Addressables.LoadAssetsAsync<CombatEncounter>("Encounters", null);
+            var layoutHandle = Addressables.LoadAssetsAsync<BoardLayoutData>("Layouts", null);
+            var graphHandle = Addressables.LoadAssetsAsync<PhaseGraph>("PhaseGraphs", null);
+            var winHandle = Addressables.LoadAssetsAsync<WinCondition>("WinConditions", null);
+
             await cardHandle.Task;
             if (cardHandle.Result != null)
             {
@@ -62,7 +72,6 @@ namespace Bootstrap
             }
 
             // Load base game enchantments
-            var enchHandle = Addressables.LoadAssetsAsync<EnchantmentData>("Enchantments", null);
             await enchHandle.Task;
             if (enchHandle.Result != null)
             {
@@ -71,7 +80,6 @@ namespace Bootstrap
             }
 
             // Load base game decks
-            var deckHandle = Addressables.LoadAssetsAsync<DeckData>("Decks", null);
             await deckHandle.Task;
             if (deckHandle.Result != null)
             {
@@ -88,12 +96,10 @@ namespace Bootstrap
             }
 
             // Hints
-            var hintHandle = Addressables.LoadAssetsAsync<HintData>("Hints", null);
             await hintHandle.Task;
             if (hintHandle.Result != null)
                 foreach (var h in hintHandle.Result) HintDatabase.RegisterHint(h);
 
-            var encHandle = Addressables.LoadAssetsAsync<CombatEncounter>("Encounters", null);
             await encHandle.Task;
             if (encHandle.Result != null)
             {
@@ -101,7 +107,6 @@ namespace Bootstrap
                     EncounterDatabase.RegisterEncounter(enc);
             }
 
-            var layoutHandle = Addressables.LoadAssetsAsync<BoardLayoutData>("Layouts", null);
             await layoutHandle.Task;
             if (layoutHandle.Result != null)
             {
@@ -109,7 +114,6 @@ namespace Bootstrap
                     BoardLayoutDatabase.RegisterLayout(layout);
             }
 
-            var graphHandle = Addressables.LoadAssetsAsync<PhaseGraph>("PhaseGraphs", null);
             await graphHandle.Task;
             if (graphHandle.Result != null)
             {
@@ -125,7 +129,6 @@ namespace Bootstrap
                 }
             }
 
-            var winHandle = Addressables.LoadAssetsAsync<WinCondition>("WinConditions", null);
             await winHandle.Task;
             if (winHandle.Result != null)
             {

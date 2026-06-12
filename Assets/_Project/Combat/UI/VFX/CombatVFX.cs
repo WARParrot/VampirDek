@@ -4,6 +4,7 @@ using DG.Tweening;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Core;
 using Definitions;
 using TMPro;
@@ -17,6 +18,8 @@ namespace Combat.UI
         private static CombatVFX _instance;
         private Canvas _vfxCanvas;
         private BoardView _boardViewCache;
+        private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
+        private static readonly Vector3[] s_rectCorners = new Vector3[4];
 
         private IDisposable _subDamage;
         private IDisposable _subDied;
@@ -119,9 +122,28 @@ namespace Combat.UI
             if (entity == null) return null;
             if (_boardViewCache == null) _boardViewCache = FindObjectOfType<BoardView>();
             if (_boardViewCache == null) return null;
-            foreach (var ui in _boardViewCache.GetSlotUIs())
-                if (ui != null && ui.Occupant == entity) return ui;
+
+            if (_slotByEntity.TryGetValue(entity, out var cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
+                return cachedSlot;
+
+            RebuildSlotLookup();
+            if (_slotByEntity.TryGetValue(entity, out cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
+                return cachedSlot;
+
             return null;
+        }
+
+        private void RebuildSlotLookup()
+        {
+            _slotByEntity.Clear();
+            if (_boardViewCache == null) return;
+
+            foreach (var ui in _boardViewCache.GetSlotUIs())
+            {
+                var occupant = ui != null ? ui.Occupant : null;
+                if (occupant != null)
+                    _slotByEntity[occupant] = ui;
+            }
         }
 
         // Converts the centre of a UI element into the screen-space coordinates that the VFX
@@ -149,9 +171,8 @@ namespace Combat.UI
             var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
                 ? canvas.worldCamera
                 : null;
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-            Vector3 worldBottom = (corners[0] + corners[3]) * 0.5f;
+            rect.GetWorldCorners(s_rectCorners);
+            Vector3 worldBottom = (s_rectCorners[0] + s_rectCorners[3]) * 0.5f;
             return cam != null ? (Vector3)RectTransformUtility.WorldToScreenPoint(cam, worldBottom) : worldBottom;
         }
 

@@ -56,6 +56,7 @@ namespace Exploration
         private float _nextFootstepAt;
         private float _nextInteractionCheckAt;
         private bool _isActive;
+        private readonly Collider[] _encounterHits = new Collider[32];
 
         private void Awake()
         {
@@ -263,12 +264,20 @@ namespace Exploration
 
         private EncounterPoint FindNearestEncounterPoint()
         {
-            var hits = Physics.OverlapSphere(transform.position, _encounterStartRange, _encounterMask);
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, _encounterStartRange, _encounterHits, _encounterMask);
+            Collider[] overflowHits = hitCount == _encounterHits.Length
+                ? Physics.OverlapSphere(transform.position, _encounterStartRange, _encounterMask)
+                : null;
+            int count = overflowHits != null ? overflowHits.Length : hitCount;
+
             EncounterPoint nearest = null;
             var bestDistanceSqr = float.MaxValue;
 
-            foreach (var hit in hits)
+            for (int i = 0; i < count; i++)
             {
+                var hit = overflowHits != null ? overflowHits[i] : _encounterHits[i];
+                if (hit == null) continue;
+
                 var point = hit.GetComponent<EncounterPoint>() ?? hit.GetComponentInParent<EncounterPoint>();
                 if (point == null || !point.CanShowPrompt) continue;
 

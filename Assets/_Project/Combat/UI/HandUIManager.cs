@@ -110,8 +110,8 @@ public class HandUIManager : MonoBehaviour
             _lastDragAllowed = allowDrag;
         }
 
-        if (handChanged || dragPermissionChanged || humanResourcesChanged)
-            ApplyHandCardAffordances(side, allowDrag);
+        if (handChanged || dragPermissionChanged)
+            ApplyHandCardAffordances();
     }
     private void EnsureReadableStatusText()
     {
@@ -236,7 +236,7 @@ public class HandUIManager : MonoBehaviour
                IsCardDragAllowedByTutorial();
     }
 
-    private void ApplyHandCardAffordances(IPlayerSide side, bool allowDrag)
+    private void ApplyHandCardAffordances()
     {
         // Row compatibility is visualized on board slots while dragging/tapping a card.
         // Keeping the same compatible/incompatible shader on idle hand cards makes it look
