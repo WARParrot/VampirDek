@@ -89,8 +89,15 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         if (HighlightImage == null || _slotAffordance == null) return;
 
         bool on = state != CardAffordanceState.None;
+        if (on && HighlightImage.sprite == null)
+            SetHighlightSprite(GetEmptySlotSprite());
+
+        var tint = GetHighlightTint(state);
+        if (on && tint.a <= 0f) tint.a = 0.001f;
+
         HighlightImage.enabled = on;
-        HighlightImage.color = GetHighlightTint(state);
+        HighlightImage.color = tint;
+        HighlightImage.SetAllDirty();
         _slotAffordance.SetState(state, on ? 1f : 0f);
     }
 
