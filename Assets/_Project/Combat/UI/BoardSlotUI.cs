@@ -201,6 +201,7 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         HighlightImage.sprite = sprite != null ? sprite : GetEmptySlotSprite();
         HighlightImage.type = Image.Type.Simple;
         HighlightImage.preserveAspect = false;
+        HighlightImage.SetAllDirty();
     }
 
     private Sprite GetEmptySlotSprite()
@@ -268,17 +269,37 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         var rootGraphic = GetComponent<Graphic>();
         if (rootGraphic == null)
         {
-            var image = gameObject.AddComponent<Image>();
-            image.color = Color.clear;
-            rootGraphic = image;
+            rootGraphic = gameObject.AddComponent<Image>();
         }
+
+        EnsureRenderableRaycastImage(rootGraphic as Image);
         rootGraphic.raycastTarget = true;
 
         foreach (var graphic in GetComponentsInChildren<Graphic>(true))
         {
-            if (graphic == null || graphic == HighlightImage) continue;
+            if (graphic == null || graphic == HighlightImage || graphic.transform == transform) continue;
             graphic.raycastTarget = true;
         }
+    }
+
+    private void EnsureRenderableRaycastImage(Image image)
+    {
+        if (image == null) return;
+
+        if (image.sprite == null)
+            image.sprite = GetEmptySlotSprite();
+
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+
+        if (image.color.a <= 0f)
+        {
+            var color = image.color;
+            color.a = 0.001f;
+            image.color = color;
+        }
+
+        image.SetAllDirty();
     }
 
     private static string ShortRowName(Definitions.RowType rowType) => LocalizationService.ShortRowTypeName(rowType);

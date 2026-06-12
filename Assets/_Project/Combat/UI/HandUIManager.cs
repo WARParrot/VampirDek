@@ -307,10 +307,13 @@ public class HandUIManager : MonoBehaviour
         var cardImage = handler.GetComponent<Image>();
         var results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
-        BoardSlotUI targetSlotUI = results
+        var raycastSlots = results
             .Select(r => r.gameObject.GetComponentInParent<BoardSlotUI>())
-            .FirstOrDefault(s => s != null);
-        if (targetSlotUI == null || !targetSlotUI.IsValidDropTarget)
+            .Where(s => s != null)
+            .Distinct()
+            .ToList();
+        BoardSlotUI targetSlotUI = raycastSlots.FirstOrDefault(s => s.IsValidDropTarget);
+        if (targetSlotUI == null)
         {
             BoardView.HideAllHighlights();
             ResetDragState(handler);
