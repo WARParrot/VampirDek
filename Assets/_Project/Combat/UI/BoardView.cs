@@ -217,6 +217,7 @@ public class BoardView : MonoBehaviour
 
         label.text = string.Empty;
         label.raycastTarget = false;
+        label.gameObject.SetActive(false);
     }
 
     private Transform CreateGeneratedRow(Transform container, string sideName, Definitions.RowType rowType)
