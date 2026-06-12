@@ -154,33 +154,53 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
     private void EnsureSlotAffordanceImage()
     {
         if (HighlightImage == null)
-            HighlightImage = transform.Find("Highlight")?.GetComponent<Image>();
+            HighlightImage = transform.Find("AffordanceOverlay")?.GetComponent<Image>()
+                             ?? transform.Find("Highlight")?.GetComponent<Image>();
 
-        if (HighlightImage == null)
+        // Some prefabs serialized HighlightImage to the slot root Image. That root image is the
+        // stable empty-slot/raycast surface, so affordance clearing must not disable or rematerial it.
+        // Use a dedicated non-raycast overlay for compatible/incompatible shader states instead.
+        if (HighlightImage == null || HighlightImage.transform == transform)
         {
-            var overlay = new GameObject("AffordanceOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            overlay.transform.SetParent(transform, false);
-            overlay.transform.SetAsLastSibling();
-
-            var rect = overlay.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            HighlightImage = overlay.GetComponent<Image>();
-            HighlightImage.sprite = GetEmptySlotSprite();
-            HighlightImage.type = Image.Type.Simple;
-            HighlightImage.preserveAspect = false;
-            HighlightImage.raycastTarget = false;
-            HighlightImage.enabled = false;
+            HighlightImage = GetOrCreateAffordanceOverlay();
+            _slotAffordance = null;
         }
-        else
-        {
-            if (HighlightImage.sprite == null)
-                HighlightImage.sprite = GetEmptySlotSprite();
-            HighlightImage.raycastTarget = false;
-        }
+
+        ConfigureAffordanceOverlay(HighlightImage);
+    }
+
+    private Image GetOrCreateAffordanceOverlay()
+    {
+        var existing = transform.Find("AffordanceOverlay")?.GetComponent<Image>()
+                       ?? transform.Find("Highlight")?.GetComponent<Image>();
+        if (existing != null && existing.transform != transform)
+            return existing;
+
+        var overlay = new GameObject("AffordanceOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        overlay.transform.SetParent(transform, false);
+        overlay.transform.SetAsLastSibling();
+
+        var rect = overlay.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        return overlay.GetComponent<Image>();
+    }
+
+    private void ConfigureAffordanceOverlay(Image image)
+    {
+        if (image == null) return;
+
+        if (image.sprite == null)
+            image.sprite = GetEmptySlotSprite();
+
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+        image.raycastTarget = false;
+        image.enabled = false;
+        image.SetAllDirty();
     }
 
     private Sprite LoadCardSprite(CardDef cardDef)
@@ -277,8 +297,10 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
         foreach (var graphic in GetComponentsInChildren<Graphic>(true))
         {
-            if (graphic == null || graphic == HighlightImage || graphic.transform == transform) continue;
-            graphic.raycastTarget = true;
+            if (graphic == null || graphic.transform == transform) continue;
+            // The slot root owns hit-testing. Child text/card/affordance graphics should not
+            // compete in the raycast stack or mask neighboring empty slots.
+            graphic.raycastTarget = false;
         }
     }
 
