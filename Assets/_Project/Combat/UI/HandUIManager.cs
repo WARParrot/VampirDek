@@ -318,7 +318,7 @@ public class HandUIManager : MonoBehaviour
             .Where(s => s != null)
             .Distinct()
             .ToList();
-        BoardSlotUI targetSlotUI = raycastSlots.FirstOrDefault(s => s.IsValidDropTarget);
+        BoardSlotUI targetSlotUI = SelectBestDropTarget(raycastSlots, raycastEventData.position);
         if (targetSlotUI == null)
         {
             BoardView.HideAllHighlights();
@@ -363,6 +363,39 @@ public class HandUIManager : MonoBehaviour
         _duelManager.QueueAction(new PlaceCardIntoSlotAction(board, def, targetSlot));
         BoardView.HideAllHighlights();
     }
+    private BoardSlotUI SelectBestDropTarget(IEnumerable<BoardSlotUI> raycastSlots, Vector2 pointerScreenPosition)
+    {
+        if (raycastSlots == null) return null;
+
+        BoardSlotUI best = null;
+        float bestDistance = float.MaxValue;
+
+        foreach (var slot in raycastSlots)
+        {
+            if (slot == null || !slot.IsValidDropTarget) continue;
+
+            var rect = slot.transform as RectTransform;
+            if (rect == null)
+            {
+                if (best == null) best = slot;
+                continue;
+            }
+
+            var canvas = slot.GetComponentInParent<Canvas>();
+            var camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            var center = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center));
+            float distance = (center - pointerScreenPosition).sqrMagnitude;
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = slot;
+            }
+        }
+
+        return best;
+    }
+
     private ICostContext CreateCostContext(CardCost cost, IPlayerSide side)
     {
         if (cost is SacrificeCost sacrificeCost)
