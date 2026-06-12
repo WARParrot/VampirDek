@@ -332,7 +332,7 @@ namespace Combat
             {
                 if (_leaveDuelRequested || _duelState == null) return;
 
-                if (_actionQueue.Count > 0)
+                if (_actionQueue.Count > 0 || _processingQueuedActions)
                 {
                     await ProcessActionsAsync();
                     if (_leaveDuelRequested || _duelState == null) return;
@@ -342,6 +342,9 @@ namespace Combat
                     await UniTask.Yield();
                 }
             }
+
+            await ProcessActionsAsync();
+            if (_leaveDuelRequested || _duelState == null) return;
 
             _phaseConfirmationReady = false;
             Debug.Log("[Phase] Confirmed - advancing.");
@@ -598,36 +601,43 @@ namespace Combat
 
         private async UniTask ProcessActionsAsync()
         {
-            if (_processingQueuedActions) return;
+            while (_processingQueuedActions)
+            {
+                await UniTask.Yield();
+                if (_leaveDuelRequested || _duelState == null) return;
+            }
+
+            if (_actionQueue.Count == 0) return;
+
             _processingQueuedActions = true;
             try
             {
                 while (_actionQueue.Count > 0)
                 {
-                if (_state == CombatState.Paused) break;
-                var action = _actionQueue.Dequeue();
-                if (action == null)
-                {
-                    Debug.LogWarning("[DuelManager] Skipping null action in queue");
-                    continue;
-                }
-                Debug.Log($"[DuelManager] Processing action: {action.Description}");
-                Debug.Log($"[DuelDebug] Before action '{action.Description}': {DescribeDuelDebugState()}");
-                try
-                {
-                    await action.ExecuteAsync();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
-                }
-                await CombatVFX.AwaitCurrentActionAnimationsAsync();
-                RemoveDeadNonTownCardsFromBoards();
-                Debug.Log($"[DuelDebug] After action '{action.Description}' and cleanup: {DescribeDuelDebugState()}");
-                GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
+                    if (_state == CombatState.Paused) break;
+                    var action = _actionQueue.Dequeue();
+                    if (action == null)
+                    {
+                        Debug.LogWarning("[DuelManager] Skipping null action in queue");
+                        continue;
+                    }
+                    Debug.Log($"[DuelManager] Processing action: {action.Description}");
+                    Debug.Log($"[DuelDebug] Before action '{action.Description}': {DescribeDuelDebugState()}");
+                    try
+                    {
+                        await action.ExecuteAsync();
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[DuelManager] Action failed: {action.Description}\n{e}");
+                    }
+                    await CombatVFX.AwaitCurrentActionAnimationsAsync();
+                    RemoveDeadNonTownCardsFromBoards();
+                    Debug.Log($"[DuelDebug] After action '{action.Description}' and cleanup: {DescribeDuelDebugState()}");
+                    GlobalServices.EventBus.Publish(new ActionExecutedEvent(action));
 
-                bool terminalAfterAction = IsDuelTerminal();
-                Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
+                    bool terminalAfterAction = IsDuelTerminal();
+                    Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
                     if (terminalAfterAction)
                     {
                         CaptureDuelOutcomeIfFinished();
