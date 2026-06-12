@@ -206,14 +206,18 @@ namespace Combat.UI
             Debug.Log($"[Planner] Selecting friendly attacker {card.SourceCard.CardName} ATK={card.Attack}");
             if (_selectedAttacker != null && _selectedAttacker != card) ClearSelection();
             _selectedAttacker = card;
-            _boardView.SetCardHighlight(card, AttackerHighlight);
+            _boardView.SetCardAffordance(card, Shared.UI.CardAffordanceState.Selected);
 
+            var provoker = Combat.CardBehaviorTags.GetActiveProvokerOn(state.OpponentSide);
             foreach (var enemySlot in state.OpponentSide.Board.AllSlots())
             {
                 if (enemySlot.Occupant != null && enemySlot.Occupant.IsAlive)
                 {
                     Debug.Log($"[Planner] Highlight enemy {enemySlot.Occupant.SourceCard.CardName}");
-                    _boardView.SetCardHighlight(enemySlot.Occupant, TargetHighlight);
+                    bool canTarget = (provoker == null || enemySlot.Occupant == provoker) &&
+                                     Combat.DuelManager.CanAttackerTarget(card, enemySlot.Occupant);
+                    _boardView.SetCardAffordance(enemySlot.Occupant,
+                        canTarget ? Shared.UI.CardAffordanceState.Target : Shared.UI.CardAffordanceState.Blocked);
                 }
             }
 
@@ -297,7 +301,7 @@ namespace Combat.UI
         {
             if (_selectedAttacker != null)
             {
-                _boardView.SetCardHighlight(_selectedAttacker, Color.white);
+                _boardView.SetCardAffordance(_selectedAttacker, Shared.UI.CardAffordanceState.None);
                 _selectedAttacker = null;
             }
             var state = DuelManagerProxy.Instance?.CurrentDuelState;
@@ -305,7 +309,7 @@ namespace Combat.UI
             {
                 foreach (var slot in state.OpponentSide.Board.AllSlots())
                     if (slot.Occupant != null)
-                        _boardView.SetCardHighlight(slot.Occupant, Color.white);
+                        _boardView.SetCardAffordance(slot.Occupant, Shared.UI.CardAffordanceState.None);
             }
         }
     }

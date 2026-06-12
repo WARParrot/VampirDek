@@ -20,6 +20,8 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
     public Definitions.RowType RowType;
     [SerializeField] private Image _cardImage;
     [SerializeField] private Sprite _fallbackSprite;
+    private CardAffordanceHighlighter _slotAffordance;
+    private CardAffordanceHighlighter _cardAffordance;
     public int Index;
 
     public BoardCard Occupant => Board?.GetSlot(RowType, Index)?.Occupant;
@@ -74,9 +76,25 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
     public void SetHighlight(bool on)
     {
-        if (HighlightImage == null) return;
+        SetSlotAffordance(on ? CardAffordanceState.Compatible : CardAffordanceState.None);
+    }
+
+    public void SetSlotAffordance(CardAffordanceState state)
+    {
+        EnsureAffordanceTargets();
+        if (HighlightImage == null || _slotAffordance == null) return;
+
+        bool on = state != CardAffordanceState.None;
         HighlightImage.enabled = on;
-        HighlightImage.color = on ? new Color(1f, 0.8f, 0.1f, 0.45f) : Color.clear;
+        HighlightImage.color = on ? Color.white : Color.clear;
+        _slotAffordance.SetState(state, on ? 1f : 0f);
+    }
+
+    public void SetCardAffordance(CardAffordanceState state)
+    {
+        EnsureAffordanceTargets();
+        if (_cardAffordance == null) return;
+        _cardAffordance.SetState(state, state == CardAffordanceState.None ? 0f : 1f);
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -95,11 +113,24 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         CardStatsText ??= FindText("CardStats");
         SlotIndexText ??= FindText("SlotIndex");
         _cardImage ??= transform.Find("CardImage")?.GetComponent<Image>();
+        EnsureAffordanceTargets();
 
         var texts = GetComponentsInChildren<TextMeshProUGUI>(true);
         if (CardNameText == null && texts.Length > 0) CardNameText = texts[0];
         if (CardStatsText == null && texts.Length > 1) CardStatsText = texts[1];
         if (SlotIndexText == null && texts.Length > 2) SlotIndexText = texts[2];
+    }
+
+    private void EnsureAffordanceTargets()
+    {
+        if (HighlightImage == null)
+            HighlightImage = transform.Find("Highlight")?.GetComponent<Image>() ?? GetComponent<Image>();
+
+        if (HighlightImage != null && _slotAffordance == null)
+            _slotAffordance = HighlightImage.GetComponent<CardAffordanceHighlighter>() ?? HighlightImage.gameObject.AddComponent<CardAffordanceHighlighter>();
+
+        if (_cardImage != null && _cardAffordance == null)
+            _cardAffordance = _cardImage.GetComponent<CardAffordanceHighlighter>() ?? _cardImage.gameObject.AddComponent<CardAffordanceHighlighter>();
     }
 
     private TextMeshProUGUI FindText(string childName)

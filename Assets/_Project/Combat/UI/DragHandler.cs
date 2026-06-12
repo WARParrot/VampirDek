@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Definitions;
+using Shared.UI;
 
 namespace Combat.UI
 {
@@ -15,6 +16,7 @@ namespace Combat.UI
         private LayoutElement _layoutElement;
         private ICard _card;
         private HandUIManager _handManager;
+        private CardAffordanceHighlighter _affordance;
         private Vector2 _pointerOffset;
 
         public bool IsDragging { get; private set; }
@@ -53,6 +55,21 @@ namespace Combat.UI
         }
 
         public ICard GetCard() => _card;
+
+        public void SetAffordanceState(CardAffordanceState state)
+        {
+            EnsureAffordance();
+            if (_affordance != null)
+                _affordance.SetState(state, state == CardAffordanceState.None ? 0f : 1f);
+        }
+
+        private void EnsureAffordance()
+        {
+            if (_affordance != null) return;
+            var graphic = GetComponent<Graphic>() ?? GetComponentInChildren<Graphic>(true);
+            if (graphic != null)
+                _affordance = graphic.GetComponent<CardAffordanceHighlighter>() ?? graphic.gameObject.AddComponent<CardAffordanceHighlighter>();
+        }
 
         public void OnCardTapped(ICard tappedCard)
         {

@@ -87,7 +87,8 @@ public class HandUIManager : MonoBehaviour
             _displayedHR = side.HumanResources;
         }
 
-        if (side.HumanResources != _lastHumanResources)
+        bool humanResourcesChanged = side.HumanResources != _lastHumanResources;
+        if (humanResourcesChanged)
         {
             _lastHumanResources = side.HumanResources;
             if (PlayerHumanResText != null)
@@ -99,7 +100,8 @@ public class HandUIManager : MonoBehaviour
             RefreshHand(side);
 
         bool allowDrag = state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
-        if (handChanged || allowDrag != _lastDragAllowed)
+        bool dragPermissionChanged = allowDrag != _lastDragAllowed;
+        if (handChanged || dragPermissionChanged)
         {
             foreach (var kv in _cardViews)
             {
@@ -107,6 +109,9 @@ public class HandUIManager : MonoBehaviour
             }
             _lastDragAllowed = allowDrag;
         }
+
+        if (handChanged || dragPermissionChanged || humanResourcesChanged)
+            ApplyHandCardAffordances(side, allowDrag);
     }
     private void EnsureReadableStatusText()
     {
@@ -225,6 +230,28 @@ public class HandUIManager : MonoBehaviour
     {
         var state = _duelManager?.CurrentDuelState;
         return state != null && state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
+    }
+
+    private void ApplyHandCardAffordances(IPlayerSide side, bool allowDrag)
+    {
+        foreach (var kv in _cardViews)
+        {
+            var card = kv.Key;
+            var handler = kv.Value;
+            if (handler == null) continue;
+
+            if (!allowDrag || card?.Def == null)
+            {
+                handler.SetAffordanceState(CardAffordanceState.None);
+                continue;
+            }
+
+            bool canPay = CanPayAllCosts(card.Def, side);
+            bool hasCompatibleSlot = BoardView?.FindFirstEmptyPlayerSlot(card.Def.RowType) != null;
+            handler.SetAffordanceState(canPay && hasCompatibleSlot
+                ? CardAffordanceState.Compatible
+                : CardAffordanceState.Incompatible);
+        }
     }
 
     private bool IsCardDragAllowedByTutorial()

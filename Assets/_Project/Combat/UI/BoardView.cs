@@ -6,6 +6,7 @@ using Definitions;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Shared.UI;
 
 public class BoardView : MonoBehaviour
 {
@@ -384,6 +385,10 @@ public class BoardView : MonoBehaviour
 
         slotUI.SetDisplay(slotUI.Occupant);
         slotUI.SetHighlight(slotUI.IsValidDropTarget);
+        if (!slotUI.IsValidDropTarget)
+            slotUI.SetCardAffordance(slotUI.Occupant != null && slotUI.Occupant.PlannedTarget != null
+                ? CardAffordanceState.Planned
+                : CardAffordanceState.None);
     }
 
     public void ShowValidDropZones(Definitions.RowType rowType)
@@ -396,8 +401,26 @@ public class BoardView : MonoBehaviour
         {
             bool isPlayerSlot = slotUI.Board == state.PlayerSide.Board;
             var slot = slotUI.Board?.GetSlot(slotUI.RowType, slotUI.Index);
-            slotUI.IsValidDropTarget = isPlayerSlot && slotUI.RowType == rowType && slot != null && slot.IsEmpty;
-            slotUI.SetHighlight(slotUI.IsValidDropTarget);
+            bool rowMatches = slotUI.RowType == rowType;
+            bool canDrop = isPlayerSlot && rowMatches && slot != null && slot.IsEmpty;
+            slotUI.IsValidDropTarget = canDrop;
+
+            if (!isPlayerSlot)
+            {
+                slotUI.SetSlotAffordance(CardAffordanceState.None);
+            }
+            else if (canDrop)
+            {
+                slotUI.SetSlotAffordance(CardAffordanceState.Compatible);
+            }
+            else if (rowMatches && slot != null && !slot.IsEmpty)
+            {
+                slotUI.SetSlotAffordance(CardAffordanceState.Blocked);
+            }
+            else
+            {
+                slotUI.SetSlotAffordance(CardAffordanceState.Incompatible);
+            }
         }
     }
 
@@ -406,20 +429,28 @@ public class BoardView : MonoBehaviour
         foreach (var slotUI in _slotUIs.Values)
         {
             slotUI.IsValidDropTarget = false;
-            slotUI.SetHighlight(false);
+            slotUI.SetSlotAffordance(CardAffordanceState.None);
         }
     }
 
     public void SetCardHighlight(BoardCard card, Color color)
     {
+        if (color == Color.white || color == Color.clear)
+            SetCardAffordance(card, CardAffordanceState.None);
+        else if (color == Color.cyan)
+            SetCardAffordance(card, CardAffordanceState.Selected);
+        else if (color == Color.red)
+            SetCardAffordance(card, CardAffordanceState.Target);
+        else
+            SetCardAffordance(card, CardAffordanceState.Planned);
+    }
+
+    public void SetCardAffordance(BoardCard card, CardAffordanceState state)
+    {
         if (card == null) return;
         var slotUI = FindSlotForCard(card);
         if (slotUI == null) return;
-
-        var image = slotUI.HighlightImage != null ? slotUI.HighlightImage : slotUI.GetComponent<Image>();
-        if (image == null) return;
-        image.enabled = true;
-        image.color = color;
+        slotUI.SetCardAffordance(state);
     }
 
     public BoardSlotUI FindFirstEmptyPlayerSlot(Definitions.RowType rowType)
