@@ -35,7 +35,7 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         Index = rowLocalIndex;
         AutoBindTextFields();
         EnsureRaycastTargets();
-        if (SlotIndexText != null) SlotIndexText.text = $"{ShortRowName(rowType)} {rowLocalIndex + 1}";
+        ClearEmptySlotText();
     }
 
     public void SetDisplay(BoardCard occupant)
@@ -43,11 +43,10 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         AutoBindTextFields();
         EnsureRaycastTargets();
 
+        ClearEmptySlotText();
+
         if (occupant == null)
         {
-            if (CardNameText != null) CardNameText.text = ShortRowName(RowType);
-            if (CardStatsText != null) CardStatsText.text = "";
-            if (SlotIndexText != null) SlotIndexText.text = "";
             if (_cardImage != null) _cardImage.enabled = false;
             SetHighlightSprite(GetEmptySlotSprite());
             return;
@@ -116,6 +115,15 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         }
 
         PlanningPhaseController.Instance?.HandleSlotClick(this);
+    }
+
+    private void ClearEmptySlotText()
+    {
+        // Keep empty-slot/slot-index labels from being mistaken for row labels while preserving
+        // occupied card name and stats text on the board card itself.
+        if (CardNameText != null) CardNameText.text = string.Empty;
+        if (CardStatsText != null) CardStatsText.text = string.Empty;
+        if (SlotIndexText != null) SlotIndexText.text = string.Empty;
     }
 
     private void AutoBindTextFields()

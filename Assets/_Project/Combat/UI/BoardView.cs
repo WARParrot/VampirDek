@@ -203,23 +203,20 @@ public class BoardView : MonoBehaviour
                 ConfigureSlotUI(board, rowType, boardSlots[displayIndex].Index, slotUI);
             }
 
-            var label = rowParent.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            if (label != null)
-            {
-                label.text = rowType switch
-                {
-                    Definitions.RowType.Vanguard => "Авангард",
-                    Definitions.RowType.Building => "Постройки",
-                    Definitions.RowType.Human => "Люди",
-                    Definitions.RowType.Town => "",
-                    _ => rowType.ToString()
-                };
-                label.fontSize = 36;
-                label.alignment = TextAlignmentOptions.Center;
-                label.rectTransform.sizeDelta = new Vector2(400, 100);
-                label.rectTransform.anchoredPosition = Vector2.zero;
-            }
+            ClearGeneratedRowLabel(rowParent);
         }
+    }
+
+    private void ClearGeneratedRowLabel(Transform rowParent)
+    {
+        // Only touch an explicitly authored RowLabel. GetComponentInChildren can grab the first
+        // slot's card/index text, which makes that first board card look larger and adds stray labels.
+        var labelTransform = rowParent != null ? rowParent.Find("RowLabel") : null;
+        var label = labelTransform != null ? labelTransform.GetComponent<TMPro.TextMeshProUGUI>() : null;
+        if (label == null) return;
+
+        label.text = string.Empty;
+        label.raycastTarget = false;
     }
 
     private Transform CreateGeneratedRow(Transform container, string sideName, Definitions.RowType rowType)
