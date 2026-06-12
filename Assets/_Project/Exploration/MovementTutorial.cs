@@ -76,6 +76,13 @@ namespace Exploration
 
         private float _stepStartedAt = 0f;
 
+        // Frame-local input edges must be sampled every Update. Expensive tutorial
+        // checks may be throttled, but these pending semantic inputs must not be skipped.
+        private bool _continuePressedSinceCheck = false;
+        private bool _interactPressedSinceCheck = false;
+        private bool _escapePressedSinceCheck = false;
+        private bool _mouseLookSeenSinceCheck = false;
+
 
 
         private ExplorationController _player;
@@ -171,6 +178,8 @@ namespace Exploration
         {
 
             if (!_tutorialActive) return;
+
+            CaptureInputEdges();
 
 
 
@@ -456,6 +465,8 @@ namespace Exploration
 
             _currentStepIndex = 0;
 
+            ResetCapturedInputEdges();
+
 
 
             if (_tutorialPanel != null)
@@ -493,6 +504,7 @@ namespace Exploration
             var step = _steps[_currentStepIndex];
 
             _stepStartedAt = Time.time;
+            ResetCapturedInputEdges();
 
 
 
@@ -701,6 +713,7 @@ namespace Exploration
                 _actionPromptShown = true;
 
                 ApplyStepText(step, true);
+                ResetCapturedInputEdges();
 
             }
 
@@ -735,6 +748,8 @@ namespace Exploration
                     _continuePromptShown = true;
 
                     ApplyStepText(step, true);
+                    ResetCapturedInputEdges();
+                    return;
 
                 }
 
@@ -758,11 +773,11 @@ namespace Exploration
 
                 MovementCompletionType.MoveRight => Keyboard.current != null && Keyboard.current.dKey.isPressed,
 
-                MovementCompletionType.MouseLook => Mouse.current != null && (Mouse.current.delta.ReadValue().magnitude > 0.1f),
+                MovementCompletionType.MouseLook => Consume(ref _mouseLookSeenSinceCheck),
 
-                MovementCompletionType.Interact => Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame,
+                MovementCompletionType.Interact => Consume(ref _interactPressedSinceCheck),
 
-                MovementCompletionType.EscapeMenu => Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame,
+                MovementCompletionType.EscapeMenu => Consume(ref _escapePressedSinceCheck),
 
                 MovementCompletionType.AnyMovement => Keyboard.current != null && (
 
@@ -796,18 +811,59 @@ namespace Exploration
 
 
 
-        private static bool IsContinuePressed()
+        private void CaptureInputEdges()
 
         {
 
             var kb = Keyboard.current;
+            if (kb != null)
+            {
+                if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame)
+                    _continuePressedSinceCheck = true;
+                if (kb.eKey.wasPressedThisFrame)
+                    _interactPressedSinceCheck = true;
+                if (kb.escapeKey.wasPressedThisFrame)
+                    _escapePressedSinceCheck = true;
+            }
 
-            if (kb == null) return false;
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.delta.ReadValue().magnitude > 0.1f)
+                _mouseLookSeenSinceCheck = true;
 
-            return kb.spaceKey.wasPressedThisFrame ||
+        }
 
 
-                   kb.enterKey.wasPressedThisFrame;
+
+        private void ResetCapturedInputEdges()
+
+        {
+
+            _continuePressedSinceCheck = false;
+            _interactPressedSinceCheck = false;
+            _escapePressedSinceCheck = false;
+            _mouseLookSeenSinceCheck = false;
+
+        }
+
+
+
+        private static bool Consume(ref bool value)
+
+        {
+
+            if (!value) return false;
+            value = false;
+            return true;
+
+        }
+
+
+
+        private bool IsContinuePressed()
+
+        {
+
+            return Consume(ref _continuePressedSinceCheck);
 
         }
 
@@ -830,6 +886,7 @@ namespace Exploration
         {
 
             _tutorialActive = false;
+            ResetCapturedInputEdges();
 
             _tutorialCompletedThisSession = true;
 
