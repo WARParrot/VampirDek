@@ -37,7 +37,7 @@ namespace Exploration
             {
                 var encounter = encounters[i];
                 var tableId = TableIdFor(encounter.EncounterId);
-                var existing = UnityEngine.Object.FindObjectsOfType<EncounterPoint>(true)
+                var existing = UnityEngine.Object.FindObjectsByType<EncounterPoint>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                     .FirstOrDefault(p => p != null && p.UniqueTableId == tableId);
                 if (existing != null)
                     continue;

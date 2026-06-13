@@ -11,6 +11,8 @@ namespace Combat.UI
 {
     public class CardSelectionUI : MonoBehaviour
     {
+        public static CardSelectionUI Current { get; private set; }
+
         [SerializeField] private GameObject panelRoot;
         [SerializeField] private List<CardChoiceButton> choiceButtons;
         [SerializeField] private float staggerDelay = 0.09f;
@@ -53,7 +55,16 @@ namespace Combat.UI
 
         private bool _initialized;
 
-        private void Awake() => EnsureInitialized();
+        private void Awake()
+        {
+            Current = this;
+            EnsureInitialized();
+        }
+
+        private void OnDestroy()
+        {
+            if (Current == this) Current = null;
+        }
 
         private void EnsureInitialized()
         {
@@ -233,7 +244,7 @@ namespace Combat.UI
             tmp.alignment = align;
             tmp.color = color;
             tmp.raycastTarget = false;
-            tmp.enableWordWrapping = true;
+            tmp.textWrappingMode = TMPro.TextWrappingModes.Normal;
             tmp.overflowMode = TextOverflowModes.Overflow;
             return tmp;
         }

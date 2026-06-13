@@ -20,18 +20,18 @@ namespace Combat
             _source = source;
         }
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             if (IsPrevented)
             {
                 OnPrevention();
-                return;
+                return UniTask.CompletedTask;
             }
 
             if (_source == null || !_source.IsAlive || _target == null || !_target.IsAlive)
             {
                 OnPrevention();
-                return;
+                return UniTask.CompletedTask;
             }
 
             var preEvent = new PreDamageEvent(_target, _amount, _source);
@@ -39,12 +39,13 @@ namespace Combat
             if (preEvent.Prevented)
             {
                 OnPrevention();
-                return;
+                return UniTask.CompletedTask;
             }
 
             int final = preEvent.ModifiedAmount;
             _target.TakeDamage(final, _source);
             GlobalServices.EventBus.Publish(new DamageDealtEvent(_target, final, _source));
+            return UniTask.CompletedTask;
         }
 
         public void OnPrevention() => GlobalServices.EventBus.Publish(new DamagePreventedEvent(_target, _source));

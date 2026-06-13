@@ -188,7 +188,7 @@ namespace Combat.UI
                 tmp.fontSize = 12f;
                 tmp.alignment = TextAlignmentOptions.Left;
                 tmp.color = new Color(0.92f, 0.9f, 0.85f, 1f);
-                tmp.enableWordWrapping = false;
+                tmp.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
                 tmp.overflowMode = TextOverflowModes.Ellipsis;
                 tmp.raycastTarget = false;
                 tmp.maskable = false;
@@ -200,7 +200,7 @@ namespace Combat.UI
 
         private static Canvas FindScreenOverlayCanvas()
         {
-            var all = FindObjectsOfType<Canvas>(true);
+            var all = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var c in all)
                 if (c != null && c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
                     return c;

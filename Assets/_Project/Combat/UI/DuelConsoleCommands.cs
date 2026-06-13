@@ -207,7 +207,7 @@ namespace Combat.UI
             return $"Player humans: {dm.CurrentDuelState.PlayerSide.HumanResources}";
         }
 
-        private static DuelManager GetDuelManager() => UnityEngine.Object.FindObjectOfType<DuelManager>();
+        private static DuelManager GetDuelManager() => DuelManagerProxy.Instance;
 
         private static (IBoardSlot slot, string row) FindSlot(string spec)
         {

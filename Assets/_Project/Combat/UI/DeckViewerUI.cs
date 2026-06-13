@@ -44,7 +44,7 @@ namespace Combat.UI
         /// </summary>
         public void Show()
         {
-            _duelManager = FindObjectOfType<DuelManager>();
+            _duelManager = DuelManagerProxy.Instance;
             if (_duelManager?.CurrentDuelState == null)
             {
                 Debug.LogWarning("[DeckViewerUI] No active duel state");

@@ -15,7 +15,7 @@ namespace Exploration.Editor
         [MenuItem("GameObject/UI/VampirDek/Interaction Prompt UI", false, 11)]
         public static void CreateInteractionPromptUI()
         {
-            Canvas canvas = Object.FindObjectOfType<Canvas>();
+            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
             if (canvas == null)
             {
                 GameObject canvasObj = new GameObject("Canvas");

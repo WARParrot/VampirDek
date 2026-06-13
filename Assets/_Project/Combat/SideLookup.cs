@@ -8,7 +8,7 @@ namespace Combat
     {
         public static SideState FindSideOf(IGameEntity entity)
         {
-            var dm = Object.FindObjectOfType<DuelManager>();
+            var dm = DuelManagerProxy.Instance;
             return FindSideOf(entity, dm?.CurrentDuelState);
         }
 

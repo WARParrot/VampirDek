@@ -15,6 +15,8 @@ namespace Combat.UI
     /// </summary>
     public class ResourceWarningUI : MonoBehaviour
     {
+        public static ResourceWarningUI Current { get; private set; }
+
         [SerializeField] private TextMeshProUGUI _warningText;
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private float _displayDuration = 2f;
@@ -27,6 +29,8 @@ namespace Combat.UI
 
         private void Awake()
         {
+            Current = this;
+
             if (_canvasGroup == null)
                 _canvasGroup = GetComponent<CanvasGroup>();
 
@@ -43,6 +47,7 @@ namespace Combat.UI
 
         private void OnDestroy()
         {
+            if (Current == this) Current = null;
             if (!_subscribed) return;
             EventBus bus;
             try { bus = GlobalServices.EventBus; } catch { return; }
@@ -119,7 +124,7 @@ namespace Combat.UI
                 trt.offsetMin = new Vector2(24f, 14f);
                 trt.offsetMax = new Vector2(-24f, -14f);
                 _warningText.alignment = TMPro.TextAlignmentOptions.Center;
-                _warningText.enableWordWrapping = true;
+                _warningText.textWrappingMode = TMPro.TextWrappingModes.Normal;
                 _warningText.overflowMode = TMPro.TextOverflowModes.Overflow;
                 _warningText.textWrappingMode = TMPro.TextWrappingModes.Normal;
                 _warningText.enableAutoSizing = true;
@@ -132,7 +137,7 @@ namespace Combat.UI
 
         private static Canvas FindScreenOverlayCanvas()
         {
-            var all = FindObjectsOfType<Canvas>(true);
+            var all = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var c in all)
             {
                 if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)

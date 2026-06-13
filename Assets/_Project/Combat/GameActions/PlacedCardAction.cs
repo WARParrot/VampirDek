@@ -17,10 +17,11 @@ namespace Combat
             _cardDef = cardDef;
         }
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             if (!_side.Board.TryPlaceCard(_cardDef, out _))
                 GlobalServices.EventBus.Publish(new PlaceFailedEvent(_cardDef.CardName, "No valid slot"));
+            return UniTask.CompletedTask;
         }
     }
 }

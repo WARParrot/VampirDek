@@ -32,6 +32,8 @@ namespace Combat
 
     {
 
+        public static TutorialSystem Current { get; private set; }
+
         [Header("Tutorial Settings")]
 
         [SerializeField] private bool _isTutorialEncounter = false;
@@ -50,6 +52,10 @@ namespace Combat
 
         [SerializeField] private HandUIManager _handUIManager;
 
+        [SerializeField] private BoardView _boardView;
+
+        [SerializeField] private global::PhaseConfirmationButton _phaseConfirmationButton;
+
         private int _currentStepIndex = 0;
 
         private bool _tutorialActive = false;
@@ -66,13 +72,10 @@ namespace Combat
 
         private CancellationTokenSource _cts;
 
-        private bool _cardDragged = false;
 
         private bool _cardPlaced = false;
 
-        private bool _targetSelected = false;
 
-        private bool _phaseConfirmed = false;
 
         // Set if a PlaceCardIntoSlotAction lands while a CardDragged step is still
 
@@ -118,6 +121,16 @@ namespace Combat
 
 
 
+        private void Awake()
+
+        {
+
+            Current = this;
+
+        }
+
+
+
         private static bool ShouldSkipDueToStartLimit()
 
         {
@@ -158,7 +171,7 @@ namespace Combat
 
             {
 
-                _handUIManager = FindObjectOfType<HandUIManager>();
+                _handUIManager = FindFirstObjectByType<HandUIManager>();
 
             }
 
@@ -248,7 +261,7 @@ namespace Combat
 
                 if (_duelManager == null)
 
-                    _duelManager = FindObjectOfType<DuelManager>();
+                    _duelManager = DuelManagerProxy.Instance;
 
             }
 
@@ -271,6 +284,8 @@ namespace Combat
             _cts?.Cancel();
 
             _cts?.Dispose();
+
+            if (Current == this) Current = null;
 
         }
 
@@ -972,9 +987,9 @@ namespace Combat
 
                 {
 
-                    var button = FindObjectOfType<global::PhaseConfirmationButton>(true);
+                    _phaseConfirmationButton ??= FindFirstObjectByType<global::PhaseConfirmationButton>(FindObjectsInactive.Include);
 
-                    var target = button != null ? button.transform as RectTransform : null;
+                    var target = _phaseConfirmationButton != null ? _phaseConfirmationButton.transform as RectTransform : null;
 
                     if (target != null && target.gameObject.activeInHierarchy) _arrowUI.PointToUI(target);
 
@@ -1014,11 +1029,11 @@ namespace Combat
 
             if (board == null || filter == null) { _arrowUI.Hide(); return; }
 
-            var boardView = FindObjectOfType<BoardView>(true);
+            _boardView ??= BoardView.Current;
 
-            var matched = boardView != null
+            var matched = _boardView != null
 
-                ? boardView.FindFirstOccupiedSlot(board, filter)
+                ? _boardView.FindFirstOccupiedSlot(board, filter)
 
                 : null;
 
@@ -1253,13 +1268,10 @@ namespace Combat
 
         {
 
-            _cardDragged = false;
 
             _cardPlaced = false;
 
-            _targetSelected = false;
 
-            _phaseConfirmed = false;
 
         }
 
@@ -1441,7 +1453,7 @@ namespace Combat
 
             {
 
-                _duelManager = FindObjectOfType<DuelManager>(true);
+                _duelManager = DuelManagerProxy.Instance;
 
             }
 
@@ -1562,7 +1574,6 @@ namespace Combat
 
             if (!_tutorialActive) return;
 
-            _cardDragged = true;
 
             var step = GetCurrentStep();
 
@@ -1584,7 +1595,6 @@ namespace Combat
 
             if (!_tutorialActive) return;
 
-            _targetSelected = true;
 
             var step = GetCurrentStep();
 
@@ -1636,7 +1646,6 @@ namespace Combat
 
             if (!AllowsPhaseConfirmation()) return;
 
-            _phaseConfirmed = true;
 
             AdvanceAfterReadTime().Forget();
 

@@ -65,7 +65,7 @@ namespace Exploration
 
         private static bool IsExplorationTutorialBlockingDuelStart()
         {
-            var tutorial = FindObjectOfType<MovementTutorial>(true);
+            var tutorial = FindFirstObjectByType<MovementTutorial>(FindObjectsInactive.Include);
             return tutorial != null && tutorial.BlocksDuelStart;
         }
 
@@ -181,7 +181,7 @@ namespace Exploration
                 _worldTableVisual.SetActive(false);
         }
 
-        private async UniTask<List<CardDef>> GetPlayerDeckAsync()
+        private UniTask<List<CardDef>> GetPlayerDeckAsync()
         {
             if (GlobalServices.PlayerData?.ActiveDeckCardIds?.Count > 0)
             {

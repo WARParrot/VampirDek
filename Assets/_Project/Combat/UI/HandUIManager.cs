@@ -15,6 +15,8 @@ using Cysharp.Threading.Tasks;
 using FMODUnity;
 public class HandUIManager : MonoBehaviour
 {
+    public static HandUIManager Current { get; private set; }
+
     [Header("Prefabs & Layout")]
     public GameObject CardViewPrefab;
     public Transform HandContainer;
@@ -43,6 +45,16 @@ public class HandUIManager : MonoBehaviour
     private int? _lastPlayerTownHp;
     private int? _lastOpponentTownHp;
     private int _lastHumanResources = int.MinValue;
+
+    private void Awake()
+    {
+        Current = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Current == this) Current = null;
+    }
 
     void Update()
     {
@@ -128,7 +140,7 @@ public class HandUIManager : MonoBehaviour
     private static void ConfigureHudText(TextMeshProUGUI text, float minSize, float maxSize)
     {
         if (text == null) return;
-        text.enableWordWrapping = true;
+        text.textWrappingMode = TMPro.TextWrappingModes.Normal;
         text.overflowMode = TextOverflowModes.Truncate;
         text.enableAutoSizing = true;
         text.fontSizeMin = minSize;
@@ -140,7 +152,7 @@ public class HandUIManager : MonoBehaviour
         if (cardView == null) return;
         foreach (var text in cardView.GetComponentsInChildren<TextMeshProUGUI>(true))
         {
-            text.enableWordWrapping = true;
+            text.textWrappingMode = TMPro.TextWrappingModes.Normal;
             text.overflowMode = TextOverflowModes.Truncate;
             text.enableAutoSizing = true;
             text.fontSizeMin = 10f;
@@ -253,7 +265,7 @@ public class HandUIManager : MonoBehaviour
     {
         if (TutorialSystem == null)
         {
-            TutorialSystem = FindObjectOfType<TutorialSystem>(true);
+            TutorialSystem = TutorialSystem.Current;
         }
 
         return TutorialSystem == null || !TutorialSystem.IsTutorialActive || TutorialSystem.AllowsCardDragging();
@@ -283,7 +295,7 @@ public class HandUIManager : MonoBehaviour
         BoardView.ShowValidDropZones(handler.GetCard().Def.RowType);
         if (TutorialSystem == null)
         {
-            TutorialSystem = FindObjectOfType<TutorialSystem>(true);
+            TutorialSystem = TutorialSystem.Current;
         }
         if (TutorialSystem != null && TutorialSystem.IsTutorialActive)
         {
@@ -415,7 +427,7 @@ public class HandUIManager : MonoBehaviour
         if (side == null) return null;
         if (TutorialSystem == null)
         {
-            TutorialSystem = FindObjectOfType<TutorialSystem>();
+            TutorialSystem = TutorialSystem.Current;
         }
         var preferredName = TutorialSystem != null && TutorialSystem.IsTutorialActive
             ? TutorialSystem.PreferredPlayableCardName

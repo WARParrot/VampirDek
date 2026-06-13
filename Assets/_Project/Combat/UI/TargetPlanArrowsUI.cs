@@ -77,7 +77,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
         if (_boardView == null && Time.unscaledTime >= _nextBoardViewLookupAt)
         {
             _nextBoardViewLookupAt = Time.unscaledTime + BoardViewLookupInterval;
-            _boardView = FindObjectOfType<BoardView>(true);
+            _boardView = BoardView.Current;
         }
         if (_boardView == null || !EnsureCanvas()) return;
 
@@ -525,7 +525,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
         tip.fontSize = 20f;
         tip.alignment = TextAlignmentOptions.Center;
         tip.color = new Color(1f, 0.95f, 0.88f, 1f);
-        tip.enableWordWrapping = true;
+        tip.textWrappingMode = TMPro.TextWrappingModes.Normal;
         tip.raycastTarget = false;
         tip.maskable = false;
         tip.richText = true;
@@ -591,7 +591,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
         if (_boardView == null && Time.unscaledTime >= _nextBoardViewLookupAt)
         {
             _nextBoardViewLookupAt = Time.unscaledTime + BoardViewLookupInterval;
-            _boardView = FindObjectOfType<BoardView>(true);
+            _boardView = BoardView.Current;
         }
         if (_boardView == null) return null;
         foreach (var ui in _boardView.GetSlotUIs())

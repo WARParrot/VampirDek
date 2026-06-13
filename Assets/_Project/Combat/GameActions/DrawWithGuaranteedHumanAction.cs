@@ -23,7 +23,7 @@ namespace Combat.GameActions
 
         public string Description => $"Взять {_count} карт (гарантированно 1 Человек)";
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             int drawn = 0;
 
@@ -44,6 +44,7 @@ namespace Combat.GameActions
                 if (card == null) break;
                 _side.AddCardToHand(card);
             }
+            return UniTask.CompletedTask;
         }
     }
 }

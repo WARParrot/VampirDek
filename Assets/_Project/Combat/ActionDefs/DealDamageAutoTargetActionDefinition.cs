@@ -34,7 +34,7 @@ namespace Combat
         public async UniTask ExecuteAsync()
         {
             var side = SideLookup.FindSideOf(_owner);
-            var state = Object.FindObjectOfType<DuelManager>()?.CurrentDuelState;
+            var state = DuelManagerProxy.Instance?.CurrentDuelState;
             var enemy = SideLookup.OpposingSide(side, state);
             if (enemy == null) return;
 

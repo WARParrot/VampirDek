@@ -133,7 +133,7 @@ namespace Exploration
 
         {
 
-            _player = FindObjectOfType<ExplorationController>();
+            _player = FindFirstObjectByType<ExplorationController>();
 
             EnsureUsefulDefaultSteps();
 

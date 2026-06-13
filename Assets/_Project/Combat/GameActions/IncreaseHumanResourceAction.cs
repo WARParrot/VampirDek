@@ -16,9 +16,10 @@ namespace Combat
             _amount = amount;
         }
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             _side.HumanResources += _amount;
+            return UniTask.CompletedTask;
         }
     }
 }

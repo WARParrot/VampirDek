@@ -148,6 +148,7 @@ namespace Combat
             Definitions.RowType.Building => BuildingRow,
             Definitions.RowType.Human => HumanRow,
             Definitions.RowType.Town => new[] { TownSlot },
+            _ => System.Array.Empty<BoardSlot>()
         };
 
         public BoardSlot GetSlot(Definitions.RowType row, int index)
@@ -189,6 +190,7 @@ namespace Combat
             Definitions.RowType.Building => BuildingRow,
             Definitions.RowType.Human => HumanRow,
             Definitions.RowType.Town => new[] { TownSlot },
+            _ => System.Array.Empty<IBoardSlot>()
         };
     }
 

@@ -11,9 +11,10 @@ namespace Combat
 
         public RegenerateHumanResourcesAction(SideState side) => _side = side;
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             _side.HumanResources = _side.Board.HumanRow.Count(s => !s.IsEmpty);
+            return UniTask.CompletedTask;
         }
     }
 }

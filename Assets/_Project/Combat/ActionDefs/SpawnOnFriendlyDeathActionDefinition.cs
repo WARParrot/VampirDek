@@ -54,7 +54,7 @@ namespace Combat
             if (!string.IsNullOrEmpty(_filter) && dead.SourceCard.CardName != _filter)
                 return UniTask.CompletedTask;
 
-            var state = Object.FindObjectOfType<DuelManager>()?.CurrentDuelState;
+            var state = DuelManagerProxy.Instance?.CurrentDuelState;
             var ownerSide = SideLookup.FindSideOf(_owner, state);
             if (ownerSide == null) return UniTask.CompletedTask;
 

@@ -11,6 +11,7 @@ namespace Combat.UI
     public class TargetSelector : MonoBehaviour
     {
         [SerializeField] private TutorialSystem _tutorialSystem;
+        [SerializeField] private BoardView _boardView;
 
         private DuelManager _duelManager;
         private BoardCard _selectedFriendly;
@@ -21,21 +22,15 @@ namespace Combat.UI
         public Color FriendlyColor = Color.cyan;
         public Color EnemyColor = Color.red;
 
-        private BoardView _boardView;
-
         void Start()
         {
             _duelManager = DuelManagerProxy.Instance;
-            _boardView = FindObjectOfType<BoardView>(true);
-
-            if (_tutorialSystem == null)
-            {
-                _tutorialSystem = FindObjectOfType<TutorialSystem>();
-            }
+            ResolveReferences();
         }
 
         void Update()
         {
+            ResolveReferences();
             CaptureMouseEdges();
 
             if (_duelManager?.CurrentDuelState == null)
@@ -118,6 +113,13 @@ namespace Combat.UI
             _mouseReleasePosition = Input.mousePosition;
         }
 
+        private void ResolveReferences()
+        {
+            _duelManager ??= DuelManagerProxy.Instance;
+            _boardView ??= BoardView.Current;
+            _tutorialSystem ??= TutorialSystem.Current;
+        }
+
         private void ResetCapturedMouseEdges()
         {
             _mouseReleasedSinceCheck = false;
@@ -150,9 +152,9 @@ namespace Combat.UI
             return FindSlotByRect(mousePosition);
         }
 
-        private static BoardSlotUI FindSlotByRect(Vector2 screenPosition)
+        private BoardSlotUI FindSlotByRect(Vector2 screenPosition)
         {
-            var candidates = FindObjectsOfType<BoardSlotUI>(false);
+            var candidates = _boardView != null ? _boardView.GetSlotUIs() : System.Array.Empty<BoardSlotUI>();
             BoardSlotUI best = null;
             var bestArea = float.MaxValue;
 
@@ -193,10 +195,7 @@ namespace Combat.UI
             _selectedFriendly = card;
             _boardView.SetCardHighlight(card, FriendlyColor);
 
-            if (_tutorialSystem == null)
-            {
-                _tutorialSystem = FindObjectOfType<TutorialSystem>(true);
-            }
+            ResolveReferences();
             if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)
             {
                 _tutorialSystem.OnAttackerCardSelected();

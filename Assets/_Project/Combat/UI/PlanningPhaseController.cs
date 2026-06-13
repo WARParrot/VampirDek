@@ -26,7 +26,8 @@ namespace Combat.UI
         public Color AttackerHighlight = Color.cyan;
         public Color TargetHighlight = Color.red;
 
-        private BoardView _boardView;
+        [SerializeField] private BoardView _boardView;
+        [SerializeField] private Combat.TutorialSystem _tutorialSystem;
 
         void Awake()
         {
@@ -35,7 +36,13 @@ namespace Combat.UI
 
         void Start()
         {
-            _boardView = FindObjectOfType<BoardView>(true);
+            ResolveReferences();
+        }
+
+        private void ResolveReferences()
+        {
+            _boardView ??= BoardView.Current;
+            _tutorialSystem ??= Combat.TutorialSystem.Current;
         }
 
         void OnDestroy()
@@ -204,11 +211,11 @@ namespace Combat.UI
                 ClearSelection();
                 _selectedAttacker = null;
 
-                var tutorial = FindObjectOfType<Combat.TutorialSystem>(true);
-                Debug.Log($"[Planner→Tutorial] tutorial={(tutorial != null ? "OK" : "NULL")}, active={tutorial?.IsTutorialActive}, step={tutorial?.CurrentStepIndex}");
-                if (tutorial != null && tutorial.IsTutorialActive)
+                ResolveReferences();
+                Debug.Log($"[Planner→Tutorial] tutorial={(_tutorialSystem != null ? "OK" : "NULL")}, active={_tutorialSystem?.IsTutorialActive}, step={_tutorialSystem?.CurrentStepIndex}");
+                if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)
                 {
-                    tutorial.OnTargetSelected();
+                    _tutorialSystem.OnTargetSelected();
                 }
             }
             else
@@ -257,10 +264,10 @@ namespace Combat.UI
                 }
             }
 
-            var tutorial = FindObjectOfType<Combat.TutorialSystem>(true);
-            if (tutorial != null && tutorial.IsTutorialActive)
+            ResolveReferences();
+            if (_tutorialSystem != null && _tutorialSystem.IsTutorialActive)
             {
-                tutorial.OnAttackerCardSelected();
+                _tutorialSystem.OnAttackerCardSelected();
             }
         }
 
@@ -286,7 +293,7 @@ namespace Combat.UI
 
             // World-space canvases can fail UI raycasts when the event camera is missing/stale.
             // Fall back to testing the actual slot RectTransforms with a camera chosen from the slot's canvas.
-            var candidates = FindObjectsOfType<BoardSlotUI>(false);
+            var candidates = GetBoardSlotCandidates();
             BoardSlotUI best = null;
             var bestArea = float.MaxValue;
 
@@ -310,6 +317,12 @@ namespace Combat.UI
             }
 
             return best;
+        }
+
+        private IEnumerable<BoardSlotUI> GetBoardSlotCandidates()
+        {
+            ResolveReferences();
+            return _boardView != null ? _boardView.GetSlotUIs() : System.Array.Empty<BoardSlotUI>();
         }
 
         private static Camera GetRectEventCamera(BoardSlotUI slot)

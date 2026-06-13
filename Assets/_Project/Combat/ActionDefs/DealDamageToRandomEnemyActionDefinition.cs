@@ -40,7 +40,7 @@ namespace Combat
             if (_owner is BoardCard bc && !bc.IsAlive) return;
 
             var side = SideLookup.FindSideOf(_owner);
-            var state = Object.FindObjectOfType<DuelManager>()?.CurrentDuelState;
+            var state = DuelManagerProxy.Instance?.CurrentDuelState;
             var enemy = SideLookup.OpposingSide(side, state);
             if (enemy == null) return;
 
