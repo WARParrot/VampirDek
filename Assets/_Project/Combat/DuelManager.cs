@@ -60,8 +60,22 @@ namespace Combat
         private TutorialSystem TutorialSystemRef => _tutorialSystem != null ? _tutorialSystem : (_tutorialSystem = TutorialSystem.Current);
         private BoardView BoardViewRef => _boardView != null ? _boardView : (_boardView = BoardView.Current);
         private HandUIManager HandUIManagerRef => _handUIManager != null ? _handUIManager : (_handUIManager = HandUIManager.Current);
-        private CardSelectionUI CardSelectionUIRef => _cardSelectionUI != null ? _cardSelectionUI : (_cardSelectionUI = CardSelectionUI.Current);
+        private CardSelectionUI CardSelectionUIRef => ResolveCardSelectionUI();
         private DuelCameraSwitcher CameraSwitcherRef => _cameraSwitcher != null ? _cameraSwitcher : (_cameraSwitcher = Camera.main?.GetComponent<DuelCameraSwitcher>());
+
+        private CardSelectionUI ResolveCardSelectionUI()
+        {
+            if (_cardSelectionUI != null) return _cardSelectionUI;
+
+            _cardSelectionUI = CardSelectionUI.Current;
+            if (_cardSelectionUI != null) return _cardSelectionUI;
+
+            // CardSelectionPanel is authored inactive in TestDuel. Inactive scene objects do not
+            // publish CardSelectionUI.Current until activated, but draft needs the component first
+            // so ShowDraftAsync can initialize and move its buttons into the runtime overlay.
+            _cardSelectionUI = UnityEngine.Object.FindAnyObjectByType<CardSelectionUI>(FindObjectsInactive.Include);
+            return _cardSelectionUI;
+        }
 
         public void ConfirmCurrentPhase()
         {
