@@ -193,9 +193,11 @@ Shader "VampirDek/UI/CardAffordance"
                 if (mode < 0.5)
                 {
                     col.rgb = saturate(col.rgb);
-                return ApplyClip(col, i);
+                    return ApplyClip(col, i);
                 }
 
+                float baseAlpha = col.a;
+                float surfaceMask = step(0.0005, baseAlpha);
                 float2 uv = i.uv;
                 float t = _Time.y;
                 float pulse = 0.5 + 0.5 * sin(t * max(_PulseSpeed, 0.01));
@@ -288,6 +290,12 @@ Shader "VampirDek/UI/CardAffordance"
                     col.rgb += (aff * alarm + sec * feverRing * 0.36) * (0.62 * ink);
                     col.a = max(col.a, alarm * affA * 0.84);
                 }
+                // Clip generated affordance ink to the source card/slot surface.
+                // This preserves sprite/card silhouettes while still allowing intentional
+                // near-transparent overlay images to render their own affordance alpha.
+                col.rgb = lerp(baseRgb, col.rgb, surfaceMask);
+                col.a = lerp(baseAlpha, col.a, surfaceMask);
+                col.rgb = saturate(col.rgb);
                 return ApplyClip(col, i);
             }
             ENDCG
