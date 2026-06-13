@@ -132,12 +132,15 @@ namespace Core
         {
             consolePanel.SetActive(!consolePanel.activeSelf);
             GlobalServices.EventBus.Publish(new ConsoleToggledEvent { IsOpen = consolePanel.activeSelf });
-            if (consolePanel.activeSelf)
+            if (IsConsoleVisible())
             {
+                UpdateLogDisplay();
                 inputField?.ActivateInputField();
             }
             SetPlayerInput(!consolePanel.activeSelf);
         }
+
+        private bool IsConsoleVisible() => consolePanel != null && consolePanel.activeSelf;
 
         private void SetPlayerInput(bool enabled)
         {
@@ -371,7 +374,7 @@ namespace Core
             {
                 _commandLogs.Add($"<color=#FFFFFF>  {message}</color>");
                 if (_commandLogs.Count > MaxLogs) _commandLogs.RemoveAt(0);
-                if (!_showGameLogs) UpdateLogDisplay();
+                if (!_showGameLogs && IsConsoleVisible()) UpdateLogDisplay();
                 return;
             }
 
@@ -385,24 +388,27 @@ namespace Core
             var formatted = $"<color={color}>[{type}] {message}</color>";
             _gameLogs.Add(formatted);
             if (_gameLogs.Count > MaxLogs) _gameLogs.RemoveAt(0);
-            UpdateLogDisplay();
+            if (IsConsoleVisible()) UpdateLogDisplay();
         }
 
         private void UpdateLogDisplay()
         {
+            if (!IsConsoleVisible() || logText == null) return;
+
             if (_showGameLogs)
                 logText.text = string.Join("\n", _gameLogs);
             else
                 logText.text = string.Join("\n", _commandLogs);
             
             Canvas.ForceUpdateCanvases();
-            scrollRect.verticalNormalizedPosition = 0f;
+            if (scrollRect != null)
+                scrollRect.verticalNormalizedPosition = 0f;
         }
 
         private void ToggleLogs()
         {
             _showGameLogs = !_showGameLogs;
-            UpdateLogDisplay();
+            if (IsConsoleVisible()) UpdateLogDisplay();
         }
     }
 }

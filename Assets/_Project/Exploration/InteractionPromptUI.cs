@@ -13,6 +13,7 @@ namespace Exploration
         [SerializeField] private float _fadeSpeed = 10f;
 
         private bool _isVisible = false;
+        private bool _isFading = false;
         private float _targetAlpha = 0f;
         private string _lastPromptText;
 
@@ -22,13 +23,19 @@ namespace Exploration
                 _canvasGroup = GetComponent<CanvasGroup>();
 
             _canvasGroup.alpha = 0f;
+            enabled = false;
         }
 
         private void Update()
         {
-            if (_canvasGroup.alpha != _targetAlpha)
+            if (!_isFading || _canvasGroup == null) return;
+
+            _canvasGroup.alpha = Mathf.MoveTowards(_canvasGroup.alpha, _targetAlpha, _fadeSpeed * Time.deltaTime);
+            if (Mathf.Approximately(_canvasGroup.alpha, _targetAlpha))
             {
-                _canvasGroup.alpha = Mathf.MoveTowards(_canvasGroup.alpha, _targetAlpha, _fadeSpeed * Time.deltaTime);
+                _canvasGroup.alpha = _targetAlpha;
+                _isFading = false;
+                enabled = false;
             }
         }
 
@@ -43,8 +50,12 @@ namespace Exploration
                 _lastPromptText = promptText;
             }
 
+            if (_isVisible && Mathf.Approximately(_targetAlpha, 1f)) return;
+
             _targetAlpha = 1f;
             _isVisible = true;
+            _isFading = true;
+            enabled = true;
         }
 
         /// <summary>
@@ -56,6 +67,8 @@ namespace Exploration
 
             _targetAlpha = 0f;
             _isVisible = false;
+            _isFading = true;
+            enabled = true;
         }
 
         public bool IsVisible => _isVisible;
