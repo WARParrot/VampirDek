@@ -342,6 +342,24 @@ namespace Combat.UI
                 _mandatoryHighlightCanvasGroup.alpha = 0.55f + 0.45f * Mathf.Sin(_glowPulseT * 4f);
         }
 
+        public void SetInputEnabled(bool enabled)
+        {
+            if (_cardCanvasGroup != null)
+            {
+                _cardCanvasGroup.interactable = enabled;
+                _cardCanvasGroup.blocksRaycasts = enabled;
+            }
+
+            var rootButton = _cardInstance != null ? _cardInstance.GetComponent<Button>() : null;
+            if (rootButton != null) rootButton.interactable = enabled;
+
+            var nestedButtons = _cardInstance != null ? _cardInstance.GetComponentsInChildren<Button>(true) : Array.Empty<Button>();
+            foreach (var nestedButton in nestedButtons)
+            {
+                if (nestedButton != null) nestedButton.interactable = enabled;
+            }
+        }
+
         public async UniTask PlayAppearAsync(float delay, float duration = 0.28f)
         {
             if (_cardRect == null || _cardCanvasGroup == null) return;

@@ -52,6 +52,11 @@ namespace Combat.UI
         private int _picksAllowed = 1;
         private List<CardDef> _candidateRefs;
         private readonly HashSet<string> _mandatoryCardNames = new();
+        private const float DraftInputArmDelay = 0.18f;
+        private const float DraftPickCooldown = 0.18f;
+        private bool _draftInputArmed;
+        private float _lastDraftPickTime = -999f;
+        private int _lastDraftPickFrame = -1;
 
         private bool _initialized;
 
@@ -403,6 +408,9 @@ namespace Combat.UI
             _mandatoryCardNames.Clear();
             _picksAllowed = Mathf.Clamp(picksAllowed, 1, candidates.Count);
             _candidateRefs = candidates;
+            _draftInputArmed = false;
+            _lastDraftPickTime = -999f;
+            _lastDraftPickFrame = -1;
             if (mandatoryCardNames != null)
             {
                 foreach (var name in mandatoryCardNames.Where(name => !string.IsNullOrEmpty(name) && candidates.Exists(c => c != null && c.CardName == name)))
@@ -434,6 +442,7 @@ namespace Combat.UI
                         cg.blocksRaycasts = true;
                     }
                     choiceButtons[i].Setup(candidates[i], def => OnDraftCardChosen(capturedIndex, def));
+                    choiceButtons[i].SetInputEnabled(false);
                     bool isMandatory = _mandatoryCardNames.Contains(candidates[i].CardName);
                     choiceButtons[i].SetMandatory(isMandatory);
                     int delayIdx = shown++;
@@ -445,7 +454,22 @@ namespace Combat.UI
                 }
             }
 
+            await ArmDraftInputAsync();
+
             return await _multiTcs.Task;
+        }
+
+        private async UniTask ArmDraftInputAsync()
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(DraftInputArmDelay), DelayType.UnscaledDeltaTime);
+            await UniTask.Yield();
+
+            _draftInputArmed = true;
+            for (int i = 0; i < choiceButtons.Count; i++)
+            {
+                if (choiceButtons[i] != null && choiceButtons[i].gameObject.activeInHierarchy)
+                    choiceButtons[i].SetInputEnabled(true);
+            }
         }
 
         // -- Pick handling ----------------------------------------------------------------
@@ -477,7 +501,13 @@ namespace Combat.UI
 
         private void OnDraftCardChosen(int index, CardDef chosen)
         {
-            if (chosen == null) return;
+            if (chosen == null || !_draftInputArmed) return;
+
+            if (Time.frameCount == _lastDraftPickFrame) return;
+            if (Time.unscaledTime - _lastDraftPickTime < DraftPickCooldown) return;
+
+            _lastDraftPickFrame = Time.frameCount;
+            _lastDraftPickTime = Time.unscaledTime;
 
             // Toggle: if this card is already picked, un-pick it.
             int existingPickSlot = _pickedIndices.IndexOf(index);
@@ -524,6 +554,13 @@ namespace Combat.UI
 
         private async UniTask FinishDraftAsync()
         {
+            _draftInputArmed = false;
+            for (int i = 0; i < choiceButtons.Count; i++)
+            {
+                if (choiceButtons[i] != null)
+                    choiceButtons[i].SetInputEnabled(false);
+            }
+
             await UniTask.Delay(TimeSpan.FromSeconds(0.35f), DelayType.UnscaledDeltaTime);
             await HideOverlayAsync();
             RestoreButtons();
