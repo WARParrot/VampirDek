@@ -85,14 +85,16 @@ namespace Bootstrap
             {
                 foreach (var deck in deckHandle.Result)
                 {
-                    deck.Cards.Clear();
-                    foreach (var name in deck.CardNames)
-                    {
-                        var def = CardDatabase.GetCard(name);
-                        if (def != null) deck.Cards.Add(def);
-                    }
+                    PopulateDeckCards(deck);
                     DeckDatabase.RegisterDeck(deck);
                 }
+            }
+
+            if (_defaultPlayerDeck != null)
+            {
+                PopulateDeckCards(_defaultPlayerDeck);
+                DeckDatabase.RegisterDeck(_defaultPlayerDeck);
+                Debug.Log($"[Bootstrap] Registered default deck asset '{_defaultPlayerDeck.name}'.");
             }
 
             // Hints
@@ -140,12 +142,10 @@ namespace Bootstrap
             var playerData = await LoadPlayerDataAsync(saveSystem) ?? new PersistentPlayerData();
             if (playerData.ActiveDeckCardIds == null || playerData.ActiveDeckCardIds.Count == 0)
             {
-                if (_defaultPlayerDeck != null && _defaultPlayerDeck.Cards.Count > 0)
+                var defaultDeckCardIds = ResolveDeckCardIds(_defaultPlayerDeck);
+                if (defaultDeckCardIds.Count > 0)
                 {
-                    playerData.ActiveDeckCardIds = _defaultPlayerDeck.Cards
-                        .Where(c => c != null)
-                        .Select(c => c.CardName)
-                        .ToList();
+                    playerData.ActiveDeckCardIds = defaultDeckCardIds;
                     Debug.Log($"[Bootstrap] Assigned default deck from '{_defaultPlayerDeck.name}'.");
                 }
                 else
@@ -274,6 +274,39 @@ namespace Bootstrap
                     Debug.LogWarning($"[Bootstrap] Could not find EncounterPoint with ID {state.ActiveDuelTableId}");
                 }
             }
+        }
+
+        private static void PopulateDeckCards(DeckData deck)
+        {
+            if (deck == null) return;
+
+            deck.Cards ??= new List<CardDef>();
+            deck.Cards.Clear();
+
+            if (deck.CardNames == null) return;
+            foreach (var name in deck.CardNames)
+            {
+                var def = CardDatabase.GetCard(name);
+                if (def != null) deck.Cards.Add(def);
+            }
+        }
+
+        private static List<string> ResolveDeckCardIds(DeckData deck)
+        {
+            if (deck == null) return new List<string>();
+
+            PopulateDeckCards(deck);
+            if (deck.Cards != null && deck.Cards.Count > 0)
+            {
+                return deck.Cards
+                    .Where(c => c != null && !string.IsNullOrEmpty(c.CardName))
+                    .Select(c => c.CardName)
+                    .ToList();
+            }
+
+            return deck.CardNames?
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToList() ?? new List<string>();
         }
 
         private async UniTask<PersistentPlayerData> LoadPlayerDataAsync(ISaveSystem saveSystem)
