@@ -124,7 +124,7 @@ namespace Exploration
             point.ConfigureRuntime(
                 encounter.EncounterId,
                 tableId,
-                DeckDatabase.GetDeck("BaseDeck") ?? CreateRuntimeFallbackDeck(),
+                DeckDatabase.GetDeck("FallbackDeck") ?? CreateRuntimeFallbackDeck(),
                 seat.transform,
                 null,
                 "interaction.start_mod_duel",

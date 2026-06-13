@@ -193,10 +193,11 @@ namespace Exploration
                 }
                 if (deck.Count > 0) return deck;
             }
-            if (DefaultPlayerDeck != null && DefaultPlayerDeck.Cards != null && DefaultPlayerDeck.Cards.Count > 0)
+            var fallbackDeck = ResolveDeckCards(DefaultPlayerDeck);
+            if (fallbackDeck.Count > 0)
             {
-                Debug.LogWarning("No player data found - returning fallback deck asset.");
-                return new List<CardDef>(DefaultPlayerDeck.Cards);
+                Debug.LogWarning($"No player data found - returning fallback deck asset '{DefaultPlayerDeck.name}'.");
+                return fallbackDeck;
             }
 
             var builtInFallback = new List<CardDef>();
@@ -230,6 +231,37 @@ namespace Exploration
                     Debug.LogWarning($"Card '{cardId}' not found in database.");
             }
             return deck;*/
+        }
+
+        private static List<CardDef> ResolveDeckCards(DeckData deckData)
+        {
+            var result = new List<CardDef>();
+            if (deckData == null) return result;
+
+            if (deckData.Cards != null)
+            {
+                foreach (var card in deckData.Cards)
+                {
+                    if (card != null) result.Add(card);
+                }
+            }
+
+            if (result.Count > 0) return result;
+
+            if (deckData.CardNames == null) return result;
+            foreach (var cardId in deckData.CardNames)
+            {
+                var cardDef = CardDatabase.GetCard(cardId);
+                if (cardDef != null) result.Add(cardDef);
+            }
+
+            if (deckData.Cards != null)
+            {
+                deckData.Cards.Clear();
+                deckData.Cards.AddRange(result);
+            }
+
+            return result;
         }
 
         void OnEnable()
