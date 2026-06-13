@@ -107,6 +107,11 @@ Shader "VampirDek/UI/CardAffordance"
                 return frac(p.x * p.y);
             }
 
+            float RadialFit()
+            {
+                return saturate(min(max(_AspectRatio, 0.001), 1.0));
+            }
+
             float2 AspectUv(float2 uv)
             {
                 float2 centered = uv - 0.5;
@@ -158,15 +163,19 @@ Shader "VampirDek/UI/CardAffordance"
                 float rnd = Hash21(id);
                 float rare = step(0.72, rnd);
                 float dash = 1.0 - smoothstep(0.018, 0.055, min(abs(cell.x), abs(cell.y)));
-                float radialGate = smoothstep(0.16, 0.34, length(AspectUv(uv)));
+                float fit = RadialFit();
+                float radialGate = smoothstep(0.16 * fit, 0.34 * fit, length(AspectUv(uv)));
                 float flicker = 0.55 + 0.45 * sin(_Time.y * 2.1 + rnd * 6.283 + timeOffset);
                 return rare * dash * radialGate * flicker;
             }
 
             float RingSigil(float2 uv, float radius, float width)
             {
+                float fit = RadialFit();
                 float d = length(AspectUv(uv));
-                return 1.0 - smoothstep(width, width * 2.3, abs(d - radius));
+                float fittedRadius = radius * fit;
+                float fittedWidth = max(width * fit, width * 0.62);
+                return 1.0 - smoothstep(fittedWidth, fittedWidth * 2.3, abs(d - fittedRadius));
             }
 
             float SlashBand(float2 uv, float offset, float width)
@@ -252,9 +261,12 @@ Shader "VampirDek/UI/CardAffordance"
                     // Target: a blood-moon reticle. Keep it circular/aimed so it cannot read as refusal.
                     float targetRing = RingSigil(uv, 0.34 + pulse * 0.014, 0.014);
                     float innerRing = RingSigil(uv, 0.18, 0.010);
+                    float targetFit = RadialFit();
                     float2 centered = abs(AspectUv(uv));
-                    float verticalSight = (1.0 - smoothstep(0.010, 0.026, centered.x)) * smoothstep(0.20, 0.34, centered.y);
-                    float horizontalSight = (1.0 - smoothstep(0.010, 0.026, centered.y)) * smoothstep(0.20, 0.34, centered.x);
+                    float sightInner = 0.20 * targetFit;
+                    float sightOuter = 0.34 * targetFit;
+                    float verticalSight = (1.0 - smoothstep(0.010, 0.026, centered.x)) * smoothstep(sightInner, sightOuter, centered.y);
+                    float horizontalSight = (1.0 - smoothstep(0.010, 0.026, centered.y)) * smoothstep(sightInner, sightOuter, centered.x);
                     float reticle = saturate(targetRing * 0.95 + innerRing * 0.58 + max(verticalSight, horizontalSight) * 0.72);
                     float targetEdge = saturate(border * 0.36 + corner * 0.24 + reticle);
                     col.rgb = lerp(col.rgb, col.rgb + aff * 0.28, 0.18 * ink);
