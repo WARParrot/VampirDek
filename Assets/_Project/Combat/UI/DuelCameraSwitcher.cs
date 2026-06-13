@@ -166,7 +166,7 @@ namespace Combat.UI
         private void RefreshWorldSpaceCanvasCache()
         {
             _nextCanvasRefreshAt = Time.unscaledTime + CanvasRefreshInterval;
-            _worldSpaceCanvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+            _worldSpaceCanvases = FindObjectsByType<Canvas>();
         }
 
         private void AssignWorldSpaceCanvasCamera(Camera cam)

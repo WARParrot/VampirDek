@@ -15,7 +15,7 @@ namespace Exploration.Editor
         [MenuItem("GameObject/UI/VampirDek/Movement Tutorial UI", false, 12)]
         public static void CreateMovementTutorialUI()
         {
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
                 GameObject canvasObj = new GameObject("Canvas");

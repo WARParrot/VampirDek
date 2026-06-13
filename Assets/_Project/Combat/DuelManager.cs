@@ -141,7 +141,7 @@ namespace Combat
                 }
             }
 
-            var input = FindFirstObjectByType<InputController>();
+            var input = FindAnyObjectByType<InputController>();
             if (input != null)
             {
                 _leaveAction = input.GetAction("Duel/LeaveDuel");
@@ -905,7 +905,7 @@ namespace Combat
 
             if (_duelOutcome == DuelOutcome.PlayerLost)
             {
-                var victoryScreen = _victoryScreen != null ? _victoryScreen : (_victoryScreen = FindFirstObjectByType<VictoryScreen>(FindObjectsInactive.Include));
+                var victoryScreen = _victoryScreen != null ? _victoryScreen : (_victoryScreen = FindAnyObjectByType<VictoryScreen>(FindObjectsInactive.Include));
                 if (victoryScreen != null)
                 {
                     await victoryScreen.ShowDefeatAsync();
@@ -1165,7 +1165,7 @@ namespace Combat
 
         private static SideState FindSideOfCard(BoardCard card)
         {
-            var dm = UnityEngine.DuelManagerProxy.Instance;
+            var dm = DuelManagerProxy.Instance;
             var state = dm?._duelState;
             if (state == null || card == null) return null;
             if (state.PlayerSide.Board.AllSlots().Any(s => s.Occupant == card)) return state.PlayerSide;

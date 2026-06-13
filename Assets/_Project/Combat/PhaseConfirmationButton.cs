@@ -53,7 +53,7 @@ public class PhaseConfirmationButton : MonoBehaviour
 
         if (_tutorialSystem == null)
         {
-            _tutorialSystem = FindFirstObjectByType<TutorialSystem>();
+            _tutorialSystem = TutorialSystem.Current;
         }
     }
 

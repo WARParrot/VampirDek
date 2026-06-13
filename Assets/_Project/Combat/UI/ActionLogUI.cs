@@ -200,7 +200,7 @@ namespace Combat.UI
 
         private static Canvas FindScreenOverlayCanvas()
         {
-            var all = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var all = FindObjectsByType<Canvas>(FindObjectsInactive.Include);
             foreach (var c in all)
                 if (c != null && c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
                     return c;

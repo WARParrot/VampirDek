@@ -171,7 +171,7 @@ namespace Combat
 
             {
 
-                _handUIManager = FindFirstObjectByType<HandUIManager>();
+                _handUIManager = HandUIManager.Current;
 
             }
 
@@ -987,7 +987,7 @@ namespace Combat
 
                 {
 
-                    _phaseConfirmationButton ??= FindFirstObjectByType<global::PhaseConfirmationButton>(FindObjectsInactive.Include);
+                    _phaseConfirmationButton ??= FindAnyObjectByType<global::PhaseConfirmationButton>(FindObjectsInactive.Include);
 
                     var target = _phaseConfirmationButton != null ? _phaseConfirmationButton.transform as RectTransform : null;
 

@@ -16,7 +16,7 @@ namespace Combat.Editor
         public static void CreateResourceWarningUI()
         {
             // Найти или создать Canvas
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
                 GameObject canvasObj = new GameObject("Canvas");
