@@ -238,12 +238,17 @@ Shader "VampirDek/UI/CardAffordance"
                 }
                 else if (mode < 4.5)
                 {
-                    // Target: an explicit bloodline cut. Highest-action state, so it may be sharper.
-                    float cut = SlashBand(uv, -0.02 + sin(t * 2.2) * 0.014, 0.019);
-                    float targetEdge = saturate(border * 0.42 + cut * 1.05 + corner * 0.20);
-                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.26, 0.20 * ink);
-                    col.rgb += (aff * cut + sec * border * (0.34 + pulse * 0.16)) * (0.78 * ink);
-                    col.a = max(col.a, targetEdge * affA * 0.88);
+                    // Target: a blood-moon reticle. Keep it circular/aimed so it cannot read as refusal.
+                    float targetRing = RingSigil(uv, 0.34 + pulse * 0.014, 0.014);
+                    float innerRing = RingSigil(uv, 0.18, 0.010);
+                    float2 centered = abs(uv - 0.5);
+                    float verticalSight = (1.0 - smoothstep(0.010, 0.026, centered.x)) * smoothstep(0.20, 0.34, centered.y);
+                    float horizontalSight = (1.0 - smoothstep(0.010, 0.026, centered.y)) * smoothstep(0.20, 0.34, centered.x);
+                    float reticle = saturate(targetRing * 0.95 + innerRing * 0.58 + max(verticalSight, horizontalSight) * 0.72);
+                    float targetEdge = saturate(border * 0.36 + corner * 0.24 + reticle);
+                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.28, 0.18 * ink);
+                    col.rgb += (aff * reticle + sec * targetRing * (0.28 + pulse * 0.14)) * (0.82 * ink);
+                    col.a = max(col.a, targetEdge * affA * 0.90);
                 }
                 else if (mode < 5.5)
                 {
