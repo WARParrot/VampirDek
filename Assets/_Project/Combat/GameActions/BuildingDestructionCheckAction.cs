@@ -11,7 +11,7 @@ namespace Combat
 
         public BuildingDestructionCheckAction(Board board) => _board = board;
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             foreach (var slot in _board.BuildingRow)
             {
@@ -26,6 +26,7 @@ namespace Combat
                     building.DamageReceivedThisTurn = 0;
                 }
             }
+            return UniTask.CompletedTask;
         }
     }
 }

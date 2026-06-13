@@ -120,7 +120,7 @@ namespace Combat.UI
 
         private static Canvas FindScreenOverlayCanvas()
         {
-            var all = FindObjectsOfType<Canvas>(true);
+            var all = FindObjectsByType<Canvas>(FindObjectsInactive.Include);
             foreach (var c in all)
                 if (c != null && c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
                     return c;
@@ -228,7 +228,7 @@ namespace Combat.UI
 
         private static void Notify(string message)
         {
-            var w = FindObjectOfType<ResourceWarningUI>(true);
+            var w = ResourceWarningUI.Current;
             if (w != null) w.ShowWarningAsync(message).Forget();
             else Debug.Log($"[CycleHand] {message}");
         }
@@ -354,7 +354,7 @@ namespace Combat.UI
             nameTmp.color = Color.white;
             nameTmp.raycastTarget = false;
             nameTmp.maskable = false;
-            nameTmp.enableWordWrapping = true;
+            nameTmp.textWrappingMode = TMPro.TextWrappingModes.Normal;
             var nrt = nameTmp.rectTransform;
             nrt.anchorMin = new Vector2(0f, 1f);
             nrt.anchorMax = new Vector2(1f, 1f);
@@ -405,7 +405,7 @@ namespace Combat.UI
 
             // Hand count is the same (removed 1, drew 1), so HandUIManager won't auto-refresh.
             // Force a redraw so the player sees the new card instead of the discarded one.
-            var hand = FindObjectOfType<HandUIManager>();
+            var hand = HandUIManager.Current;
             if (hand != null) hand.RefreshHandImmediately();
 
             _usedThisTurn = true;

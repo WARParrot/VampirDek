@@ -237,7 +237,7 @@ namespace Combat.UI
             tmp.alignment = align;
             tmp.color = color;
             tmp.raycastTarget = false;
-            tmp.enableWordWrapping = true;
+            tmp.textWrappingMode = TMPro.TextWrappingModes.Normal;
             tmp.overflowMode = TextOverflowModes.Ellipsis;
             return tmp;
         }

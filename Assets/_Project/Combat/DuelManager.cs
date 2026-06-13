@@ -50,6 +50,33 @@ namespace Combat
         private OpponentAI _opponentAI;
         [SerializeField] private VictoryScreen _victoryScreenPrefab;
 
+        private TutorialSystem _tutorialSystem;
+        private BoardView _boardView;
+        private HandUIManager _handUIManager;
+        private CardSelectionUI _cardSelectionUI;
+        private VictoryScreen _victoryScreen;
+        private DuelCameraSwitcher _cameraSwitcher;
+
+        private TutorialSystem TutorialSystemRef => _tutorialSystem != null ? _tutorialSystem : (_tutorialSystem = TutorialSystem.Current);
+        private BoardView BoardViewRef => _boardView != null ? _boardView : (_boardView = BoardView.Current);
+        private HandUIManager HandUIManagerRef => _handUIManager != null ? _handUIManager : (_handUIManager = HandUIManager.Current);
+        private CardSelectionUI CardSelectionUIRef => ResolveCardSelectionUI();
+        private DuelCameraSwitcher CameraSwitcherRef => _cameraSwitcher != null ? _cameraSwitcher : (_cameraSwitcher = Camera.main?.GetComponent<DuelCameraSwitcher>());
+
+        private CardSelectionUI ResolveCardSelectionUI()
+        {
+            if (_cardSelectionUI != null) return _cardSelectionUI;
+
+            _cardSelectionUI = CardSelectionUI.Current;
+            if (_cardSelectionUI != null) return _cardSelectionUI;
+
+            // CardSelectionPanel is authored inactive in TestDuel. Inactive scene objects do not
+            // publish CardSelectionUI.Current until activated, but draft needs the component first
+            // so ShowDraftAsync can initialize and move its buttons into the runtime overlay.
+            _cardSelectionUI = UnityEngine.Object.FindAnyObjectByType<CardSelectionUI>(FindObjectsInactive.Include);
+            return _cardSelectionUI;
+        }
+
         public void ConfirmCurrentPhase()
         {
             Debug.Log($"[DuelDebug] ConfirmCurrentPhase requested. ready={_phaseConfirmationReady}; confirmed={_playerConfirmedPhase}; {DescribeDuelDebugState()}");
@@ -128,7 +155,7 @@ namespace Combat
                 }
             }
 
-            var input = FindObjectOfType<InputController>();
+            var input = FindAnyObjectByType<InputController>();
             if (input != null)
             {
                 _leaveAction = input.GetAction("Duel/LeaveDuel");
@@ -184,7 +211,7 @@ namespace Combat
                 _leaveAction.Dispose();
             }
 
-            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            var switcher = CameraSwitcherRef;
             if (switcher != null)
                 switcher.enabled = false;
 
@@ -251,7 +278,7 @@ namespace Combat
         {
             if (_leaveDuelRequested) return;
 
-            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            var tutorial = TutorialSystemRef;
             var isFinalTutorialLeavePrompt = tutorial != null && tutorial.IsLeaveDuelPromptActive();
             if (GlobalServices.IsMenuOpen && !isFinalTutorialLeavePrompt) return;
 
@@ -280,10 +307,10 @@ namespace Combat
         private async UniTask ResumeFromSaveAsync()
         {
             await UniTask.DelayFrame(5);
-            var boardView = FindObjectOfType<BoardView>(true);
+            var boardView = BoardViewRef;
             boardView?.RefreshAllSlots();
 
-            var handUI = FindObjectOfType<HandUIManager>(true);
+            var handUI = HandUIManagerRef;
             handUI?.RefreshHandImmediately();
 
             await ResumeCurrentPhaseAsync();
@@ -384,7 +411,7 @@ namespace Combat
             }
 
             var actualPicks = Mathf.Min(picksAllowed, candidates.Count);
-            var ui = FindObjectOfType<CardSelectionUI>(true);
+            var ui = CardSelectionUIRef;
             if (ui == null)
             {
                 Debug.LogWarning("[Draft] CardSelectionUI not found; falling back to auto-draw.");
@@ -394,7 +421,7 @@ namespace Combat
 
             // During the tutorial, hold the draft closed until the intro steps reach
             // the "draft" step. Until then the player should see only the board.
-            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            var tutorial = TutorialSystemRef;
             if (tutorial != null)
             {
                 while (!tutorial.IsReadyForDraft())
@@ -554,7 +581,7 @@ namespace Combat
 
         private async UniTask ReturnToSeatViewForPlayerTurnAsync()
         {
-            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            var switcher = CameraSwitcherRef;
             if (switcher != null)
             {
                 switcher.SetPerspectiveSwitchingEnabled(true);
@@ -564,7 +591,7 @@ namespace Combat
 
         private async UniTask RunBoardViewResolutionAsync(Func<UniTask> resolveAsync)
         {
-            var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
+            var switcher = CameraSwitcherRef;
             if (switcher != null)
             {
                 switcher.SetPerspectiveSwitchingEnabled(false);
@@ -880,7 +907,7 @@ namespace Combat
 
         private void CompleteTutorialIfTerminalDuel()
         {
-            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            var tutorial = TutorialSystemRef;
             Debug.Log($"[DuelDebug] CompleteTutorialIfTerminalDuel: tutorialFound={tutorial != null}.");
             tutorial?.CompleteTutorialForTerminalDuel();
         }
@@ -892,7 +919,7 @@ namespace Combat
 
             if (_duelOutcome == DuelOutcome.PlayerLost)
             {
-                var victoryScreen = FindObjectOfType<VictoryScreen>(true);
+                var victoryScreen = _victoryScreen != null ? _victoryScreen : (_victoryScreen = FindAnyObjectByType<VictoryScreen>(FindObjectsInactive.Include));
                 if (victoryScreen != null)
                 {
                     await victoryScreen.ShowDefeatAsync();
@@ -1152,7 +1179,7 @@ namespace Combat
 
         private static SideState FindSideOfCard(BoardCard card)
         {
-            var dm = UnityEngine.Object.FindObjectOfType<DuelManager>();
+            var dm = DuelManagerProxy.Instance;
             var state = dm?._duelState;
             if (state == null || card == null) return null;
             if (state.PlayerSide.Board.AllSlots().Any(s => s.Occupant == card)) return state.PlayerSide;
@@ -1466,7 +1493,7 @@ namespace Combat
             var rng = new System.Random();
             var selected = rewardPool.OrderBy(x => rng.Next()).Take(3).ToList();
 
-            var cardSelectionUI = FindObjectOfType<CardSelectionUI>(true);
+            var cardSelectionUI = CardSelectionUIRef;
             if (cardSelectionUI == null)
             {
                 Debug.LogError("CardSelectionUI not found in scene.");

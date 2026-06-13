@@ -65,7 +65,7 @@ namespace Exploration
 
         private static bool IsExplorationTutorialBlockingDuelStart()
         {
-            var tutorial = FindObjectOfType<MovementTutorial>(true);
+            var tutorial = FindAnyObjectByType<MovementTutorial>(FindObjectsInactive.Include);
             return tutorial != null && tutorial.BlocksDuelStart;
         }
 
@@ -181,7 +181,7 @@ namespace Exploration
                 _worldTableVisual.SetActive(false);
         }
 
-        private async UniTask<List<CardDef>> GetPlayerDeckAsync()
+        private UniTask<List<CardDef>> GetPlayerDeckAsync()
         {
             if (GlobalServices.PlayerData?.ActiveDeckCardIds?.Count > 0)
             {
@@ -191,13 +191,13 @@ namespace Exploration
                     var cardDef = CardDatabase.GetCard(cardId);
                     if (cardDef != null) deck.Add(cardDef);
                 }
-                if (deck.Count > 0) return deck;
+                if (deck.Count > 0) return UniTask.FromResult(deck);
             }
             var fallbackDeck = ResolveDeckCards(DefaultPlayerDeck);
             if (fallbackDeck.Count > 0)
             {
                 Debug.LogWarning($"No player data found - returning fallback deck asset '{DefaultPlayerDeck.name}'.");
-                return fallbackDeck;
+                return UniTask.FromResult(fallbackDeck);
             }
 
             var builtInFallback = new List<CardDef>();
@@ -210,11 +210,11 @@ namespace Exploration
             if (builtInFallback.Count > 0)
             {
                 Debug.LogWarning($"No player data or fallback deck asset found for encounter '{EncounterId}' - using built-in starter card ids.");
-                return builtInFallback;
+                return UniTask.FromResult(builtInFallback);
             }
 
             Debug.LogError($"[EncounterPoint] No player deck, fallback deck, or built-in fallback cards are available for encounter '{EncounterId}'.");
-            return new List<CardDef>();
+            return UniTask.FromResult(new List<CardDef>());
 
            /* string json = System.Text.Encoding.UTF8.GetString(dataBytes);
             var playerData = JsonUtility.FromJson<PersistentPlayerData>(json);

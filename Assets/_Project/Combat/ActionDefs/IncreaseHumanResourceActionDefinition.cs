@@ -10,7 +10,7 @@ namespace Combat
 
         public override IGameAction CreateAction()
         {
-            var duelManager = Object.FindObjectOfType<DuelManager>();
+            var duelManager = DuelManagerProxy.Instance;
             if (duelManager?.CurrentDuelState == null) return null;
             var playerSide = duelManager.CurrentDuelState.PlayerSide;
             return new IncreaseHumanResourceAction(playerSide, _amount);

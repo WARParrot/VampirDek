@@ -253,7 +253,7 @@ namespace Bootstrap
             await GlobalServices.Director.PushModeAsync(explorationMode);
             Debug.Log("[Bootstrap] ExplorationMode pushed from save.");
 
-            var player = Object.FindObjectOfType<ExplorationController>();
+            var player = Object.FindAnyObjectByType<ExplorationController>();
             if (player != null)
             {
                 player.SetPosition(state.PlayerPosition, state.PlayerRotation);
@@ -262,7 +262,7 @@ namespace Bootstrap
 
             if (!string.IsNullOrEmpty(state.ActiveDuelTableId))
             {
-                var points = Object.FindObjectsOfType<EncounterPoint>();
+                var points = Object.FindObjectsByType<EncounterPoint>();
                 var point = points.FirstOrDefault(p => p.UniqueTableId == state.ActiveDuelTableId);
                 if (point != null)
                 {

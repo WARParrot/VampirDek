@@ -10,11 +10,12 @@ namespace Combat
 
         public ResetBuildingDamageAction(Board board) => _board = board;
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             foreach (var slot in _board.BuildingRow)
                 if (slot.Occupant != null)
                     slot.Occupant.DamageReceivedThisTurn = 0;
+            return UniTask.CompletedTask;
         }
     }
 }

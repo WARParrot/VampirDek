@@ -16,7 +16,7 @@ namespace Combat.UI
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureExists()
         {
-            if (FindObjectOfType<SpecialDeathFlashRouter>() != null) return;
+            if (FindAnyObjectByType<SpecialDeathFlashRouter>() != null) return;
             var go = new GameObject(nameof(SpecialDeathFlashRouter));
             DontDestroyOnLoad(go);
             go.AddComponent<SpecialDeathFlashRouter>();

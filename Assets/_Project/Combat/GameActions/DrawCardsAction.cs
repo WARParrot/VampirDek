@@ -17,7 +17,7 @@ namespace Combat.GameActions
 
         public string Description => $"Взять {_count} карт";
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             for (int i = 0; i < _count; i++)
             {
@@ -30,6 +30,7 @@ namespace Combat.GameActions
                 else
                     break;
             }
+            return UniTask.CompletedTask;
         }
     }
 }

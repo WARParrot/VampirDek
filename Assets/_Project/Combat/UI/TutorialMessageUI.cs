@@ -156,7 +156,7 @@ namespace Combat
                 var label = labelObj.AddComponent<TextMeshProUGUI>();
                 label.text = previewCaption;
                 label.alignment = TextAlignmentOptions.Center;
-                label.enableWordWrapping = true;
+                label.textWrappingMode = TMPro.TextWrappingModes.Normal;
                 label.fontSize = 18f;
                 label.color = new Color(1f, 0.92f, 0.65f, 1f);
                 label.raycastTarget = false;
@@ -201,7 +201,7 @@ namespace Combat
             }
 
             _messageText.raycastTarget = false;
-            _messageText.enableWordWrapping = true;
+            _messageText.textWrappingMode = TMPro.TextWrappingModes.Normal;
             _messageText.overflowMode = TextOverflowModes.Overflow;
             _messageText.enableAutoSizing = true;
             _messageText.fontSizeMin = 24f;

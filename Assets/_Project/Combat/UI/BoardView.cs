@@ -12,6 +12,8 @@ public class BoardView : MonoBehaviour
 {
     private const string GeneratedPrefix = "GeneratedBoardSlot_";
 
+    public static BoardView Current { get; private set; }
+
     public GameObject SlotPrefab;
     public GameObject RowPrefab;
     public Transform PlayerBoardContainer;
@@ -20,6 +22,11 @@ public class BoardView : MonoBehaviour
     private readonly Dictionary<string, BoardSlotUI> _slotUIs = new();
     private bool _subscribed = false;
     private Definitions.RowType? _activeDropPreviewRow;
+
+    private void Awake()
+    {
+        Current = this;
+    }
 
     public void Start()
     {
@@ -36,6 +43,12 @@ public class BoardView : MonoBehaviour
 
     private void OnDisable()
     {
+        UnsubscribeEvents();
+    }
+
+    private void OnDestroy()
+    {
+        if (Current == this) Current = null;
         UnsubscribeEvents();
     }
 

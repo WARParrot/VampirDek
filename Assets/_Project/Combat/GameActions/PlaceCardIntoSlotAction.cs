@@ -19,13 +19,13 @@ public class PlaceCardIntoSlotAction : IGameAction
 
     public string Description => $"Place {_cardDef.CardName} into slot {_slot.AllowedRow}[{_slot.Index}]";
 
-    public async UniTask ExecuteAsync()
+    public UniTask ExecuteAsync()
     {
         Debug.Log($"[Action] Trying to place {_cardDef.CardName} into slot {_slot.AllowedRow}[{_slot.Index}]");
         bool success = _board.TryPlaceCardIntoSlot(_cardDef, _slot);
         if (success)
         {
-            var duelManager = Object.FindObjectOfType<DuelManager>();
+            var duelManager = DuelManagerProxy.Instance;
             var side = _board == duelManager.CurrentDuelState.PlayerSide.Board 
                 ? duelManager.CurrentDuelState.PlayerSide 
                 : duelManager.CurrentDuelState.OpponentSide;
@@ -34,5 +34,6 @@ public class PlaceCardIntoSlotAction : IGameAction
         }
         else
             GlobalServices.EventBus.Publish(new PlaceFailedEvent(_cardDef.CardName, "Placement failed"));
-    }
+            return UniTask.CompletedTask;
+        }
 }

@@ -11,7 +11,7 @@ namespace Combat
 
         public RollSpeedAction(Board board) => _board = board;
 
-        public async UniTask ExecuteAsync()
+        public UniTask ExecuteAsync()
         {
             foreach (var card in _board.AllCards())
             {
@@ -30,6 +30,7 @@ namespace Combat
                 }
                 card.CurrentSpeed = UnityEngine.Random.Range(min, max + 1);
             }
+            return UniTask.CompletedTask;
         }
     }
 }

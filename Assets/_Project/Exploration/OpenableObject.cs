@@ -11,7 +11,9 @@ namespace Exploration
         [Header("Door")]
         [SerializeField] private Transform _door;
         [SerializeField] private Vector3 _openRotation = new Vector3(0f, -90f, 0f);
+        #if DOTWEEN && DOTWEEN_IMPORTED
         [SerializeField] private float _animationTime = 0.5f;
+        #endif
 
         [Header("Contents")]
         [SerializeField] private GameObject _contents;   // шкатулка или другой объект внутри

@@ -120,7 +120,7 @@ namespace Combat.UI
         private BoardSlotUI FindSlotFor(IGameEntity entity)
         {
             if (entity == null) return null;
-            if (_boardViewCache == null) _boardViewCache = FindObjectOfType<BoardView>();
+            if (_boardViewCache == null) _boardViewCache = BoardView.Current;
             if (_boardViewCache == null) return null;
 
             if (_slotByEntity.TryGetValue(entity, out var cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)

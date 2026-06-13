@@ -20,9 +20,12 @@ public class TargetPlanArrowsUI : MonoBehaviour
     private Canvas _canvas;
     private RectTransform _canvasRect;
     private BoardView _boardView;
+    private Camera _projectionCamera;
     private readonly List<ArrowView> _arrows = new();
     private readonly List<TextMeshProUGUI> _clashLabels = new();
     private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
+    private float _nextBoardViewLookupAt;
+    private const float BoardViewLookupInterval = 0.5f;
     private string _lastSignature = string.Empty;
     private float _nextRebuildAt;
     private GameObject _forecastHintRoot;
@@ -71,7 +74,11 @@ public class TargetPlanArrowsUI : MonoBehaviour
             return;
         }
 
-        if (_boardView == null) _boardView = FindObjectOfType<BoardView>(true);
+        if (_boardView == null && Time.unscaledTime >= _nextBoardViewLookupAt)
+        {
+            _nextBoardViewLookupAt = Time.unscaledTime + BoardViewLookupInterval;
+            _boardView = BoardView.Current;
+        }
         if (_boardView == null || !EnsureCanvas()) return;
 
         if (Time.unscaledTime >= _nextRebuildAt)
@@ -94,8 +101,10 @@ public class TargetPlanArrowsUI : MonoBehaviour
         bool inPlanning = phase != null && phase.Tags.Contains("PlanningPhase");
         if (!inPlanning || state == null || _canvas == null) return;
 
-        // Run geometry after camera movement/canvas camera assignment so perspective changes
-        // don't leave the arrows one frame behind or pivoted around stale screen positions.
+        // Resolve the main camera once per rendered frame, not once per arrow endpoint.
+        // Geometry still runs after camera movement/canvas camera assignment so perspective
+        // changes don't leave arrows one frame behind or pivoted around stale screen positions.
+        _projectionCamera = Camera.main;
         UpdateArrowGeometry();
         UpdateClashLabels();
         UpdateForecastHint();
@@ -516,7 +525,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
         tip.fontSize = 20f;
         tip.alignment = TextAlignmentOptions.Center;
         tip.color = new Color(1f, 0.95f, 0.88f, 1f);
-        tip.enableWordWrapping = true;
+        tip.textWrappingMode = TMPro.TextWrappingModes.Normal;
         tip.raycastTarget = false;
         tip.maskable = false;
         tip.richText = true;
@@ -544,7 +553,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
 
     private Vector2 SlotCenterOnOverlay(BoardSlotUI slot)
     {
-        var screenPoint = SlotCenterOnScreen(slot);
+        var screenPoint = SlotCenterOnScreen(slot, _projectionCamera);
         if (_canvasRect == null) _canvasRect = _canvas != null ? _canvas.transform as RectTransform : null;
         if (_canvasRect == null) return screenPoint;
 
@@ -553,11 +562,10 @@ public class TargetPlanArrowsUI : MonoBehaviour
             : screenPoint;
     }
 
-    private static Vector2 SlotCenterOnScreen(BoardSlotUI slot)
+    private static Vector2 SlotCenterOnScreen(BoardSlotUI slot, Camera mainCamera)
     {
         if (slot == null) return Vector2.zero;
         var rect = slot.transform as RectTransform;
-        var mainCamera = Camera.main;
         if (rect != null)
         {
             // Project the live world-space rect through the live main camera. This intentionally
@@ -580,7 +588,11 @@ public class TargetPlanArrowsUI : MonoBehaviour
         if (_slotByEntity.TryGetValue(entity, out var cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
             return cachedSlot;
 
-        if (_boardView == null) _boardView = FindObjectOfType<BoardView>(true);
+        if (_boardView == null && Time.unscaledTime >= _nextBoardViewLookupAt)
+        {
+            _nextBoardViewLookupAt = Time.unscaledTime + BoardViewLookupInterval;
+            _boardView = BoardView.Current;
+        }
         if (_boardView == null) return null;
         foreach (var ui in _boardView.GetSlotUIs())
         {

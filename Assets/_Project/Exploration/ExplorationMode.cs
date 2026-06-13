@@ -53,7 +53,7 @@ namespace Exploration
                 await Addressables.UnloadSceneAsync(_sceneHandle, true);
         }
 
-        public async UniTask OnPauseAsync()
+        public UniTask OnPauseAsync()
         {
             SceneTransitionManager.Instance.SaveCameraState();
 
@@ -68,6 +68,7 @@ namespace Exploration
                 }
                 _player.Deactivate();
             }
+            return UniTask.CompletedTask;
         }
 
         public async UniTask OnResumeAsync()
