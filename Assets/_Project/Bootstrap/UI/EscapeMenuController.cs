@@ -199,7 +199,7 @@ namespace Bootstrap.UI
                     state.CurrentWorldSceneAddress = explorationMode.CurrentWorldAddress;
                 }
 
-                var player = Object.FindFirstObjectByType<Exploration.ExplorationController>();
+                var player = Object.FindAnyObjectByType<Exploration.ExplorationController>();
                 if (player != null)
                 {
                     state.PlayerPosition = player.transform.position;
