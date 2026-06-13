@@ -20,6 +20,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
     private Canvas _canvas;
     private RectTransform _canvasRect;
     private BoardView _boardView;
+    private Camera _projectionCamera;
     private readonly List<ArrowView> _arrows = new();
     private readonly List<TextMeshProUGUI> _clashLabels = new();
     private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
@@ -100,8 +101,10 @@ public class TargetPlanArrowsUI : MonoBehaviour
         bool inPlanning = phase != null && phase.Tags.Contains("PlanningPhase");
         if (!inPlanning || state == null || _canvas == null) return;
 
-        // Run geometry after camera movement/canvas camera assignment so perspective changes
-        // don't leave the arrows one frame behind or pivoted around stale screen positions.
+        // Resolve the main camera once per rendered frame, not once per arrow endpoint.
+        // Geometry still runs after camera movement/canvas camera assignment so perspective
+        // changes don't leave arrows one frame behind or pivoted around stale screen positions.
+        _projectionCamera = Camera.main;
         UpdateArrowGeometry();
         UpdateClashLabels();
         UpdateForecastHint();
@@ -550,7 +553,7 @@ public class TargetPlanArrowsUI : MonoBehaviour
 
     private Vector2 SlotCenterOnOverlay(BoardSlotUI slot)
     {
-        var screenPoint = SlotCenterOnScreen(slot);
+        var screenPoint = SlotCenterOnScreen(slot, _projectionCamera);
         if (_canvasRect == null) _canvasRect = _canvas != null ? _canvas.transform as RectTransform : null;
         if (_canvasRect == null) return screenPoint;
 
@@ -559,11 +562,10 @@ public class TargetPlanArrowsUI : MonoBehaviour
             : screenPoint;
     }
 
-    private static Vector2 SlotCenterOnScreen(BoardSlotUI slot)
+    private static Vector2 SlotCenterOnScreen(BoardSlotUI slot, Camera mainCamera)
     {
         if (slot == null) return Vector2.zero;
         var rect = slot.transform as RectTransform;
-        var mainCamera = Camera.main;
         if (rect != null)
         {
             // Project the live world-space rect through the live main camera. This intentionally

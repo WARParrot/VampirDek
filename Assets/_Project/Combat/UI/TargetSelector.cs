@@ -58,6 +58,14 @@ namespace Combat.UI
                 return;
             }
 
+            // PlanningPhaseController is the newer click owner. When it exists, do not run
+            // this legacy selector's duplicate UI raycast / rect-scan fallback on release.
+            if (PlanningPhaseController.Instance != null)
+            {
+                ResetCapturedMouseEdges();
+                return;
+            }
+
             if (Consume(ref _mouseReleasedSinceCheck))
             {
                 var slotUI = GetBoardSlotUnderMouse(_mouseReleasePosition);
