@@ -41,6 +41,10 @@ namespace Combat
         private bool _duelFinished = false;
         private bool _duelResultPublished = false;
         private GameDirector _director;
+        private readonly List<BoardCard> _attackerBuffer = new(16);
+        private readonly HashSet<BoardCard> _resolvedClashBuffer = new();
+        private readonly HashSet<BoardCard> _deadCardBuffer = new();
+        private readonly List<BoardCard> _enemyAttackerBuffer = new(8);
 
         // AI System
         private OpponentAI _opponentAI;
@@ -980,11 +984,9 @@ namespace Combat
 
         private async UniTask ResolveClashesAsync()
         {
-            var attackers = GetAllAttackers()
-                .OrderByDescending(a => a.CurrentSpeed)
-                .ToList();
-
-            var resolved = new HashSet<BoardCard>();
+            var attackers = CollectAttackersSortedBySpeed(_attackerBuffer);
+            var resolved = _resolvedClashBuffer;
+            resolved.Clear();
 
             foreach (var card in attackers)
             {
@@ -1064,6 +1066,10 @@ namespace Combat
                     }
                 }
             }
+
+            resolved.Clear();
+            attackers.Clear();
+
             await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
         }
@@ -1085,10 +1091,16 @@ namespace Combat
 
         public static bool CanAttackerTarget(BoardCard attacker, IGameEntity target)
         {
+            return CanAttackerTarget(attacker, target, null);
+        }
+
+        public static bool CanAttackerTarget(BoardCard attacker, IGameEntity target, SideState defenderSide)
+        {
             if (attacker == null || target == null) return false;
             if (target is BoardCard bc)
             {
-                if (CardBehaviorTags.IsElusive(bc) && IsLonerAloneOnHisVanguard(bc)) return false;
+                var resolvedDefenderSide = defenderSide ?? FindSideOfCard(bc);
+                if (CardBehaviorTags.IsElusive(bc) && IsLonerAloneOnHisVanguard(bc, resolvedDefenderSide)) return false;
                 if (CardBehaviorTags.NeverRepeatsTarget(attacker))
                 {
                     if (bc.IsTown && attacker.AttackedTownBefore) return false;
@@ -1098,8 +1110,7 @@ namespace Combat
                 // Buildings act as a wall: each living building covers two Humans behind it
                 // (building index 0 → humans 0,1; building index 1 → humans 2,3). The Town can
                 // only be reached when at least one Building slot is empty/destroyed.
-                var defenderSide = FindSideOfCard(bc);
-                if (defenderSide != null && IsTargetShieldedByBuildings(bc, defenderSide))
+                if (resolvedDefenderSide != null && IsTargetShieldedByBuildings(bc, resolvedDefenderSide))
                     return false;
             }
             return true;
@@ -1109,7 +1120,15 @@ namespace Combat
         {
             if (target == null || defenderSide?.Board == null) return false;
             var buildingRow = defenderSide.Board.BuildingRow;
-            int aliveBuildings = buildingRow == null ? 0 : buildingRow.Count(s => s?.Occupant != null && s.Occupant.IsAlive);
+            int aliveBuildings = 0;
+            if (buildingRow != null)
+            {
+                for (int i = 0; i < buildingRow.Length; i++)
+                {
+                    var occupant = buildingRow[i]?.Occupant;
+                    if (occupant != null && occupant.IsAlive) aliveBuildings++;
+                }
+            }
 
             if (target.IsTown)
                 return aliveBuildings >= 1;
@@ -1145,7 +1164,11 @@ namespace Combat
         // alongside him. As soon as the player puts a teammate next to him, the loner is fair game.
         private static bool IsLonerAloneOnHisVanguard(BoardCard loner)
         {
-            var side = FindSideOfCard(loner);
+            return IsLonerAloneOnHisVanguard(loner, FindSideOfCard(loner));
+        }
+
+        private static bool IsLonerAloneOnHisVanguard(BoardCard loner, SideState side)
+        {
             if (side == null) return false;
             int alliesAlive = 0;
             foreach (var slot in side.Board.VanguardRow)
@@ -1168,28 +1191,91 @@ namespace Combat
 
         private async UniTask ResolveOneSidedAttacksAsync()
         {
-            var attackers = GetAllAttackers()
-                        .Where(a => a.PlannedTarget != null && a.PlannedTarget.IsAlive)
-                        .OrderByDescending(a => a.CurrentSpeed);
+            var attackers = CollectAttackersSortedBySpeed(_attackerBuffer);
 
             foreach (var card in attackers)
             {
+                if (card.PlannedTarget == null || !card.PlannedTarget.IsAlive) continue;
+
                 QueueAction(new DamageAction(card.PlannedTarget, card.Attack, card));
                 RecordGourmetTarget(card, card.PlannedTarget);
                 QueueRitualistSacrificeIfApplicable(card);
             }
+
+            attackers.Clear();
+
             await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
         }
 
-        private IEnumerable<BoardCard> GetAllAttackers()
+        private List<BoardCard> CollectAttackersSortedBySpeed(List<BoardCard> buffer)
         {
-            var all = new List<BoardCard>();
-            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-                foreach (var slot in side.Board.AllSlots())
-                    if (IsAttackCapable(slot.Occupant) && slot.Occupant.PlannedTarget != null)
-                        all.Add(slot.Occupant);
-            return all;
+            buffer.Clear();
+            AddAttackersSortedBySpeed(_duelState?.PlayerSide, buffer, requirePlannedTarget: true);
+            AddAttackersSortedBySpeed(_duelState?.OpponentSide, buffer, requirePlannedTarget: true);
+            return buffer;
+        }
+
+        private static void AddAttackersSortedBySpeed(SideState side, List<BoardCard> buffer, bool requirePlannedTarget)
+        {
+            var board = side?.Board;
+            if (board == null) return;
+            AddAttackersSortedBySpeed(board.VanguardRow, buffer, requirePlannedTarget);
+            AddAttackersSortedBySpeed(board.BuildingRow, buffer, requirePlannedTarget);
+            AddAttackersSortedBySpeed(board.HumanRow, buffer, requirePlannedTarget);
+            AddAttackerSortedBySpeed(board.TownSlot, buffer, requirePlannedTarget);
+        }
+
+        private static void AddAttackersSortedBySpeed(BoardSlot[] row, List<BoardCard> buffer, bool requirePlannedTarget)
+        {
+            if (row == null) return;
+            for (int i = 0; i < row.Length; i++)
+            {
+                AddAttackerSortedBySpeed(row[i], buffer, requirePlannedTarget);
+            }
+        }
+
+        private static void AddAttackerSortedBySpeed(BoardSlot slot, List<BoardCard> buffer, bool requirePlannedTarget)
+        {
+            var card = slot?.Occupant;
+            if (!IsAttackCapable(card)) return;
+            if (requirePlannedTarget && card.PlannedTarget == null) return;
+
+            for (int i = 0; i < buffer.Count; i++)
+            {
+                if (card.CurrentSpeed > buffer[i].CurrentSpeed)
+                {
+                    buffer.Insert(i, card);
+                    return;
+                }
+            }
+
+            buffer.Add(card);
+        }
+
+        private static void CollectAttackCapableCardsInBoardOrder(SideState side, List<BoardCard> buffer)
+        {
+            var board = side?.Board;
+            if (board == null) return;
+            CollectAttackCapableCardsInBoardOrder(board.VanguardRow, buffer);
+            CollectAttackCapableCardsInBoardOrder(board.BuildingRow, buffer);
+            CollectAttackCapableCardsInBoardOrder(board.HumanRow, buffer);
+            AddAttackCapableCard(board.TownSlot, buffer);
+        }
+
+        private static void CollectAttackCapableCardsInBoardOrder(BoardSlot[] row, List<BoardCard> buffer)
+        {
+            if (row == null) return;
+            for (int i = 0; i < row.Length; i++)
+            {
+                AddAttackCapableCard(row[i], buffer);
+            }
+        }
+
+        private static void AddAttackCapableCard(BoardSlot slot, List<BoardCard> buffer)
+        {
+            var card = slot?.Occupant;
+            if (IsAttackCapable(card)) buffer.Add(card);
         }
 
         private void ClearAllPlannedTargets()
@@ -1209,11 +1295,9 @@ namespace Combat
                 var board = side?.Board;
                 if (board == null) continue;
 
-                var deadCards = board.AllSlots()
-                    .Select(slot => slot?.Occupant)
-                    .Where(card => card != null && !card.IsTown && !card.IsAlive)
-                    .Distinct()
-                    .ToList();
+                var deadCards = _deadCardBuffer;
+                deadCards.Clear();
+                CollectDeadNonTownCards(board, deadCards);
 
                 foreach (var deadCard in deadCards)
                 {
@@ -1221,6 +1305,26 @@ namespace Combat
                     board.RemoveCard(deadCard);
                     Debug.Log($"[DuelManager] Removed defeated card from board: {deadCard.SourceCard?.CardName ?? deadCard.Id.ToString()}");
                 }
+
+                deadCards.Clear();
+            }
+        }
+
+        private static void CollectDeadNonTownCards(Board board, HashSet<BoardCard> deadCards)
+        {
+            if (board == null || deadCards == null) return;
+            CollectDeadNonTownCards(board.VanguardRow, deadCards);
+            CollectDeadNonTownCards(board.BuildingRow, deadCards);
+            CollectDeadNonTownCards(board.HumanRow, deadCards);
+        }
+
+        private static void CollectDeadNonTownCards(BoardSlot[] row, HashSet<BoardCard> deadCards)
+        {
+            if (row == null) return;
+            for (int i = 0; i < row.Length; i++)
+            {
+                var card = row[i]?.Occupant;
+                if (card != null && !card.IsTown && !card.IsAlive) deadCards.Add(card);
             }
         }
 
@@ -1326,10 +1430,9 @@ namespace Combat
 
         private async UniTask SimulatePlanningAsync()
         {
-            var enemyAttackers = _duelState.OpponentSide.Board.AllSlots()
-                .Where(s => IsAttackCapable(s.Occupant))
-                .Select(s => s.Occupant)
-                .ToArray();
+            var enemyAttackers = _enemyAttackerBuffer;
+            enemyAttackers.Clear();
+            CollectAttackCapableCardsInBoardOrder(_duelState?.OpponentSide, enemyAttackers);
 
             foreach (var card in enemyAttackers)
             {
@@ -1342,6 +1445,8 @@ namespace Combat
                     Debug.Log($"[AI] {card.SourceCard.CardName} targets {(target as BoardCard)?.SourceCard.CardName ?? "Town"}");
                 }
             }
+
+            enemyAttackers.Clear();
 
             await UniTask.Yield();
         }

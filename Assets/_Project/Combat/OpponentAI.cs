@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Definitions;
 
 namespace Combat
@@ -40,18 +39,24 @@ namespace Combat
         {
             if (aiSide == null || aiSide.Hand == null || aiSide.Board == null) return null;
 
-            var playableCards = GetPlayableCards(aiSide)
-                .OrderByDescending(ScoreCard)
-                .ToList();
-
-            foreach (var card in playableCards)
+            Card bestCard = null;
+            int bestScore = int.MinValue;
+            foreach (var card in aiSide.Hand)
             {
-                var slot = ChooseSlot(aiSide.Board, card.Def.RowType);
-                if (slot != null)
-                    return new CardPlayDecision(card, slot);
+                if (!CanPlayCard(aiSide, card)) continue;
+
+                int score = ScoreCard(card);
+                if (bestCard == null || score > bestScore)
+                {
+                    bestCard = card;
+                    bestScore = score;
+                }
             }
 
-            return null;
+            if (bestCard == null) return null;
+
+            var slot = ChooseSlot(aiSide.Board, bestCard.Def.RowType);
+            return slot != null ? new CardPlayDecision(bestCard, slot) : null;
         }
 
         public IGameEntity DecideAttackTarget(BoardCard attacker, SideState playerSide)
@@ -59,57 +64,71 @@ namespace Combat
             if (attacker == null || playerSide == null || playerSide.Board == null) return null;
 
             var provoker = CardBehaviorTags.GetActiveProvokerOn(playerSide);
-            if (provoker != null && DuelManager.CanAttackerTarget(attacker, provoker))
+            if (provoker != null && DuelManager.CanAttackerTarget(attacker, provoker, playerSide))
                 return provoker;
 
-            var liveTargets = playerSide.Board.AllCards()
-                .Where(c => c != null && c.IsAlive && DuelManager.CanAttackerTarget(attacker, c))
-                .ToList();
+            BoardCard bestTarget = null;
+            foreach (var candidate in playerSide.Board.AllCards())
+            {
+                if (candidate == null || !candidate.IsAlive) continue;
+                if (!DuelManager.CanAttackerTarget(attacker, candidate, playerSide)) continue;
 
-            var townTargetable = playerSide.Town != null && DuelManager.CanAttackerTarget(attacker, playerSide.Town);
+                if (bestTarget == null || IsBetterTarget(candidate, bestTarget))
+                {
+                    bestTarget = candidate;
+                }
+            }
 
-            if (liveTargets.Count == 0)
-                return townTargetable ? playerSide.Town : null;
+            var townTargetable = playerSide.Town != null && DuelManager.CanAttackerTarget(attacker, playerSide.Town, playerSide);
+            IGameEntity townOrNull = townTargetable ? playerSide.Town : null;
 
-            IGameEntity townOrNull = townTargetable ? (IGameEntity)playerSide.Town : null;
-
-            if (_strategy == AIStrategy.Aggressive)
-                return liveTargets.OrderBy(c => c.Health).FirstOrDefault() ?? townOrNull;
-
-            if (_strategy == AIStrategy.Defensive)
-                return liveTargets.OrderByDescending(c => c.Attack).FirstOrDefault() ?? townOrNull;
-
-            // Balanced: prefer a vulnerable unit, occasionally pressure the town so the duel can end.
-            if (_rng.NextDouble() > _skillLevel && townOrNull != null)
+            if (bestTarget == null)
                 return townOrNull;
 
-            return liveTargets
-                .OrderBy(c => c.Health)
-                .ThenByDescending(c => c.Attack)
-                .FirstOrDefault() ?? townOrNull;
+            // Balanced: prefer a vulnerable unit, occasionally pressure the town so the duel can end.
+            if (_strategy == AIStrategy.Balanced && _rng.NextDouble() > _skillLevel && townOrNull != null)
+                return townOrNull;
+
+            return bestTarget ?? townOrNull;
         }
 
-        private IEnumerable<Card> GetPlayableCards(SideState side)
+        private bool IsBetterTarget(BoardCard candidate, BoardCard currentBest)
         {
-            foreach (var card in side.Hand)
+            if (_strategy == AIStrategy.Aggressive)
+                return candidate.Health < currentBest.Health;
+
+            if (_strategy == AIStrategy.Defensive)
+                return candidate.Attack > currentBest.Attack;
+
+            if (candidate.Health != currentBest.Health)
+                return candidate.Health < currentBest.Health;
+
+            return candidate.Attack > currentBest.Attack;
+        }
+
+        private static bool CanPlayCard(SideState side, Card card)
+        {
+            if (card?.Def == null) return false;
+            var row = side.Board.GetRow(card.Def.RowType);
+            if (!HasEmptySlot(row)) return false;
+
+            foreach (var cost in card.Def.Costs)
             {
-                if (card?.Def == null) continue;
-                var row = side.Board.GetRow(card.Def.RowType);
-                if (row == null || !row.Any(slot => slot != null && slot.IsEmpty)) continue;
-
-                bool canPay = true;
-                foreach (var cost in card.Def.Costs)
-                {
-                    var ctx = new CostContext { PlayerSide = side, Amount = cost.GetAmount() };
-                    if (!cost.CanPay(ctx))
-                    {
-                        canPay = false;
-                        break;
-                    }
-                }
-
-                if (canPay) yield return card;
+                var ctx = new CostContext { PlayerSide = side, Amount = cost.GetAmount() };
+                if (!cost.CanPay(ctx)) return false;
             }
+
+            return true;
+        }
+
+        private static bool HasEmptySlot(BoardSlot[] row)
+        {
+            if (row == null) return false;
+            for (int i = 0; i < row.Length; i++)
+            {
+                if (row[i] != null && row[i].IsEmpty) return true;
+            }
+            return false;
         }
 
         private BoardSlot ChooseSlot(Board board, Definitions.RowType rowType)
@@ -117,15 +136,39 @@ namespace Combat
             var row = board.GetRow(rowType);
             if (row == null) return null;
 
-            var empty = row.Where(slot => slot != null && slot.IsEmpty).ToList();
-            if (empty.Count == 0) return null;
-
             if (_strategy == AIStrategy.Defensive)
-                return empty.Last();
-            if (_strategy == AIStrategy.Aggressive)
-                return empty.First();
+            {
+                for (int i = row.Length - 1; i >= 0; i--)
+                {
+                    if (row[i] != null && row[i].IsEmpty) return row[i];
+                }
+                return null;
+            }
 
-            return empty[_rng.Next(empty.Count)];
+            if (_strategy == AIStrategy.Aggressive)
+            {
+                for (int i = 0; i < row.Length; i++)
+                {
+                    if (row[i] != null && row[i].IsEmpty) return row[i];
+                }
+                return null;
+            }
+
+            int emptyCount = 0;
+            for (int i = 0; i < row.Length; i++)
+            {
+                if (row[i] != null && row[i].IsEmpty) emptyCount++;
+            }
+            if (emptyCount == 0) return null;
+
+            int selected = _rng.Next(emptyCount);
+            for (int i = 0; i < row.Length; i++)
+            {
+                if (row[i] == null || !row[i].IsEmpty) continue;
+                if (selected-- == 0) return row[i];
+            }
+
+            return null;
         }
 
         private static int ScoreCard(Card card)

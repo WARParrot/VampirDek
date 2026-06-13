@@ -180,7 +180,7 @@ namespace Combat.UI
                     Shared.UI.EffectFlashOverlay.ShowProvokerBlock(provoker.SourceCard.CardName);
                     return;
                 }
-                if (!Combat.DuelManager.CanAttackerTarget(_selectedAttacker, card))
+                if (!Combat.DuelManager.CanAttackerTarget(_selectedAttacker, card, state.OpponentSide))
                 {
                     Debug.Log($"[Planner] Cannot target {card.SourceCard.CardName}: blocked by Elusive / Gourmet / Building shield.");
                     if (Combat.CardBehaviorTags.IsElusive(card))
@@ -251,7 +251,7 @@ namespace Combat.UI
                 {
                     Debug.Log($"[Planner] Highlight enemy {enemySlot.Occupant.SourceCard.CardName}");
                     bool canTarget = (provoker == null || enemySlot.Occupant == provoker) &&
-                                     Combat.DuelManager.CanAttackerTarget(card, enemySlot.Occupant);
+                                     Combat.DuelManager.CanAttackerTarget(card, enemySlot.Occupant, state.OpponentSide);
                     _boardView.SetCardAffordance(enemySlot.Occupant,
                         canTarget ? Shared.UI.CardAffordanceState.Target : Shared.UI.CardAffordanceState.Blocked);
                 }
