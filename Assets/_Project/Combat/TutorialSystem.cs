@@ -56,6 +56,10 @@ namespace Combat
 
         private bool _tutorialCompletedThisSession = false;
 
+        private float _nextDuelManagerLookupAt;
+
+        private const float DuelManagerLookupInterval = 0.5f;
+
         private DuelManager _duelManager;
 
         private EventBus _eventBus;
@@ -234,11 +238,17 @@ namespace Combat
 
             if (!_forceShowAlways && ShouldSkipDueToStartLimit()) return;
 
-            if (_duelManager == null)
+            if (_duelManager == null && Time.unscaledTime >= _nextDuelManagerLookupAt)
 
             {
 
-                _duelManager = FindObjectOfType<DuelManager>();
+                _nextDuelManagerLookupAt = Time.unscaledTime + DuelManagerLookupInterval;
+
+                _duelManager = DuelManagerProxy.Instance;
+
+                if (_duelManager == null)
+
+                    _duelManager = FindObjectOfType<DuelManager>();
 
             }
 

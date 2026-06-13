@@ -23,6 +23,8 @@ public class TargetPlanArrowsUI : MonoBehaviour
     private readonly List<ArrowView> _arrows = new();
     private readonly List<TextMeshProUGUI> _clashLabels = new();
     private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
+    private float _nextBoardViewLookupAt;
+    private const float BoardViewLookupInterval = 0.5f;
     private string _lastSignature = string.Empty;
     private float _nextRebuildAt;
     private GameObject _forecastHintRoot;
@@ -71,7 +73,11 @@ public class TargetPlanArrowsUI : MonoBehaviour
             return;
         }
 
-        if (_boardView == null) _boardView = FindObjectOfType<BoardView>(true);
+        if (_boardView == null && Time.unscaledTime >= _nextBoardViewLookupAt)
+        {
+            _nextBoardViewLookupAt = Time.unscaledTime + BoardViewLookupInterval;
+            _boardView = FindObjectOfType<BoardView>(true);
+        }
         if (_boardView == null || !EnsureCanvas()) return;
 
         if (Time.unscaledTime >= _nextRebuildAt)
@@ -580,7 +586,11 @@ public class TargetPlanArrowsUI : MonoBehaviour
         if (_slotByEntity.TryGetValue(entity, out var cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
             return cachedSlot;
 
-        if (_boardView == null) _boardView = FindObjectOfType<BoardView>(true);
+        if (_boardView == null && Time.unscaledTime >= _nextBoardViewLookupAt)
+        {
+            _nextBoardViewLookupAt = Time.unscaledTime + BoardViewLookupInterval;
+            _boardView = FindObjectOfType<BoardView>(true);
+        }
         if (_boardView == null) return null;
         foreach (var ui in _boardView.GetSlotUIs())
         {

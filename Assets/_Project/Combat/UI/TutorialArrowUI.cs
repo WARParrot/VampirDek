@@ -24,6 +24,8 @@ namespace Combat
         private Camera _uiCamera;
         private float _pulseTime = 0f;
         private bool _isVisible = false;
+        private float _nextCameraLookupAt;
+        private const float CameraLookupInterval = 0.5f;
 
         private void Awake()
         {
@@ -56,7 +58,11 @@ namespace Combat
             }
             else if (_targetObject != null)
             {
-                if (_camera == null) _camera = Camera.main;
+                if (_camera == null && Time.unscaledTime >= _nextCameraLookupAt)
+                {
+                    _nextCameraLookupAt = Time.unscaledTime + CameraLookupInterval;
+                    _camera = Camera.main;
+                }
                 if (_camera == null) return;
                 Vector3 sp = _camera.WorldToScreenPoint(_targetObject.transform.position);
                 if (sp.z > 0)

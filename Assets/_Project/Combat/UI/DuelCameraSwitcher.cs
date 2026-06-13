@@ -19,6 +19,7 @@ namespace Combat.UI
         [SerializeField] private float _transitionSpeed = 5f;
 
         private const float CanvasRefreshInterval = 1f;
+        private const float MainCameraRefreshInterval = 1f;
 
         private Transform _currentTarget;
         private bool _boardViewLocked;
@@ -26,6 +27,7 @@ namespace Combat.UI
         private Camera _cachedMainCamera;
         private Canvas[] _worldSpaceCanvases;
         private float _nextCanvasRefreshAt;
+        private float _nextMainCameraRefreshAt;
 
         public bool PerspectiveSwitchingEnabled => !_perspectiveSwitchingDisabled;
 
@@ -39,7 +41,7 @@ namespace Combat.UI
             }
 
             RefreshWorldSpaceCanvasCache();
-            AssignWorldSpaceCanvasCamera(Camera.main);
+            AssignWorldSpaceCanvasCamera(GetCachedMainCamera(forceRefresh: true));
         }
 
         void Update()
@@ -131,7 +133,8 @@ namespace Combat.UI
 
         void LateUpdate()
         {
-            var cam = Camera.main;
+            var previousCamera = _cachedMainCamera;
+            var cam = GetCachedMainCamera();
             if (cam == null) return;
 
             bool refreshed = false;
@@ -141,8 +144,23 @@ namespace Combat.UI
                 refreshed = true;
             }
 
-            if (refreshed || cam != _cachedMainCamera)
+            if (refreshed || cam != previousCamera)
                 AssignWorldSpaceCanvasCamera(cam);
+        }
+
+        private Camera GetCachedMainCamera(bool forceRefresh = false)
+        {
+            if (!forceRefresh && _cachedMainCamera != null) return _cachedMainCamera;
+
+            if (forceRefresh || Time.unscaledTime >= _nextMainCameraRefreshAt)
+            {
+                _nextMainCameraRefreshAt = Time.unscaledTime + MainCameraRefreshInterval;
+                _cachedMainCamera = GetComponent<Camera>();
+                if (_cachedMainCamera == null || !_cachedMainCamera.CompareTag("MainCamera"))
+                    _cachedMainCamera = Camera.main;
+            }
+
+            return _cachedMainCamera;
         }
 
         private void RefreshWorldSpaceCanvasCache()
