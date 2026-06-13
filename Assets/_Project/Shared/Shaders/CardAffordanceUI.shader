@@ -11,6 +11,7 @@ Shader "VampirDek/UI/CardAffordance"
         _PulseSpeed ("Pulse Speed", Range(0, 12)) = 2.4
         _BorderWidth ("Border Width", Range(0, 0.25)) = 0.055
         _PatternScale ("Pattern Scale", Range(2, 80)) = 14
+        _AspectRatio ("Aspect Ratio", Float) = 1
 
         _StencilComp ("Stencil Comparison", Float) = 8
         _Stencil ("Stencil ID", Float) = 0
@@ -87,6 +88,7 @@ Shader "VampirDek/UI/CardAffordance"
             float _PulseSpeed;
             float _BorderWidth;
             float _PatternScale;
+            float _AspectRatio;
 
             v2f vert(appdata_t v)
             {
@@ -103,6 +105,13 @@ Shader "VampirDek/UI/CardAffordance"
                 p = frac(p * float2(123.34, 456.21));
                 p += dot(p, p + 45.32);
                 return frac(p.x * p.y);
+            }
+
+            float2 AspectUv(float2 uv)
+            {
+                float2 centered = uv - 0.5;
+                centered.x *= max(_AspectRatio, 0.001);
+                return centered;
             }
 
             float RectBorder(float2 uv, float width)
@@ -149,14 +158,14 @@ Shader "VampirDek/UI/CardAffordance"
                 float rnd = Hash21(id);
                 float rare = step(0.72, rnd);
                 float dash = 1.0 - smoothstep(0.018, 0.055, min(abs(cell.x), abs(cell.y)));
-                float radialGate = smoothstep(0.16, 0.34, length(uv - 0.5));
+                float radialGate = smoothstep(0.16, 0.34, length(AspectUv(uv)));
                 float flicker = 0.55 + 0.45 * sin(_Time.y * 2.1 + rnd * 6.283 + timeOffset);
                 return rare * dash * radialGate * flicker;
             }
 
             float RingSigil(float2 uv, float radius, float width)
             {
-                float d = length(uv - 0.5);
+                float d = length(AspectUv(uv));
                 return 1.0 - smoothstep(width, width * 2.3, abs(d - radius));
             }
 
@@ -241,7 +250,7 @@ Shader "VampirDek/UI/CardAffordance"
                     // Target: a blood-moon reticle. Keep it circular/aimed so it cannot read as refusal.
                     float targetRing = RingSigil(uv, 0.34 + pulse * 0.014, 0.014);
                     float innerRing = RingSigil(uv, 0.18, 0.010);
-                    float2 centered = abs(uv - 0.5);
+                    float2 centered = abs(AspectUv(uv));
                     float verticalSight = (1.0 - smoothstep(0.010, 0.026, centered.x)) * smoothstep(0.20, 0.34, centered.y);
                     float horizontalSight = (1.0 - smoothstep(0.010, 0.026, centered.y)) * smoothstep(0.20, 0.34, centered.x);
                     float reticle = saturate(targetRing * 0.95 + innerRing * 0.58 + max(verticalSight, horizontalSight) * 0.72);

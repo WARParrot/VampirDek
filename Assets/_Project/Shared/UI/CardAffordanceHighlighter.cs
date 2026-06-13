@@ -26,6 +26,7 @@ namespace Shared.UI
         private static readonly int PulseSpeedId = Shader.PropertyToID("_PulseSpeed");
         private static readonly int BorderWidthId = Shader.PropertyToID("_BorderWidth");
         private static readonly int PatternScaleId = Shader.PropertyToID("_PatternScale");
+        private static readonly int AspectRatioId = Shader.PropertyToID("_AspectRatio");
 
         [SerializeField] private Graphic _graphic;
         [SerializeField] private CardAffordanceState _state;
@@ -91,6 +92,7 @@ namespace Shared.UI
             _runtimeMaterial.SetFloat(PulseSpeedId, _pulseSpeed);
             _runtimeMaterial.SetFloat(BorderWidthId, _borderWidth);
             _runtimeMaterial.SetFloat(PatternScaleId, _patternScale);
+            _runtimeMaterial.SetFloat(AspectRatioId, GetGraphicAspectRatio());
             _graphic.material = _runtimeMaterial;
             _graphic.SetMaterialDirty();
         }
@@ -99,6 +101,16 @@ namespace Shared.UI
         {
             if (_graphic == null) _graphic = GetComponent<Graphic>();
             return _graphic != null;
+        }
+
+        private float GetGraphicAspectRatio()
+        {
+            if (!EnsureGraphic()) return 1f;
+
+            Rect rect = _graphic.rectTransform.rect;
+            if (rect.width <= 0.001f || rect.height <= 0.001f) return 1f;
+
+            return Mathf.Clamp(rect.width / rect.height, 0.1f, 10f);
         }
 
         private bool EnsureMaterial()
