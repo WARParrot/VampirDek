@@ -9,11 +9,9 @@ namespace Combat
 {
     public class SideState : IPlayerSide
     {
-        public const int MaxHandSize = 7;
+        public const int MaxHandSize = 6;
         public Board Board { get; private set; }
         public Deck Deck { get; set; }
-        public int Mana { get; set; }
-        public int MaxMana { get; set; }
         public int HumanResources { get; set; }
         public List<Card> Hand { get; } = new();
         public List<Card> Graveyard { get; } = new();
@@ -23,12 +21,9 @@ namespace Combat
         public SideState(BoardLayoutData layout)
         {
             Board = new Board(layout);
-            Mana = 1;
-            MaxMana = 1;
             HumanResources = 0;
         }
 
-        public void PayMana(int amount) => Mana -= amount;
         public void PayHumanResources(int amount) => HumanResources -= amount;
 
         public void DrawCards(int count)
@@ -38,6 +33,7 @@ namespace Combat
                 if (Hand.Count >= MaxHandSize)
                 {
                     Debug.Log("Рука переполнена – карта не взята.");
+                    GlobalServices.EventBus?.Publish(new HandFullEvent(this, count - i));
                     break;
                 }
 

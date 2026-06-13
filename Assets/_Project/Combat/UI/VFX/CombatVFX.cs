@@ -4,6 +4,7 @@ using DG.Tweening;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Core;
 using Definitions;
 using TMPro;
@@ -17,6 +18,8 @@ namespace Combat.UI
         private static CombatVFX _instance;
         private Canvas _vfxCanvas;
         private BoardView _boardViewCache;
+        private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
+        private static readonly Vector3[] s_rectCorners = new Vector3[4];
 
         private IDisposable _subDamage;
         private IDisposable _subDied;
@@ -119,9 +122,58 @@ namespace Combat.UI
             if (entity == null) return null;
             if (_boardViewCache == null) _boardViewCache = FindObjectOfType<BoardView>();
             if (_boardViewCache == null) return null;
-            foreach (var ui in _boardViewCache.GetSlotUIs())
-                if (ui != null && ui.Occupant == entity) return ui;
+
+            if (_slotByEntity.TryGetValue(entity, out var cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
+                return cachedSlot;
+
+            RebuildSlotLookup();
+            if (_slotByEntity.TryGetValue(entity, out cachedSlot) && cachedSlot != null && cachedSlot.Occupant == entity)
+                return cachedSlot;
+
             return null;
+        }
+
+        private void RebuildSlotLookup()
+        {
+            _slotByEntity.Clear();
+            if (_boardViewCache == null) return;
+
+            foreach (var ui in _boardViewCache.GetSlotUIs())
+            {
+                var occupant = ui != null ? ui.Occupant : null;
+                if (occupant != null)
+                    _slotByEntity[occupant] = ui;
+            }
+        }
+
+        // Converts the centre of a UI element into the screen-space coordinates that the VFX
+        // canvas (Screen Space Overlay) uses. Source canvas might be World Space or Screen Space
+        // Camera, so transform.position alone is unreliable.
+        private static Vector3 GetScreenCenter(Transform t)
+        {
+            if (t == null) return Vector3.zero;
+            var rect = t as RectTransform;
+            if (rect == null) return t.position;
+            var canvas = t.GetComponentInParent<Canvas>();
+            var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            Vector3 worldCenter = rect.TransformPoint(rect.rect.center);
+            return cam != null ? (Vector3)RectTransformUtility.WorldToScreenPoint(cam, worldCenter) : worldCenter;
+        }
+
+        private static Vector3 GetScreenBottom(Transform t)
+        {
+            if (t == null) return Vector3.zero;
+            var rect = t as RectTransform;
+            if (rect == null) return t.position;
+            var canvas = t.GetComponentInParent<Canvas>();
+            var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            rect.GetWorldCorners(s_rectCorners);
+            Vector3 worldBottom = (s_rectCorners[0] + s_rectCorners[3]) * 0.5f;
+            return cam != null ? (Vector3)RectTransformUtility.WorldToScreenPoint(cam, worldBottom) : worldBottom;
         }
 
         private void OnDamage(DamageDealtEvent e)
@@ -131,7 +183,12 @@ namespace Combat.UI
                 var sourceSlot = FindSlotFor(e.Source);
                 var targetSlot = FindSlotFor(e.Target);
 
-                if (sourceSlot != null && targetSlot != null && sourceSlot != targetSlot)
+                // BloodWitch fires her own VFX via PlaySpellShot (red beam) — skip the default
+                // source-lunge animation and pulse so she doesn't flash red herself, only the
+                // target impact + damage number play through here.
+                bool isWitchSpell = (e.Source as BoardCard)?.SourceCard?.CardName == "BloodWitch";
+
+                if (sourceSlot != null && targetSlot != null && sourceSlot != targetSlot && !isWitchSpell)
                 {
                     PlayDirectedAttack(sourceSlot, targetSlot, e.Amount);
                     GateActionAnimation(DirectedAttackGateSeconds);
@@ -170,7 +227,7 @@ namespace Combat.UI
                 var slot = FindSlotFor(e.Card);
                 if (slot != null)
                 {
-                    PlayPlacement(slot.transform);
+                    PlayPlacement(slot);
                     GateActionAnimation(PlacementGateSeconds);
                 }
             }
@@ -199,6 +256,94 @@ namespace Combat.UI
         }
 
 
+
+        public static void PlaySpellShot(IGameEntity source, IGameEntity target, Color color)
+        {
+#if DOTWEEN
+            var instance = _instance;
+            if (instance == null) return;
+            try
+            {
+                var sourceSlot = instance.FindSlotFor(source);
+                var targetSlot = instance.FindSlotFor(target);
+                if (sourceSlot == null || targetSlot == null) return;
+
+                var from = GetScreenCenter(sourceSlot.transform);
+                var to = GetScreenCenter(targetSlot.transform);
+                instance.SpawnLaserBeam(from, to, color);
+
+                var style = new VfxStyle(color, true);
+                instance.PlayHit(targetSlot, style, 0);
+                instance.GateActionAnimation(MinActionGateSeconds);
+            }
+            catch (Exception ex) { Debug.LogWarning($"[CombatVFX] PlaySpellShot error: {ex.Message}"); }
+#endif
+        }
+
+#if DOTWEEN
+        private void SpawnLaserBeam(Vector3 fromScreen, Vector3 toScreen, Color color)
+        {
+            if (!EnsureCanvas()) return;
+
+            var delta = toScreen - fromScreen;
+            float length = delta.magnitude;
+            if (length < 8f) return;
+            var direction = delta / length;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            // Inset the endpoints a touch so the beam tucks under the card edges, like the planning arrows do.
+            float sourceInset = Mathf.Min(28f, length * 0.12f);
+            float targetInset = Mathf.Min(34f, length * 0.18f);
+            var shaftFrom = fromScreen + (Vector3)(direction * sourceInset);
+            var shaftTo = toScreen - (Vector3)(direction * targetInset);
+            var shaftDelta = shaftTo - shaftFrom;
+            float shaftLength = shaftDelta.magnitude;
+            if (shaftLength < 4f) return;
+            var mid = (shaftFrom + shaftTo) * 0.5f;
+            var rotation = Quaternion.Euler(0f, 0f, angle);
+
+            // Single clean shaft, same vibe as TargetPlanArrowsUI's planning arrows.
+            var shaftGo = new GameObject("LaserShaft");
+            shaftGo.transform.SetParent(_vfxCanvas.transform, false);
+            var shaft = shaftGo.AddComponent<Image>();
+            shaft.raycastTarget = false;
+            shaft.color = new Color(color.r, color.g, color.b, 0.92f);
+            var shaftRt = shaft.rectTransform;
+            shaftRt.position = mid;
+            shaftRt.sizeDelta = new Vector2(shaftLength, 5f);
+            shaftRt.rotation = rotation;
+            shaftRt.localScale = new Vector3(0f, 1f, 1f);
+
+            // Small spark arrowhead at the target end (TMP unicode char, mirrors the planning arrows).
+            var headGo = new GameObject("LaserHead");
+            headGo.transform.SetParent(_vfxCanvas.transform, false);
+            var head = headGo.AddComponent<TextMeshProUGUI>();
+            head.text = "➤";
+            head.fontSize = 26f;
+            head.fontStyle = FontStyles.Bold;
+            head.alignment = TextAlignmentOptions.Center;
+            head.raycastTarget = false;
+            head.color = new Color(color.r, color.g, color.b, 0.95f);
+            var headRt = head.rectTransform;
+            headRt.sizeDelta = new Vector2(44f, 44f);
+            headRt.position = toScreen - (Vector3)(direction * Mathf.Min(18f, length * 0.08f));
+            headRt.rotation = rotation;
+            headRt.localScale = Vector3.zero;
+
+            var seq = DOTween.Sequence();
+            // Quick clean shoot — shaft snaps to length, head appears at the tip.
+            seq.Append(shaftRt.DOScaleX(1f, 0.12f).SetEase(Ease.OutCubic));
+            seq.Join(headRt.DOScale(Vector3.one, 0.14f).SetEase(Ease.OutBack));
+            // Hold briefly, then graceful fade — no twitchy thinning.
+            seq.AppendInterval(0.16f);
+            seq.Append(DOTween.To(() => shaft.color.a, a => { var c = shaft.color; c.a = a; shaft.color = c; }, 0f, 0.45f).SetEase(Ease.InSine));
+            seq.Join(DOTween.To(() => head.color.a, a => { var c = head.color; c.a = a; head.color = c; }, 0f, 0.45f).SetEase(Ease.InSine));
+            seq.OnComplete(() =>
+            {
+                if (shaftGo != null) Destroy(shaftGo);
+                if (headGo != null) Destroy(headGo);
+            });
+        }
+#endif
 
         public static async UniTask AwaitCurrentActionAnimationsAsync(float fallbackSeconds = MinActionGateSeconds)
         {
@@ -249,15 +394,59 @@ namespace Combat.UI
                 .OnComplete(() => { if (go != null) Destroy(go); });
 #endif
         }
-private void PlayPlacement(Transform t)
+private void PlayPlacement(BoardSlotUI slotUI)
         {
 #if DOTWEEN
+            if (slotUI == null) return;
+            var t = slotUI.transform;
             t.DOComplete();
             var baseScale = t.localScale;
             t.localScale = baseScale * 0.7f;
             t.DOScale(baseScale, 0.42f).SetEase(Ease.OutBack);
+
+            // Always emit from the slot's actual bottom-centre (converted to overlay screen
+            // coords), not from a card transform — placement dust must hug the slot rectangle.
+            SpawnDustBurst(GetScreenBottom(t));
 #endif
         }
+
+#if DOTWEEN
+        private void SpawnDustBurst(Vector3 origin)
+        {
+            if (!EnsureCanvas()) return;
+
+            const int puffCount = 26;
+            var dustColor = new Color(0.92f, 0.9f, 0.86f, 0.22f);
+            var baseOrigin = origin; // already at the bottom-center of the slot
+
+            for (int i = 0; i < puffCount; i++)
+            {
+                var go = new GameObject("DustPuff");
+                go.transform.SetParent(_vfxCanvas.transform, false);
+                var image = go.AddComponent<Image>();
+                image.raycastTarget = false;
+                image.color = dustColor;
+
+                var rt = image.rectTransform;
+                rt.sizeDelta = new Vector2(UnityEngine.Random.Range(2.5f, 5f), UnityEngine.Random.Range(2.5f, 5f));
+                rt.position = baseOrigin + new Vector3(UnityEngine.Random.Range(-22f, 22f), UnityEngine.Random.Range(-2f, 3f), 0f);
+                rt.localScale = Vector3.one * UnityEngine.Random.Range(0.5f, 0.85f);
+
+                // Slow lazy drift outward with a gentle upward arc — settling dust, not a burst.
+                float side = (i % 2 == 0) ? 1f : -1f;
+                float horizontal = side * UnityEngine.Random.Range(10f, 26f);
+                float vertical = UnityEngine.Random.Range(4f, 12f);
+                var drift = new Vector3(horizontal, vertical, 0f);
+
+                float duration = UnityEngine.Random.Range(0.85f, 1.25f);
+                var seq = DOTween.Sequence();
+                seq.Append(rt.DOMove(rt.position + drift, duration).SetEase(Ease.OutSine));
+                seq.Join(rt.DOScale(Vector3.one * UnityEngine.Random.Range(0.3f, 0.55f), duration).SetEase(Ease.OutSine));
+                seq.Join(DOTween.To(() => image.color.a, a => { var c = image.color; c.a = a; image.color = c; }, 0f, duration).SetEase(Ease.InSine));
+                seq.OnComplete(() => { if (go != null) Destroy(go); });
+            }
+        }
+#endif
 
         private void PlayDeath(Transform t)
         {
@@ -368,21 +557,39 @@ private void PlayPlacement(Transform t)
         }
 
 #if DOTWEEN
+        // Per-graphic baseline so overlapping PulseGraphics calls (e.g. 3 BloodWitch shots on the
+        // same target) always restore to the true original colour, not the in-flight flashed one.
+        private readonly System.Collections.Generic.Dictionary<Graphic, Color> _graphicBaseline = new();
+
         private Tween PulseGraphics(Transform root, Color color, float duration)
         {
             var seq = DOTween.Sequence();
             foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
             {
                 if (graphic == null) continue;
-                var start = graphic.color;
+                if (!_graphicBaseline.TryGetValue(graphic, out var start))
+                {
+                    start = graphic.color;
+                    _graphicBaseline[graphic] = start;
+                }
+                // Kill any in-flight color tween on this graphic before starting a new one.
+                DOTween.Kill(graphic, complete: false);
+                graphic.color = start;
+
                 var flash = new Color(
                     Mathf.Clamp01(start.r * 0.45f + color.r * 0.85f),
                     Mathf.Clamp01(start.g * 0.45f + color.g * 0.85f),
                     Mathf.Clamp01(start.b * 0.45f + color.b * 0.85f),
                     start.a);
-                seq.Join(DOTween.To(() => graphic.color, c => graphic.color = c, flash, duration * 0.45f)
+
+                var localGraphic = graphic;
+                var localStart = start;
+                seq.Join(DOTween.To(() => localGraphic.color, c => localGraphic.color = c, flash, duration * 0.45f)
+                    .SetTarget(localGraphic)
                     .SetEase(Ease.OutQuad)
-                    .SetLoops(2, LoopType.Yoyo));
+                    .SetLoops(2, LoopType.Yoyo)
+                    .OnComplete(() => { if (localGraphic != null) localGraphic.color = localStart; })
+                    .OnKill(() => { if (localGraphic != null) localGraphic.color = localStart; }));
             }
             return seq;
         }

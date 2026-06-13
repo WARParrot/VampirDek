@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UsualBuilding
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Building
+  CardNameKey:
+  Description: "Простая постройка. Стена, прикрывающая город."
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 

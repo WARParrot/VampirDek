@@ -28,6 +28,7 @@ namespace Combat
 
         private InputAction _leaveAction;
         private bool _leaveDuelRequested;
+        private bool _victoryScreenShown;
 
         public DeckData _playerPersistentDeck;
         public DuelState CurrentDuelState => _duelState;
@@ -40,9 +41,14 @@ namespace Combat
         private bool _duelFinished = false;
         private bool _duelResultPublished = false;
         private GameDirector _director;
+        private readonly List<BoardCard> _attackerBuffer = new(16);
+        private readonly HashSet<BoardCard> _resolvedClashBuffer = new();
+        private readonly HashSet<BoardCard> _deadCardBuffer = new();
+        private readonly List<BoardCard> _enemyAttackerBuffer = new(8);
 
         // AI System
         private OpponentAI _opponentAI;
+        [SerializeField] private VictoryScreen _victoryScreenPrefab;
 
         public void ConfirmCurrentPhase()
         {
@@ -344,6 +350,208 @@ namespace Combat
             Debug.Log("[Phase] Confirmed - advancing.");
         }
 
+        private const int DraftPicksAllowed = 2;
+        private const int DraftCandidateCount = 3;
+        private const string DraftGuaranteedCardName = "Human";
+        private int _draftInstanceIdCounter = -200000;
+
+        /// <summary>
+        /// One-shot override for the next draft's non-guaranteed slots. The tutorial uses this
+        /// to make sure the player sees a Vampire candidate on the very first draft so the
+        /// onboarding flow can teach Vanguard play.
+        /// </summary>
+        public List<string> PendingDraftCardNames { get; } = new List<string>();
+
+        /// <summary>
+        /// One-shot override making a specific card mandatory for the next draft. Cleared after use.
+        /// </summary>
+        public string PendingMandatoryDraftCardName { get; set; }
+
+        /// <summary>
+        /// One-shot override list for multiple mandatory cards in the next draft.
+        /// </summary>
+        public List<string> PendingMandatoryDraftCardNames { get; } = new List<string>();
+
+        private async UniTask DraftPlayerHandAsync(SideState side, int picksAllowed)
+        {
+            if (side == null) return;
+
+            var candidates = BuildDraftCandidates(side, out var candidateDeckCards);
+            if (candidates.Count == 0)
+            {
+                Debug.LogWarning("[Draft] No candidates available; skipping draft.");
+                return;
+            }
+
+            var actualPicks = Mathf.Min(picksAllowed, candidates.Count);
+            var ui = FindObjectOfType<CardSelectionUI>(true);
+            if (ui == null)
+            {
+                Debug.LogWarning("[Draft] CardSelectionUI not found; falling back to auto-draw.");
+                AutoApplyDraftFallback(side, candidates, candidateDeckCards, actualPicks);
+                return;
+            }
+
+            // During the tutorial, hold the draft closed until the intro steps reach
+            // the "draft" step. Until then the player should see only the board.
+            var tutorial = FindObjectOfType<TutorialSystem>(true);
+            if (tutorial != null)
+            {
+                while (!tutorial.IsReadyForDraft())
+                {
+                    if (_leaveDuelRequested || _duelState == null) return;
+                    await UniTask.Yield();
+                }
+            }
+
+            GlobalServices.EventBus.Publish(new HintEvent { Tag = "DraftPhaseEnter", Context = _duelState, Mode = GameMode.Combat });
+
+            var mandatoryNames = new List<string>();
+            if (!string.IsNullOrEmpty(PendingMandatoryDraftCardName))
+            {
+                mandatoryNames.Add(PendingMandatoryDraftCardName);
+            }
+            if (PendingMandatoryDraftCardNames.Count > 0)
+            {
+                mandatoryNames.AddRange(PendingMandatoryDraftCardNames);
+            }
+            PendingMandatoryDraftCardName = null;
+            PendingMandatoryDraftCardNames.Clear();
+            var chosenIndices = await ui.ShowDraftAsync(candidates, actualPicks, mandatoryNames);
+            if (chosenIndices == null) return;
+
+            ApplyDraftPicks(side, candidates, candidateDeckCards, chosenIndices);
+
+            GlobalServices.EventBus.Publish(new HintEvent { Tag = "DraftCompleted", Context = _duelState, Mode = GameMode.Combat });
+        }
+
+        /// <summary>
+        /// Builds the draft candidate list together with a parallel list of deck-backed Card
+        /// instances. Slot 0 is always Human (guaranteed, no deck card — Human is the exception
+        /// and never consumes the deck). Subsequent slots are sampled without replacement from
+        /// the deck's undrawn portion; each backed slot will consume that specific Card when
+        /// picked, so the deck actually shrinks turn over turn.
+        /// </summary>
+        private List<CardDef> BuildDraftCandidates(SideState side, out List<Card> candidateDeckCards)
+        {
+            var result = new List<CardDef>();
+            candidateDeckCards = new List<Card>();
+
+            var humanDef = CardDatabase.GetCard(DraftGuaranteedCardName);
+            if (humanDef != null)
+            {
+                result.Add(humanDef);
+                candidateDeckCards.Add(null);
+            }
+            else
+            {
+                Debug.LogWarning($"[Draft] Guaranteed draft card '{DraftGuaranteedCardName}' not found in CardDatabase.");
+            }
+
+            int randomSlots = DraftCandidateCount - result.Count;
+
+            // Tutorial / scripted hook: forced names come first. They reserve a deck card of the
+            // same def if one exists, so picking them still consumes the deck like a normal slot.
+            while (randomSlots > 0 && PendingDraftCardNames.Count > 0)
+            {
+                var name = PendingDraftCardNames[0];
+                PendingDraftCardNames.RemoveAt(0);
+                if (string.IsNullOrEmpty(name)) continue;
+                var def = CardDatabase.GetCard(name);
+                if (def == null) continue;
+                result.Add(def);
+                candidateDeckCards.Add(FindUndrawnUnclaimed(side, def, candidateDeckCards));
+                randomSlots--;
+            }
+
+            if (side.Deck != null && randomSlots > 0)
+            {
+                var pool = new List<Card>();
+                foreach (var card in side.Deck.UndrawnCards)
+                {
+                    if (card?.Def == null) continue;
+                    if (candidateDeckCards.Contains(card)) continue;
+                    pool.Add(card);
+                }
+
+                var rng = new System.Random();
+                for (int i = pool.Count - 1; i > 0; i--)
+                {
+                    int j = rng.Next(i + 1);
+                    (pool[i], pool[j]) = (pool[j], pool[i]);
+                }
+
+                int taken = 0;
+                foreach (var card in pool)
+                {
+                    if (taken >= randomSlots) break;
+                    result.Add(card.Def);
+                    candidateDeckCards.Add(card);
+                    taken++;
+                }
+            }
+
+            // Shuffle so the guaranteed Human card doesn't always appear in the same slot.
+            var orderRng = new System.Random();
+            for (int i = result.Count - 1; i > 0; i--)
+            {
+                int j = orderRng.Next(i + 1);
+                (result[i], result[j]) = (result[j], result[i]);
+                (candidateDeckCards[i], candidateDeckCards[j]) = (candidateDeckCards[j], candidateDeckCards[i]);
+            }
+
+            return result;
+        }
+
+        private Card FindUndrawnUnclaimed(SideState side, CardDef def, List<Card> alreadyClaimed)
+        {
+            if (side?.Deck == null || def == null) return null;
+            foreach (var card in side.Deck.UndrawnCards)
+            {
+                if (card?.Def != def) continue;
+                if (alreadyClaimed.Contains(card)) continue;
+                return card;
+            }
+            return null;
+        }
+
+        private void ApplyDraftPicks(SideState side, List<CardDef> candidates, List<Card> candidateDeckCards, List<int> pickedIndices)
+        {
+            foreach (var index in pickedIndices)
+            {
+                if (index < 0 || index >= candidates.Count) continue;
+                var def = candidates[index];
+                if (def == null) continue;
+                if (side.Hand.Count >= SideState.MaxHandSize)
+                {
+                    Debug.Log("[Draft] Hand full; ignoring further picks.");
+                    break;
+                }
+
+                var deckCard = index < candidateDeckCards.Count ? candidateDeckCards[index] : null;
+                if (deckCard != null && side.Deck.TakeSpecificUndrawn(deckCard))
+                {
+                    side.AddCardToHand(deckCard);
+                }
+                else
+                {
+                    // Guaranteed Human slot, or the deck card disappeared mid-draft — fall back
+                    // to a fresh synthetic instance so the player still gets the card they picked.
+                    side.AddCardToHand(new Card(def, _draftInstanceIdCounter--));
+                }
+            }
+        }
+
+        private void AutoApplyDraftFallback(SideState side, List<CardDef> candidates, List<Card> candidateDeckCards, int picksAllowed)
+        {
+            var indices = new List<int>();
+            for (int i = 0; i < candidates.Count && indices.Count < picksAllowed; i++)
+            {
+                indices.Add(i);
+            }
+            ApplyDraftPicks(side, candidates, candidateDeckCards, indices);
+        }
+
         private async UniTask ReturnToSeatViewForPlayerTurnAsync()
         {
             var switcher = Camera.main?.GetComponent<DuelCameraSwitcher>();
@@ -415,7 +623,6 @@ namespace Combat
                 Debug.Log($"[DuelDebug] Terminal check after action '{action.Description}' => {terminalAfterAction}; {DescribeDuelDebugState()}");
                 if (terminalAfterAction)
                 {
-                    Debug.Log($"[DuelDebug] Terminal detected during action processing; routing to outcome phase. action='{action.Description}'");
                     CaptureDuelOutcomeIfFinished();
                     await TransitionToOutcomePhaseAsync();
                     return;
@@ -445,12 +652,10 @@ namespace Combat
 
             if (targetNode.Tags.Contains("DuelStart"))
             {
-                Debug.Log("[Phase] Drawing starting cards...");
-                QueueAction(new DrawCardsAction(_duelState.PlayerSide, 2));
-                QueueAction(new DrawCardsAction(_duelState.OpponentSide, 2));
-                await ProcessActionsAsync();
-                if (_leaveDuelRequested || _duelState == null) return;
-                Debug.Log($"[Phase] Player hand: {_duelState.PlayerSide.Hand.Count}, Opponent hand: {_duelState.OpponentSide.Hand.Count}");
+                // Players now start with an empty hand. The first hand comes from the draft on
+                // StartOfTurn so the player can actually choose what they want to keep.
+                // Opponent also starts empty; they auto-draw on StartOfTurn to match the draft pick count.
+                Debug.Log("[Phase] DuelStart: both hands begin empty; first draw happens at StartOfTurn.");
             }
             else if (targetNode.Tags.Contains("StartOfTurn"))
             {
@@ -466,11 +671,14 @@ namespace Combat
                 await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
 
-                Debug.Log("[Phase] Drawing turn cards...");
-                QueueAction(new DrawCardsAction(_duelState.PlayerSide, 1));
-                QueueAction(new DrawCardsAction(_duelState.OpponentSide, 1));
+                Debug.Log("[Phase] Draft phase for player + auto-draw for opponent...");
+                QueueAction(new DrawWithGuaranteedHumanAction(_duelState.OpponentSide, DraftPicksAllowed));
                 await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
+
+                await DraftPlayerHandAsync(_duelState.PlayerSide, DraftPicksAllowed);
+                if (_leaveDuelRequested || _duelState == null) return;
+
                 Debug.Log($"[Phase] Player hand: {_duelState.PlayerSide.Hand.Count}, Opponent hand: {_duelState.OpponentSide.Hand.Count}");
             }
             else if (targetNode.Tags.Contains("BuildingPhase"))
@@ -527,7 +735,8 @@ namespace Combat
             }
             else if (targetNode.Tags.Contains("Loot"))
             {
-                Debug.Log("[Phase] Loot phase entered");
+                Debug.LogError($"[DEBUG] Loot phase entered. Outcome={_duelOutcome}");
+
                 await ShowLootSelectionAsync();
                 await ReturnToExplorationAsync();
                 return;
@@ -681,6 +890,15 @@ namespace Combat
             Debug.Log($"[DuelDebug] ReturnToExplorationAsync requested. leaveAlreadyRequested={_leaveDuelRequested}; {DescribeDuelDebugState()}");
             if (_leaveDuelRequested) return;
 
+            if (_duelOutcome == DuelOutcome.PlayerLost)
+            {
+                var victoryScreen = FindObjectOfType<VictoryScreen>(true);
+                if (victoryScreen != null)
+                {
+                    await victoryScreen.ShowDefeatAsync();
+                }
+            }
+            
             var director = ResolveGameDirector();
             Debug.Log($"[DuelDebug] ReturnToExplorationAsync directorFound={director != null}.");
             if (director == null)
@@ -766,11 +984,9 @@ namespace Combat
 
         private async UniTask ResolveClashesAsync()
         {
-            var attackers = GetAllAttackers()
-                .OrderByDescending(a => a.CurrentSpeed)
-                .ToList();
-
-            var resolved = new HashSet<BoardCard>();
+            var attackers = CollectAttackersSortedBySpeed(_attackerBuffer);
+            var resolved = _resolvedClashBuffer;
+            resolved.Clear();
 
             foreach (var card in attackers)
             {
@@ -835,7 +1051,7 @@ namespace Combat
                     else if (cardWins)
                     {
                         QueueAction(new DamageAction(target, card.Attack, card));
-                        QueueDoubleAttackIfApplicable(card, target);
+                        RecordGourmetTarget(card, target);
                         QueueRitualistSacrificeIfApplicable(card);
                         target.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(card, target));
@@ -843,26 +1059,126 @@ namespace Combat
                     else if (targetWins)
                     {
                         QueueAction(new DamageAction(card, target.Attack, target));
-                        QueueDoubleAttackIfApplicable(target, card);
+                        RecordGourmetTarget(target, card);
                         QueueRitualistSacrificeIfApplicable(target);
                         card.PlannedTarget = null;
                         GlobalServices.EventBus.Publish(new ClashResolvedEvent(target, card));
                     }
                 }
             }
+
+            resolved.Clear();
+            attackers.Clear();
+
             await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
         }
 
         private void QueueDoubleAttackIfApplicable(BoardCard attacker, IGameEntity target)
         {
-            if (!CardBehaviorTags.HasDoubleAttackWhenAlone(attacker)) return;
-            var side = SideLookup.FindSideOf(attacker, _duelState);
-            if (side == null) return;
-            if (!CardBehaviorTags.IsAloneOnVanguard(attacker, side)) return;
-            if (target == null) return;
-            if (target is BoardCard bc && !bc.IsAlive) return;
-            QueueAction(new DamageAction(target, attacker.Attack, attacker));
+            // VampireLoner's old "double attack when alone" rule is gone — it's Elusive now.
+        }
+
+        private static void RecordGourmetTarget(BoardCard attacker, IGameEntity target)
+        {
+            if (!CardBehaviorTags.NeverRepeatsTarget(attacker) || target == null) return;
+            if (target is BoardCard bc)
+            {
+                if (bc.IsTown) attacker.AttackedTownBefore = true;
+                else attacker.PreviouslyAttackedCardIds.Add(bc.Id);
+            }
+        }
+
+        public static bool CanAttackerTarget(BoardCard attacker, IGameEntity target)
+        {
+            return CanAttackerTarget(attacker, target, null);
+        }
+
+        public static bool CanAttackerTarget(BoardCard attacker, IGameEntity target, SideState defenderSide)
+        {
+            if (attacker == null || target == null) return false;
+            if (target is BoardCard bc)
+            {
+                var resolvedDefenderSide = defenderSide ?? FindSideOfCard(bc);
+                if (CardBehaviorTags.IsElusive(bc) && IsLonerAloneOnHisVanguard(bc, resolvedDefenderSide)) return false;
+                if (CardBehaviorTags.NeverRepeatsTarget(attacker))
+                {
+                    if (bc.IsTown && attacker.AttackedTownBefore) return false;
+                    if (!bc.IsTown && attacker.PreviouslyAttackedCardIds.Contains(bc.Id)) return false;
+                }
+
+                // Buildings act as a wall: each living building covers two Humans behind it
+                // (building index 0 → humans 0,1; building index 1 → humans 2,3). The Town can
+                // only be reached when at least one Building slot is empty/destroyed.
+                if (resolvedDefenderSide != null && IsTargetShieldedByBuildings(bc, resolvedDefenderSide))
+                    return false;
+            }
+            return true;
+        }
+
+        public static bool IsTargetShieldedByBuildings(BoardCard target, SideState defenderSide)
+        {
+            if (target == null || defenderSide?.Board == null) return false;
+            var buildingRow = defenderSide.Board.BuildingRow;
+            int aliveBuildings = 0;
+            if (buildingRow != null)
+            {
+                for (int i = 0; i < buildingRow.Length; i++)
+                {
+                    var occupant = buildingRow[i]?.Occupant;
+                    if (occupant != null && occupant.IsAlive) aliveBuildings++;
+                }
+            }
+
+            if (target.IsTown)
+                return aliveBuildings >= 1;
+
+            var humanRow = defenderSide.Board.HumanRow;
+            if (humanRow == null) return false;
+            int humanIndex = -1;
+            for (int i = 0; i < humanRow.Length; i++)
+                if (humanRow[i]?.Occupant == target) { humanIndex = i; break; }
+            if (humanIndex < 0) return false;
+
+            // Each building covers two Humans behind it.
+            int coveringBuildingIndex = humanIndex / 2;
+            if (buildingRow != null && coveringBuildingIndex < buildingRow.Length)
+            {
+                var shield = buildingRow[coveringBuildingIndex]?.Occupant;
+                if (shield != null && shield.IsAlive) return true;
+            }
+            return false;
+        }
+
+        private static SideState FindSideOfCard(BoardCard card)
+        {
+            var dm = UnityEngine.Object.FindObjectOfType<DuelManager>();
+            var state = dm?._duelState;
+            if (state == null || card == null) return null;
+            if (state.PlayerSide.Board.AllSlots().Any(s => s.Occupant == card)) return state.PlayerSide;
+            if (state.OpponentSide.Board.AllSlots().Any(s => s.Occupant == card)) return state.OpponentSide;
+            return null;
+        }
+
+        // VampireLoner's Elusive only activates when no other allied vanguard cards are alive
+        // alongside him. As soon as the player puts a teammate next to him, the loner is fair game.
+        private static bool IsLonerAloneOnHisVanguard(BoardCard loner)
+        {
+            return IsLonerAloneOnHisVanguard(loner, FindSideOfCard(loner));
+        }
+
+        private static bool IsLonerAloneOnHisVanguard(BoardCard loner, SideState side)
+        {
+            if (side == null) return false;
+            int alliesAlive = 0;
+            foreach (var slot in side.Board.VanguardRow)
+            {
+                var occ = slot?.Occupant;
+                if (occ == null || !occ.IsAlive) continue;
+                if (occ == loner) continue;
+                alliesAlive++;
+            }
+            return alliesAlive == 0;
         }
 
         private void QueueRitualistSacrificeIfApplicable(BoardCard attacker)
@@ -875,28 +1191,91 @@ namespace Combat
 
         private async UniTask ResolveOneSidedAttacksAsync()
         {
-            var attackers = GetAllAttackers()
-                        .Where(a => a.PlannedTarget != null && a.PlannedTarget.IsAlive)
-                        .OrderByDescending(a => a.CurrentSpeed);
+            var attackers = CollectAttackersSortedBySpeed(_attackerBuffer);
 
             foreach (var card in attackers)
             {
+                if (card.PlannedTarget == null || !card.PlannedTarget.IsAlive) continue;
+
                 QueueAction(new DamageAction(card.PlannedTarget, card.Attack, card));
-                QueueDoubleAttackIfApplicable(card, card.PlannedTarget);
+                RecordGourmetTarget(card, card.PlannedTarget);
                 QueueRitualistSacrificeIfApplicable(card);
             }
+
+            attackers.Clear();
+
             await ProcessActionsAsync();
                 if (_leaveDuelRequested || _duelState == null) return;
         }
 
-        private IEnumerable<BoardCard> GetAllAttackers()
+        private List<BoardCard> CollectAttackersSortedBySpeed(List<BoardCard> buffer)
         {
-            var all = new List<BoardCard>();
-            foreach (var side in new[] { _duelState.PlayerSide, _duelState.OpponentSide })
-                foreach (var slot in side.Board.AllSlots())
-                    if (IsAttackCapable(slot.Occupant) && slot.Occupant.PlannedTarget != null)
-                        all.Add(slot.Occupant);
-            return all;
+            buffer.Clear();
+            AddAttackersSortedBySpeed(_duelState?.PlayerSide, buffer, requirePlannedTarget: true);
+            AddAttackersSortedBySpeed(_duelState?.OpponentSide, buffer, requirePlannedTarget: true);
+            return buffer;
+        }
+
+        private static void AddAttackersSortedBySpeed(SideState side, List<BoardCard> buffer, bool requirePlannedTarget)
+        {
+            var board = side?.Board;
+            if (board == null) return;
+            AddAttackersSortedBySpeed(board.VanguardRow, buffer, requirePlannedTarget);
+            AddAttackersSortedBySpeed(board.BuildingRow, buffer, requirePlannedTarget);
+            AddAttackersSortedBySpeed(board.HumanRow, buffer, requirePlannedTarget);
+            AddAttackerSortedBySpeed(board.TownSlot, buffer, requirePlannedTarget);
+        }
+
+        private static void AddAttackersSortedBySpeed(BoardSlot[] row, List<BoardCard> buffer, bool requirePlannedTarget)
+        {
+            if (row == null) return;
+            for (int i = 0; i < row.Length; i++)
+            {
+                AddAttackerSortedBySpeed(row[i], buffer, requirePlannedTarget);
+            }
+        }
+
+        private static void AddAttackerSortedBySpeed(BoardSlot slot, List<BoardCard> buffer, bool requirePlannedTarget)
+        {
+            var card = slot?.Occupant;
+            if (!IsAttackCapable(card)) return;
+            if (requirePlannedTarget && card.PlannedTarget == null) return;
+
+            for (int i = 0; i < buffer.Count; i++)
+            {
+                if (card.CurrentSpeed > buffer[i].CurrentSpeed)
+                {
+                    buffer.Insert(i, card);
+                    return;
+                }
+            }
+
+            buffer.Add(card);
+        }
+
+        private static void CollectAttackCapableCardsInBoardOrder(SideState side, List<BoardCard> buffer)
+        {
+            var board = side?.Board;
+            if (board == null) return;
+            CollectAttackCapableCardsInBoardOrder(board.VanguardRow, buffer);
+            CollectAttackCapableCardsInBoardOrder(board.BuildingRow, buffer);
+            CollectAttackCapableCardsInBoardOrder(board.HumanRow, buffer);
+            AddAttackCapableCard(board.TownSlot, buffer);
+        }
+
+        private static void CollectAttackCapableCardsInBoardOrder(BoardSlot[] row, List<BoardCard> buffer)
+        {
+            if (row == null) return;
+            for (int i = 0; i < row.Length; i++)
+            {
+                AddAttackCapableCard(row[i], buffer);
+            }
+        }
+
+        private static void AddAttackCapableCard(BoardSlot slot, List<BoardCard> buffer)
+        {
+            var card = slot?.Occupant;
+            if (IsAttackCapable(card)) buffer.Add(card);
         }
 
         private void ClearAllPlannedTargets()
@@ -916,11 +1295,9 @@ namespace Combat
                 var board = side?.Board;
                 if (board == null) continue;
 
-                var deadCards = board.AllSlots()
-                    .Select(slot => slot?.Occupant)
-                    .Where(card => card != null && !card.IsTown && !card.IsAlive)
-                    .Distinct()
-                    .ToList();
+                var deadCards = _deadCardBuffer;
+                deadCards.Clear();
+                CollectDeadNonTownCards(board, deadCards);
 
                 foreach (var deadCard in deadCards)
                 {
@@ -928,6 +1305,26 @@ namespace Combat
                     board.RemoveCard(deadCard);
                     Debug.Log($"[DuelManager] Removed defeated card from board: {deadCard.SourceCard?.CardName ?? deadCard.Id.ToString()}");
                 }
+
+                deadCards.Clear();
+            }
+        }
+
+        private static void CollectDeadNonTownCards(Board board, HashSet<BoardCard> deadCards)
+        {
+            if (board == null || deadCards == null) return;
+            CollectDeadNonTownCards(board.VanguardRow, deadCards);
+            CollectDeadNonTownCards(board.BuildingRow, deadCards);
+            CollectDeadNonTownCards(board.HumanRow, deadCards);
+        }
+
+        private static void CollectDeadNonTownCards(BoardSlot[] row, HashSet<BoardCard> deadCards)
+        {
+            if (row == null) return;
+            for (int i = 0; i < row.Length; i++)
+            {
+                var card = row[i]?.Occupant;
+                if (card != null && !card.IsTown && !card.IsAlive) deadCards.Add(card);
             }
         }
 
@@ -1020,7 +1417,9 @@ namespace Combat
                     QueueAction(cost.GetPaymentAction(ctx));
                 }
 
-                enemySide.Hand.Remove(decision.Card);
+                // Don't pre-remove from hand here: PlaceCardIntoSlotAction removes the card by Def
+                // after a successful placement. Removing first risked deleting a second copy of the
+                // same Def, leaving the AI with an empty hand after a couple of turns.
                 QueueAction(new PlaceCardIntoSlotAction(enemySide.Board, decision.Card.Def, decision.TargetSlot));
                 Debug.Log($"[AI] Opponent plays {decision.Card.Def.CardName} in {decision.Card.Def.RowType}[{decision.TargetSlot.Index}]");
 
@@ -1031,10 +1430,9 @@ namespace Combat
 
         private async UniTask SimulatePlanningAsync()
         {
-            var enemyAttackers = _duelState.OpponentSide.Board.AllSlots()
-                .Where(s => IsAttackCapable(s.Occupant))
-                .Select(s => s.Occupant)
-                .ToArray();
+            var enemyAttackers = _enemyAttackerBuffer;
+            enemyAttackers.Clear();
+            CollectAttackCapableCardsInBoardOrder(_duelState?.OpponentSide, enemyAttackers);
 
             foreach (var card in enemyAttackers)
             {
@@ -1047,6 +1445,8 @@ namespace Combat
                     Debug.Log($"[AI] {card.SourceCard.CardName} targets {(target as BoardCard)?.SourceCard.CardName ?? "Town"}");
                 }
             }
+
+            enemyAttackers.Clear();
 
             await UniTask.Yield();
         }

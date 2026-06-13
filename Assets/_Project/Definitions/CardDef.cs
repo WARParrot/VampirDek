@@ -14,6 +14,9 @@ namespace Definitions
         public string CardName;
         [Tooltip("Stable localization key for the display name. Leave empty to use card.<CardName>.name with CardName as fallback.")]
         public string CardNameKey;
+        [TextArea(2, 6)]
+        [Tooltip("Flavor / rules description shown in the card-details overlay.")]
+        public string Description;
         public AssetReferenceSprite Artwork;
         public CardType Type;
         public RowType RowType;
@@ -24,6 +27,7 @@ namespace Definitions
         public List<CardCost> Costs;
         public List<EffectActionDefinition> Effects;
         public List<EnchantmentData> InnateEnchantments;
+        [System.NonSerialized] public Sprite CachedSprite;
 
         [Tooltip("Optional combat VFX profile id used by CombatVFX for card-specific attack/clash presentation. Examples: blood, shadow, ritual, town. Leave empty for default.")]
         public string CombatVfxProfileId;

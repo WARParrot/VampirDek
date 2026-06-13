@@ -27,6 +27,7 @@ namespace Definitions
 
         public void OnAttach()
         {
+            var onEventGeneric = typeof(RuntimeEnchantment).GetMethod(nameof(OnEvent));
             foreach (var trigger in _data.Triggers)
             {
                 var eventType = ResolveEventType(trigger.EventType);
@@ -37,7 +38,8 @@ namespace Definitions
                 }
                 var method = typeof(EventBus).GetMethod("Subscribe").MakeGenericMethod(eventType);
                 var actionType = typeof(Action<>).MakeGenericType(eventType);
-                var handler = Delegate.CreateDelegate(actionType, this, nameof(OnEvent));
+                var onEventClosed = onEventGeneric.MakeGenericMethod(eventType);
+                var handler = Delegate.CreateDelegate(actionType, this, onEventClosed);
                 var subscription = (IDisposable)method.Invoke(GlobalServices.EventBus, new[] { handler });
                 _subscriptions.Add(subscription);
             }

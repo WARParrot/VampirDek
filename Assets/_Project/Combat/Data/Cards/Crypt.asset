@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Crypt
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Crypt
-  CardNameKey: 
+  CardNameKey:
+  Description: "Склеп: при гибели союзника на твоей стороне призывает Гуля."
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -27,7 +28,7 @@ MonoBehaviour:
   Health: 5
   Attack: 0
   Costs:
-  - {fileID: 11400000, guid: 2d41745a157a27e49b003fdec5ce828a, type: 2}
+  - {fileID: 11400000, guid: b6d3a2f9c4e85f05b9a7d3e042f5c8b0, type: 2}
   Effects: []
   InnateEnchantments:
   - {fileID: 11400000, guid: 946c93329bad2fb41b90a32710dad0be, type: 2}

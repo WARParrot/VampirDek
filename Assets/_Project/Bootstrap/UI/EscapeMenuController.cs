@@ -30,6 +30,9 @@ namespace Bootstrap.UI
         [SerializeField] private TextMeshProUGUI _exitSaveButtonText;
 
         private InputAction _escapeAction;
+        private CursorLockMode _previousCursorLockState;
+        private bool _previousCursorVisible;
+        private float _previousTimeScale = 1f;
 
         void Start()
         {
@@ -42,6 +45,19 @@ namespace Bootstrap.UI
             _escapeAction = new InputAction("EscapeMenu", binding: "<Keyboard>/escape");
             _escapeAction.performed += _ => Toggle();
             _escapeAction.Enable();
+        }
+
+        void OnDisable()
+        {
+            // Safety net: if the menu gets disabled while still considered open
+            // (scene unload, mode switch, etc.), make sure we don't leave the game
+            // frozen with a hidden cursor.
+            if (GlobalServices.IsMenuOpen)
+            {
+                Time.timeScale = _previousTimeScale > 0f ? _previousTimeScale : 1f;
+                RestoreCursorAfterMenu();
+                GlobalServices.IsMenuOpen = false;
+            }
         }
 
         void OnDestroy()
@@ -88,6 +104,15 @@ namespace Bootstrap.UI
         private void Open()
         {
             GlobalServices.IsMenuOpen = true;
+
+            // Real pause: freeze time, free the cursor, remember previous state.
+            _previousTimeScale = Time.timeScale;
+            _previousCursorLockState = Cursor.lockState;
+            _previousCursorVisible = Cursor.visible;
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             ApplyLocalization();
 
             foreach (Transform child in _deckContent)
@@ -128,6 +153,22 @@ namespace Bootstrap.UI
         {
             gameObject.SetActive(false);
             GlobalServices.IsMenuOpen = false;
+
+            Time.timeScale = _previousTimeScale > 0f ? _previousTimeScale : 1f;
+            RestoreCursorAfterMenu();
+        }
+
+        private void RestoreCursorAfterMenu()
+        {
+            if (GlobalServices.Director?.CurrentMode is global::Exploration.ExplorationMode)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                return;
+            }
+
+            Cursor.lockState = _previousCursorLockState;
+            Cursor.visible = _previousCursorVisible;
         }
 
         private async void ExitAndSave()

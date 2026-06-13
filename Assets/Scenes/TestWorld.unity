@@ -146,7 +146,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 113980687}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9a3f01bfdb8677c4badb22008ab4fd5c, type: 3}
   m_Name: 
@@ -791,6 +791,8 @@ MonoBehaviour:
   UniqueTableId: Table00
   DefaultPlayerDeck: {fileID: 11400000, guid: b3db4b073aad97845bbbd487d81653c1, type: 2}
   _worldTableVisual: {fileID: 282908112}
+  _promptKey: interaction.start_duel
+  _promptText: Press [E] to start duel
   _cameraSeat: {fileID: 897195892}
 --- !u!65 &379841487
 BoxCollider:
@@ -881,7 +883,9 @@ MonoBehaviour:
   _openRotation: {x: 90, y: 0, z: 0}
   _animationTime: 0.5
   _contents: {fileID: 1277208110}
+  _promptOpenKey: interaction.open
   _promptOpen: Open
+  _promptCloseKey: interaction.close
   _promptClose: Close
 --- !u!1 &497407304
 GameObject:
@@ -1677,7 +1681,9 @@ MonoBehaviour:
   _openRotation: {x: 90, y: 0, z: 0}
   _animationTime: 0.5
   _contents: {fileID: 0}
+  _promptOpenKey: interaction.open
   _promptOpen: Open
+  _promptCloseKey: interaction.close
   _promptClose: Close
 --- !u!4 &1122461693 stripped
 Transform:
@@ -1974,6 +1980,7 @@ MonoBehaviour:
   _puzzleUI: {fileID: 2088920629}
   _lockedVisual: {fileID: 1277208110}
   _unlockedVisual: {fileID: 1923850532}
+  _instructionText: {fileID: 0}
 --- !u!65 &1277208112
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2142,16 +2149,25 @@ MonoBehaviour:
   _keyHintImage: {fileID: 1177751105}
   _canvasGroup: {fileID: 1534032364}
   _steps:
-  - InstructionText: W
+  - InstructionKey: 
+    InstructionText: W
+    ActionPromptKey: 
+    ActionPrompt: 
     KeyHintSprite: {fileID: 0}
     CompletionType: 0
+    MinimumReadSeconds: 0
     DelayBeforeNext: 1
-  - InstructionText: S
+  - InstructionKey: 
+    InstructionText: S
+    ActionPromptKey: 
+    ActionPrompt: 
     KeyHintSprite: {fileID: 0}
     CompletionType: 1
+    MinimumReadSeconds: 0
     DelayBeforeNext: 1
   _fadeSpeed: 2
   _startOnAwake: 1
+  _forceShowAlways: 0
 --- !u!225 &1534032364
 CanvasGroup:
   m_ObjectHideFlags: 0

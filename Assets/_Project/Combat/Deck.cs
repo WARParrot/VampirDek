@@ -51,6 +51,35 @@ namespace Combat
             _cards.Remove(card);
             Shuffle();
         }
+
+        /// <summary>
+        /// Removes a specific card from the undrawn portion of the deck without re-shuffling.
+        /// Used by the draft flow to consume the card the player picked while leaving the rest
+        /// of the deck order — and previously drawn cards — untouched.
+        /// </summary>
+        public bool TakeSpecificUndrawn(Card card)
+        {
+            if (card == null) return false;
+            for (int i = _drawIndex; i < _cards.Count; i++)
+            {
+                if (!ReferenceEquals(_cards[i], card)) continue;
+                _cards.RemoveAt(i);
+                GlobalServices.EventBus?.Publish(new DeckCountChangedEvent(_owner, RemainingCards));
+                if (IsEmpty)
+                    GlobalServices.EventBus?.Publish(new EmptyDeckEvent(_owner));
+                return true;
+            }
+            return false;
+        }
+
+        public IEnumerable<Card> UndrawnCards
+        {
+            get
+            {
+                for (int i = _drawIndex; i < _cards.Count; i++)
+                    yield return _cards[i];
+            }
+        }
         public void AddCard(Card card)
         {
             _cards.Add(card);

@@ -16,13 +16,13 @@ MonoBehaviour:
   m_GUID: 14cc3db0b9f25d844bf48118d9e844e3
   m_SerializeEntries:
   - m_GUID: 469347e2fe177fd49b902bdb3af6fa05
-    m_Address: Assets/_Project/Combat/Data/Decks/TestOpponentDeck.asset
+    m_Address: TestOpponentDeck
     m_ReadOnly: 0
     m_SerializedLabels:
     - Decks
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b3db4b073aad97845bbbd487d81653c1
-    m_Address: Assets/_Project/Combat/Data/Decks/FallbackDeck.asset
+    m_Address: FallbackDeck
     m_ReadOnly: 0
     m_SerializedLabels:
     - Decks

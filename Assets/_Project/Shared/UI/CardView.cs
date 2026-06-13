@@ -27,6 +27,7 @@ namespace Shared.UI
         {
             if (_model?.Def == null) return;
             CardDetailOverlay.Show(CardRulesText.FormatHandCardDetails(_model.Def), transform);
+            gameObject.SendMessage("OnCardTapped", _model, SendMessageOptions.DontRequireReceiver);
         }
 
         private void Refresh()
@@ -35,16 +36,49 @@ namespace Shared.UI
             AutoBindTextFields();
 
             if (_nameText != null)
+            {
+                ApplyReadableTextSettings(_nameText);
                 _nameText.text = LocalizationService.CardName(_model.Def);
+            }
 
             if (_costText != null)
+            {
+                ApplyReadableTextSettings(_costText);
                 _costText.text = CardRulesText.FormatHandCardSummary(_model.Def);
+            }
+
+            if (_artwork != null)
+            {
+                var tex = Resources.Load<Texture2D>("Textures/" + _model.Def.CardName);
+                if (tex != null)
+                {
+                    var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.one * 0.5f);
+                    _artwork.sprite = sprite;
+                    _artwork.enabled = true;
+                }
+                else
+                {
+                    _artwork.enabled = false;
+                }
+            }
+        }
+
+        private static void ApplyReadableTextSettings(TextMeshProUGUI text)
+        {
+            if (text == null) return;
+            // Russian localization frequently produces longer strings than the English originals.
+            // Several prefabs were authored with WordWrapping off and Truncate overflow, which
+            // caused single words to break across lines mid-glyph. Enforce a sensible default here.
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Overflow;
+            text.richText = true;
         }
 
         private void AutoBindTextFields()
         {
             _nameText ??= transform.Find("CardName")?.GetComponent<TextMeshProUGUI>();
             _costText ??= transform.Find("CardCost")?.GetComponent<TextMeshProUGUI>();
+            _artwork ??= transform.Find("Artwork")?.GetComponent<Image>();
 
             var texts = GetComponentsInChildren<TextMeshProUGUI>(true);
             if (_nameText == null && texts.Length > 0) _nameText = texts[0];

@@ -47,7 +47,13 @@ namespace Shared.UI
                 lines.Add(LocalizationService.T("ui.card.passives_none", "Passives: none"));
             }
 
-            return string.Join("\n", lines.Where(line => !string.IsNullOrEmpty(line)));
+            if (!string.IsNullOrWhiteSpace(def.Description))
+            {
+                lines.Add("");
+                lines.Add(def.Description.Trim());
+            }
+
+            return string.Join("\n", lines.Where(line => line != null));
         }
 
         public static string FormatCostLine(CardDef def)
@@ -61,8 +67,6 @@ namespace Shared.UI
             if (cost == null) return string.Empty;
             switch (cost)
             {
-                case ManaCost manaCost:
-                    return LocalizationService.TFormat("ui.cost.mana", "{0} mana", manaCost.Amount);
                 case HumanResourceCost humanResourceCost:
                     return LocalizationService.TFormat("ui.cost.hr", "{0} HR", humanResourceCost.Amount);
                 case SacrificeCost sacrificeCost:
@@ -86,8 +90,6 @@ namespace Shared.UI
         {
             switch (cost)
             {
-                case ManaCost manaCost:
-                    return manaCost.Amount > 0 ? manaCost.Amount.ToString() : string.Empty;
                 case HumanResourceCost humanResourceCost:
                     return humanResourceCost.Amount > 0 ? LocalizationService.TFormat("ui.cost.hr", "{0} HR", humanResourceCost.Amount) : string.Empty;
                 case SacrificeCost sacrificeCost:

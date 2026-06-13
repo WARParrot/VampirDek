@@ -18,9 +18,14 @@ namespace Combat.UI
         [Header("Smoothing")]
         [SerializeField] private float _transitionSpeed = 5f;
 
+        private const float CanvasRefreshInterval = 1f;
+
         private Transform _currentTarget;
         private bool _boardViewLocked;
         private bool _perspectiveSwitchingDisabled;
+        private Camera _cachedMainCamera;
+        private Canvas[] _worldSpaceCanvases;
+        private float _nextCanvasRefreshAt;
 
         public bool PerspectiveSwitchingEnabled => !_perspectiveSwitchingDisabled;
 
@@ -32,6 +37,9 @@ namespace Combat.UI
                 transform.position = SeatView.position;
                 transform.rotation = SeatView.rotation;
             }
+
+            RefreshWorldSpaceCanvasCache();
+            AssignWorldSpaceCanvasCamera(Camera.main);
         }
 
         void Update()
@@ -126,10 +134,33 @@ namespace Combat.UI
             var cam = Camera.main;
             if (cam == null) return;
 
-            foreach (var canvas in FindObjectsOfType<Canvas>())
+            bool refreshed = false;
+            if (_worldSpaceCanvases == null || Time.unscaledTime >= _nextCanvasRefreshAt)
             {
-                if (canvas.renderMode != RenderMode.WorldSpace) continue;
-                canvas.worldCamera = cam;
+                RefreshWorldSpaceCanvasCache();
+                refreshed = true;
+            }
+
+            if (refreshed || cam != _cachedMainCamera)
+                AssignWorldSpaceCanvasCamera(cam);
+        }
+
+        private void RefreshWorldSpaceCanvasCache()
+        {
+            _nextCanvasRefreshAt = Time.unscaledTime + CanvasRefreshInterval;
+            _worldSpaceCanvases = FindObjectsOfType<Canvas>();
+        }
+
+        private void AssignWorldSpaceCanvasCamera(Camera cam)
+        {
+            _cachedMainCamera = cam;
+            if (cam == null || _worldSpaceCanvases == null) return;
+
+            foreach (var canvas in _worldSpaceCanvases)
+            {
+                if (canvas == null || canvas.renderMode != RenderMode.WorldSpace) continue;
+                if (canvas.worldCamera != cam)
+                    canvas.worldCamera = cam;
             }
         }
     }

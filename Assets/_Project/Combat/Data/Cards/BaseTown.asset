@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: BaseTown
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: Town
+  CardNameKey:
+  Description: "Город. Падёт — проиграешь дуэль."
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 

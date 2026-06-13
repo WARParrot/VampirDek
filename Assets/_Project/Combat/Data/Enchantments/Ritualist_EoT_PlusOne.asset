@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7bef5dbe90c3c10459c944d1f1c223fe, type: 3}
   m_Name: Ritualist_EoT_PlusOne
   m_EditorClassIdentifier: Combat::Combat.ModifyOwnerAttackActionDefinition
-  _delta: 1
+  _delta: 2

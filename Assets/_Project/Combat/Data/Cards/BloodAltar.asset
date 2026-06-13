@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: BloodAltar
   m_EditorClassIdentifier: Definitions::Definitions.CardDef
   CardName: BloodAltar
-  CardNameKey: 
+  CardNameKey:
+  Description: "Кровавый алтарь: здание, генерирующее ресурс людей в начале хода."
   Artwork:
     m_AssetGUID: 
     m_SubObjectName: 
@@ -27,7 +28,7 @@ MonoBehaviour:
   Health: 4
   Attack: 0
   Costs:
-  - {fileID: 11400000, guid: db7683ae68a21ce4c9c072b7820175f8, type: 2}
+  - {fileID: 11400000, guid: f2469e6f16486a248966d06805d4cdda, type: 2}
   Effects: []
   InnateEnchantments:
   - {fileID: 11400000, guid: d2a94ffda8787f4499d8e4c3aef4eeec, type: 2}

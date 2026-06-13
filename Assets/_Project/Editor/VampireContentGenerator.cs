@@ -31,13 +31,10 @@ namespace VampirDek11.EditorTools
 
             var humanPay = LoadByGuid<HumanResourcePayActionDefinition>(ExistingHumanPayGuid)
                 ?? FindOrCreate<HumanResourcePayActionDefinition>($"{CostsDir}/Standard_HumanResourcePay.asset");
-            var manaPay = FindFirst<ManaPayActionDefinition>()
-                ?? FindOrCreate<ManaPayActionDefinition>($"{CostsDir}/Standard_ManaPay.asset");
 
             var hr1 = CreateHumanResourceCost("HumanResourceCost_1", 1, humanPay);
             var hr2 = CreateHumanResourceCost("HumanResourceCost_2_gen", 2, humanPay);
-            var mana2 = CreateManaCost("ManaCost_2", 2, manaPay);
-            var mana3 = CreateManaCost("ManaCost_3", 3, manaPay);
+            var hr3 = CreateHumanResourceCost("HumanResourceCost_3_gen", 3, humanPay);
 
             // -------- Enchantments / passives --------
 
@@ -84,7 +81,7 @@ namespace VampirDek11.EditorTools
 
             var bloodWitch = CreateCard("BloodWitch", CardType.Vanguard, Definitions.RowType.Vanguard,
                 minSpeed: 1, maxSpeed: 1, hp: 1, atk: 3,
-                costs: new List<CardCost> { mana2 },
+                costs: new List<CardCost> { hr2 },
                 enchantments: new List<EnchantmentData> { witchEnch });
 
             var nightFury = CreateCard("NightFury", CardType.Vanguard, Definitions.RowType.Vanguard,
@@ -125,7 +122,7 @@ namespace VampirDek11.EditorTools
 
             var bloodAltar = CreateCard("BloodAltar", CardType.Building, Definitions.RowType.Building,
                 minSpeed: 0, maxSpeed: 0, hp: 4, atk: 0,
-                costs: new List<CardCost> { mana2 },
+                costs: new List<CardCost> { hr2 },
                 enchantments: new List<EnchantmentData> { altarEnch });
 
             var cryptSpawnGhoul = CreateSpawnOnFriendlyDeathAction("Crypt_SpawnGhoul", ghoul,
@@ -137,7 +134,7 @@ namespace VampirDek11.EditorTools
             });
             var crypt = CreateCard("Crypt", CardType.Building, Definitions.RowType.Building,
                 minSpeed: 0, maxSpeed: 0, hp: 5, atk: 0,
-                costs: new List<CardCost> { mana3 },
+                costs: new List<CardCost> { hr3 },
                 enchantments: new List<EnchantmentData> { cryptEnch });
 
             // -------- Add to fallback deck --------
@@ -307,23 +304,6 @@ namespace VampirDek11.EditorTools
             if (asset == null)
             {
                 asset = ScriptableObject.CreateInstance<HumanResourceCost>();
-                AssetDatabase.CreateAsset(asset, path);
-            }
-            var so = new SerializedObject(asset);
-            so.FindProperty("_amount").intValue = amount;
-            so.FindProperty("_payAction").objectReferenceValue = pay;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(asset);
-            return asset;
-        }
-
-        private static ManaCost CreateManaCost(string name, int amount, ManaPayActionDefinition pay)
-        {
-            var path = $"{CostsDir}/{name}.asset";
-            var asset = AssetDatabase.LoadAssetAtPath<ManaCost>(path);
-            if (asset == null)
-            {
-                asset = ScriptableObject.CreateInstance<ManaCost>();
                 AssetDatabase.CreateAsset(asset, path);
             }
             var so = new SerializedObject(asset);

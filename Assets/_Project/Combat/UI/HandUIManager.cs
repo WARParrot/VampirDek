@@ -29,6 +29,7 @@ public class HandUIManager : MonoBehaviour
     private DuelManager _duelManager;
     private Dictionary<ICard, DragHandler> _cardViews = new();
     private DragHandler _currentlyDragging;
+    private DragHandler _dropPreviewCard;
     private int _lastHandCount = -1;
     private bool _lastDragAllowed = false;
     [Header("HR Animation")]
@@ -37,34 +38,86 @@ public class HandUIManager : MonoBehaviour
     [SerializeField] private Color _hrPositiveColor = Color.green;
     [SerializeField] private Color _hrNegativeColor = Color.red;
     private int _displayedHR;
+    private string _lastPhaseId = null;
+    private bool _statusTextConfigured;
+    private int? _lastPlayerTownHp;
+    private int? _lastOpponentTownHp;
+    private int _lastHumanResources = int.MinValue;
+
     void Update()
     {
         _duelManager = DuelManagerProxy.Instance;
         if (_duelManager?.CurrentDuelState == null) return;
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
+
         EnsureReadableStatusText();
-        PlayerTownHPText.text = LocalizationService.TFormat("ui.town_hp", "Town HP: {0}", side.Town?.Health);
-        OpponentTownHPText.text = LocalizationService.TFormat("ui.opponent_town_hp", "Opp Town HP: {0}", state.OpponentSide.Town?.Health);
-        PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
+
+        // Reset the resource-warning counter every time we move to a new phase, so the
+        // "first attempt is silent" rule resets after a turn/phase change.
+        string phaseId = state.CurrentPhase?.PhaseId;
+        if (phaseId != _lastPhaseId)
+        {
+            _failedAttempts.Clear();
+            _lastPhaseId = phaseId;
+            if (PhaseText != null)
+                PhaseText.text = GetPhaseDisplayText(state.CurrentPhase);
+        }
+
+        int? playerTownHp = side.Town?.Health;
+        if (playerTownHp != _lastPlayerTownHp)
+        {
+            _lastPlayerTownHp = playerTownHp;
+            if (PlayerTownHPText != null)
+                PlayerTownHPText.text = LocalizationService.TFormat("ui.town_hp", "Town HP: {0}", playerTownHp);
+        }
+
+        int? opponentTownHp = state.OpponentSide.Town?.Health;
+        if (opponentTownHp != _lastOpponentTownHp)
+        {
+            _lastOpponentTownHp = opponentTownHp;
+            if (OpponentTownHPText != null)
+                OpponentTownHPText.text = LocalizationService.TFormat("ui.opponent_town_hp", "Opp Town HP: {0}", opponentTownHp);
+        }
+
         if (_displayedHR != side.HumanResources)
         {
             int delta = side.HumanResources - _displayedHR;
             StartCoroutine(AnimateHRDelta(delta));
             _displayedHR = side.HumanResources;
         }
-        PlayerHumanResText.text = LocalizationService.TFormat("ui.hr", "HR: {0}", side.HumanResources);
-        if (side.Hand.Count != _lastHandCount)
-            RefreshHand(side);
-        bool allowDrag = state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
-        foreach (var kv in _cardViews)
+
+        bool humanResourcesChanged = side.HumanResources != _lastHumanResources;
+        if (humanResourcesChanged)
         {
-            if (kv.Value != null) kv.Value.enabled = allowDrag;
+            _lastHumanResources = side.HumanResources;
+            if (PlayerHumanResText != null)
+                PlayerHumanResText.text = LocalizationService.TFormat("ui.hr", "HR: {0}", side.HumanResources);
         }
-        _lastDragAllowed = allowDrag;
+
+        bool handChanged = side.Hand.Count != _lastHandCount;
+        if (handChanged)
+            RefreshHand(side);
+
+        bool allowDrag = CanStartCardDrag();
+        bool dragPermissionChanged = allowDrag != _lastDragAllowed;
+        if (handChanged || dragPermissionChanged)
+        {
+            foreach (var kv in _cardViews)
+            {
+                if (kv.Value != null) kv.Value.enabled = allowDrag;
+            }
+            _lastDragAllowed = allowDrag;
+        }
+
+        if (handChanged || dragPermissionChanged)
+            ApplyHandCardAffordances();
     }
     private void EnsureReadableStatusText()
     {
+        if (_statusTextConfigured) return;
+        _statusTextConfigured = true;
+
         if (PlayerManaText != null)
             PlayerManaText.gameObject.SetActive(false);
         ConfigureHudText(PlayerTownHPText, 18f, 28f);
@@ -139,7 +192,14 @@ public class HandUIManager : MonoBehaviour
     {
         Debug.Log($"[HandUI] RefreshHand - count: {side.Hand.Count}");
         foreach (var kv in _cardViews)
-            Destroy(kv.Value.gameObject);
+        {
+            // ResumeFromSaveAsync can run after a scene reload that already destroyed
+            // the previous duel's hand prefabs. Guard against the dangling handler so
+            // the Unity-side null check fires before we touch gameObject.
+            var handler = kv.Value;
+            if (handler == null) continue;
+            Destroy(handler.gameObject);
+        }
         _cardViews.Clear();
         foreach (var card in side.Hand)
         {
@@ -168,8 +228,25 @@ public class HandUIManager : MonoBehaviour
     }
     public bool CanStartCardDrag()
     {
-        var state = _duelManager?.CurrentDuelState;
-        return state != null && state.CurrentPhase.Tags.Contains("BuildingPhase") && IsCardDragAllowedByTutorial();
+        var duelManager = _duelManager != null ? _duelManager : DuelManagerProxy.Instance;
+        var state = duelManager?.CurrentDuelState;
+        return state != null &&
+               state.CurrentPhase.Tags.Contains("BuildingPhase") &&
+               duelManager.CanConfirmCurrentPhase &&
+               IsCardDragAllowedByTutorial();
+    }
+
+    private void ApplyHandCardAffordances()
+    {
+        // Row compatibility is visualized on board slots while dragging/tapping a card.
+        // Keeping the same compatible/incompatible shader on idle hand cards makes it look
+        // like the row-slot affordance was applied to the wrong surface, so hand cards stay neutral.
+        foreach (var kv in _cardViews)
+        {
+            var handler = kv.Value;
+            if (handler != null)
+                handler.SetAffordanceState(CardAffordanceState.None);
+        }
     }
 
     private bool IsCardDragAllowedByTutorial()
@@ -182,9 +259,27 @@ public class HandUIManager : MonoBehaviour
         return TutorialSystem == null || !TutorialSystem.IsTutorialActive || TutorialSystem.AllowsCardDragging();
     }
 
+    public void OnCardTapped(DragHandler handler)
+    {
+        if (handler == null || BoardView == null || !CanStartCardDrag()) return;
+        var card = handler.GetCard();
+        if (card?.Def == null) return;
+
+        if (_dropPreviewCard == handler)
+        {
+            _dropPreviewCard = null;
+            BoardView.HideAllHighlights();
+            return;
+        }
+
+        _dropPreviewCard = handler;
+        BoardView.ShowValidDropZones(card.Def.RowType);
+    }
+
     public void OnCardDragStarted(DragHandler handler)
     {
         _currentlyDragging = handler;
+        _dropPreviewCard = handler;
         BoardView.ShowValidDropZones(handler.GetCard().Def.RowType);
         if (TutorialSystem == null)
         {
@@ -199,6 +294,7 @@ public class HandUIManager : MonoBehaviour
     public void OnCardDragEnded(DragHandler handler, PointerEventData eventData)
     {
         _currentlyDragging = null;
+        if (_dropPreviewCard == handler) _dropPreviewCard = null;
         var card = handler.GetCard();
         var state = _duelManager.CurrentDuelState;
         var side = state.PlayerSide;
@@ -210,11 +306,20 @@ public class HandUIManager : MonoBehaviour
         var def = card.Def;
         var cardImage = handler.GetComponent<Image>();
         var results = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(eventData, results);
-        BoardSlotUI targetSlotUI = results
+        var raycastEventData = new PointerEventData(EventSystem.current)
+        {
+            position = handler.LastPointerScreenPosition,
+            pressPosition = eventData != null ? eventData.pressPosition : handler.LastPointerScreenPosition,
+            button = eventData != null ? eventData.button : PointerEventData.InputButton.Left
+        };
+        EventSystem.current.RaycastAll(raycastEventData, results);
+        var raycastSlots = results
             .Select(r => r.gameObject.GetComponentInParent<BoardSlotUI>())
-            .FirstOrDefault(s => s != null);
-        if (targetSlotUI == null || !targetSlotUI.IsValidDropTarget)
+            .Where(s => s != null)
+            .Distinct()
+            .ToList();
+        BoardSlotUI targetSlotUI = SelectBestDropTarget(raycastSlots, raycastEventData.position);
+        if (targetSlotUI == null)
         {
             BoardView.HideAllHighlights();
             ResetDragState(handler);
@@ -258,6 +363,39 @@ public class HandUIManager : MonoBehaviour
         _duelManager.QueueAction(new PlaceCardIntoSlotAction(board, def, targetSlot));
         BoardView.HideAllHighlights();
     }
+    private BoardSlotUI SelectBestDropTarget(IEnumerable<BoardSlotUI> raycastSlots, Vector2 pointerScreenPosition)
+    {
+        if (raycastSlots == null) return null;
+
+        BoardSlotUI best = null;
+        float bestDistance = float.MaxValue;
+
+        foreach (var slot in raycastSlots)
+        {
+            if (slot == null || !slot.IsValidDropTarget) continue;
+
+            var rect = slot.transform as RectTransform;
+            if (rect == null)
+            {
+                if (best == null) best = slot;
+                continue;
+            }
+
+            var canvas = slot.GetComponentInParent<Canvas>();
+            var camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            var center = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center));
+            float distance = (center - pointerScreenPosition).sqrMagnitude;
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = slot;
+            }
+        }
+
+        return best;
+    }
+
     private ICostContext CreateCostContext(CardCost cost, IPlayerSide side)
     {
         if (cost is SacrificeCost sacrificeCost)
@@ -362,27 +500,41 @@ public class HandUIManager : MonoBehaviour
         }
         return true;
     }
+    private readonly System.Collections.Generic.Dictionary<string, int> _failedAttempts = new();
+
+    public void ResetFailedAttempts() => _failedAttempts.Clear();
+
     private void ShowResourceWarning(CardCost cost, IPlayerSide side)
     {
-        if (ResourceWarningUI == null) return;
+        if (ResourceWarningUI == null || cost == null) return;
+        // Debounce: only show the warning starting from the SECOND failed attempt for the
+        // same cost. First failure is silent — players often re-try without realising.
+        string key = cost.GetType().FullName ?? "?";
+        _failedAttempts.TryGetValue(key, out int count);
+        count++;
+        _failedAttempts[key] = count;
+        if (count < 2) return;
+        const string RESOURCE = "#ffb14a";   // golden-orange — the resource you lack
         string warningMessage = "";
-        if (cost is ManaCost manaCost)
+        if (cost is HumanResourceCost hrCost)
         {
-            warningMessage = LocalizationService.TFormat("warning.not_enough_mana", "Cannot play — not enough mana\nRequired: {0}, Available: {1}", manaCost.Amount, side.Mana);
-        }
-        else if (cost is HumanResourceCost hrCost)
-        {
-            warningMessage = LocalizationService.TFormat("warning.not_enough_hr", "Cannot play — not enough HR\nRequired: {0}, Available: {1}", hrCost.Amount, side.HumanResources);
+            warningMessage = LocalizationService.TFormat("warning.not_enough_hr",
+                "Не хватает <color={2}>Human Resources</color>\nТребуется: {0}, доступно: {1}",
+                hrCost.Amount, side.HumanResources, RESOURCE);
         }
         else if (cost is SacrificeCost sacrificeCost)
         {
             var available = side.Board.GetCardsRow(sacrificeCost.RequiredRowType)
                 .Count(slot => slot?.Occupant != null && slot.Occupant.IsAlive);
-            warningMessage = LocalizationService.TFormat("warning.need_sacrifice", "Cannot play — sacrifice required\nRequired: {0} {1}, Available: {2}", sacrificeCost.Amount, LocalizationService.RowTypeName(sacrificeCost.RequiredRowType), available);
+            warningMessage = LocalizationService.TFormat("warning.need_sacrifice",
+                "Нужно <color={3}>жертвоприношение ({1})</color>\nТребуется: {0}, доступно: {2}",
+                sacrificeCost.Amount, LocalizationService.RowTypeName(sacrificeCost.RequiredRowType), available, RESOURCE);
         }
         else
         {
-            warningMessage = LocalizationService.TFormat("warning.not_enough_resources", "Cannot play — not enough resources\n{0}", CardRulesText.FormatCostText(cost));
+            warningMessage = LocalizationService.TFormat("warning.not_enough_resources",
+                "Недостаточно ресурсов: <color={1}>{0}</color>",
+                CardRulesText.FormatCostText(cost), RESOURCE);
         }
         ResourceWarningUI.ShowWarningAsync(warningMessage).Forget();
     }

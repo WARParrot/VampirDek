@@ -61,11 +61,7 @@ namespace Combat.UI
 
         public static string GetManaInfo()
         {
-            var dm = GetDuelManager();
-            if (dm == null) return "No DuelManager found.";
-            var ps = dm.CurrentDuelState.PlayerSide;
-            var os = dm.CurrentDuelState.OpponentSide;
-            return $"Player Mana: {ps.Mana}/{ps.MaxMana}\nOpponent Mana: {os.Mana}/{os.MaxMana}";
+            return "Mana removed from the game; use 'hr' to inspect Human Resources.";
         }
 
         public static string GetResourcesInfo()
@@ -187,20 +183,12 @@ namespace Combat.UI
 
         public static string SetMana(int amount)
         {
-            var dm = GetDuelManager();
-            if (dm == null) return "No DuelManager found.";
-            var ps = dm.CurrentDuelState.PlayerSide;
-            ps.Mana = Mathf.Max(0, amount);
-            return $"Player mana set to {ps.Mana}.";
+            return "Mana removed; use 'sethr' / 'addhr' instead.";
         }
 
         public static string AddMana(int amount)
         {
-            var dm = GetDuelManager();
-            if (dm == null) return "No DuelManager found.";
-            var ps = dm.CurrentDuelState.PlayerSide;
-            ps.Mana = Mathf.Max(0, ps.Mana + amount);
-            return $"Player mana: {ps.Mana}";
+            return "Mana removed; use 'sethr' / 'addhr' instead.";
         }
 
         public static string SetHumans(int amount)

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using Shared.Localization;
+using Core;
 
 namespace Exploration
 {
@@ -11,6 +12,7 @@ namespace Exploration
         [SerializeField] private GameObject _puzzleUI;
         [SerializeField] private GameObject _lockedVisual;
         [SerializeField] private GameObject _unlockedVisual;
+        [SerializeField] private Text _instructionText;
 
         private bool _solved;
         private int _currentIndex;
@@ -43,7 +45,15 @@ namespace Exploration
             _currentIndex = 0;
             if (_puzzleUI) _puzzleUI.SetActive(true);
 
-            Keyboard.current.onTextInput += OnTextInput;
+            // Free the cursor while the puzzle UI is up so the player can see they are in a modal,
+            // and the Esc-to-cancel behaviour reads as intentional rather than a lockup.
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
+            UpdateUI();
+
+            if (Keyboard.current != null)
+                Keyboard.current.onTextInput += OnTextInput;
         }
 
         private void OnTextInput(char c)
@@ -72,42 +82,55 @@ namespace Exploration
 
         private void UpdateUI()
         {
-            if (_puzzleUI)
-            {
-                var txt = _puzzleUI.GetComponentInChildren<Text>();
-                if (txt)
-                    txt.text = new string('*', _currentIndex) + new string('_', _correctCode.Length - _currentIndex);
-            }
+            if (!_puzzleUI) return;
+
+            // Player feedback: the puzzle felt like a lockup because there was no on-screen
+            // explanation of what to do. Show a clear prompt and the running input string.
+            var entered = new string('*', _currentIndex) + new string('_', _correctCode.Length - _currentIndex);
+            var prompt = LocalizationService.T(
+                "lockbox.prompt",
+                $"Введите код из {_correctCode.Length} букв (A-Z). Esc — отмена.");
+
+            var label = _instructionText;
+            if (label == null)
+                label = _puzzleUI.GetComponentInChildren<Text>();
+
+            if (label != null)
+                label.text = $"{prompt}\n\n<size=24>{entered}</size>";
         }
 
         private void Unlock()
         {
             _solved = true;
-            _isActive = false;
-            Keyboard.current.onTextInput -= OnTextInput;
+            ClosePuzzle();
 
             if (_lockedVisual) _lockedVisual.SetActive(false);
             if (_unlockedVisual) _unlockedVisual.SetActive(true);
-            if (_puzzleUI) _puzzleUI.SetActive(false);
-
-            _player.Activate();
         }
 
         private void CancelPuzzle()
         {
-            _isActive = false;
-            Keyboard.current.onTextInput -= OnTextInput;
             _currentIndex = 0;
+            ClosePuzzle();
+        }
+
+        private void ClosePuzzle()
+        {
+            _isActive = false;
+            if (Keyboard.current != null)
+                Keyboard.current.onTextInput -= OnTextInput;
             if (_puzzleUI) _puzzleUI.SetActive(false);
-            _player.Activate();
+
+            // Always re-grab the player's cursor and re-enable control on close so a stuck
+            // puzzle UI (or a scene unload mid-puzzle) cannot leave input dead.
+            if (_player != null) _player.Activate();
         }
 
         private void OnDisable()
         {
             if (_isActive)
             {
-                Keyboard.current.onTextInput -= OnTextInput;
-                _isActive = false;
+                ClosePuzzle();
             }
         }
     }

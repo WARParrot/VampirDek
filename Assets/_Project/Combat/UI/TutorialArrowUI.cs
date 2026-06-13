@@ -19,6 +19,9 @@ namespace Combat
         private RectTransform _targetUIElement;
         private Camera _camera;
         private Canvas _canvas;
+        private Canvas _targetCanvas;
+        private RectTransform _parentRect;
+        private Camera _uiCamera;
         private float _pulseTime = 0f;
         private bool _isVisible = false;
 
@@ -26,6 +29,8 @@ namespace Combat
         {
             _camera = Camera.main;
             _canvas = GetComponentInParent<Canvas>();
+            _parentRect = _arrowTransform != null ? _arrowTransform.parent as RectTransform : null;
+            _uiCamera = (_canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay) ? _canvas.worldCamera : null;
 
             if (_arrowImage != null)
             {
@@ -44,14 +49,15 @@ namespace Combat
 
             if (_targetUIElement != null)
             {
-                var srcCanvas = _targetUIElement.GetComponentInParent<Canvas>();
-                Camera srcCam = (srcCanvas != null && srcCanvas.renderMode != RenderMode.ScreenSpaceOverlay) ? srcCanvas.worldCamera : null;
+                Camera srcCam = (_targetCanvas != null && _targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay) ? _targetCanvas.worldCamera : null;
                 screenPos = RectTransformUtility.WorldToScreenPoint(srcCam, _targetUIElement.position);
                 screenPos += Vector2.up * _offset;
                 hasValidTarget = true;
             }
-            else if (_targetObject != null && _camera != null)
+            else if (_targetObject != null)
             {
+                if (_camera == null) _camera = Camera.main;
+                if (_camera == null) return;
                 Vector3 sp = _camera.WorldToScreenPoint(_targetObject.transform.position);
                 if (sp.z > 0)
                 {
@@ -62,9 +68,9 @@ namespace Combat
 
             if (hasValidTarget)
             {
-                var parentRect = _arrowTransform.parent as RectTransform;
-                Camera uiCam = (_canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay) ? _canvas.worldCamera : null;
-                if (parentRect != null && RectTransformUtility.ScreenPointToLocalPointInRectangle(parentRect, screenPos, uiCam, out var localPoint))
+                if (_parentRect == null) _parentRect = _arrowTransform.parent as RectTransform;
+                if (_uiCamera == null && _canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay) _uiCamera = _canvas.worldCamera;
+                if (_parentRect != null && RectTransformUtility.ScreenPointToLocalPointInRectangle(_parentRect, screenPos, _uiCamera, out var localPoint))
                 {
                     _arrowTransform.anchoredPosition = localPoint;
                 }
@@ -88,6 +94,7 @@ namespace Combat
         {
             _targetObject = target;
             _targetUIElement = null;
+            _targetCanvas = null;
             _isVisible = true;
             _pulseTime = 0f;
             if (_arrowImage != null)
@@ -103,6 +110,7 @@ namespace Combat
         public void PointToUI(RectTransform target)
         {
             _targetUIElement = target;
+            _targetCanvas = target != null ? target.GetComponentInParent<Canvas>() : null;
             _targetObject = null;
             _isVisible = true;
             _pulseTime = 0f;
@@ -122,6 +130,7 @@ namespace Combat
             _isVisible = false;
             _targetObject = null;
             _targetUIElement = null;
+            _targetCanvas = null;
 
             if (_arrowImage != null)
             {

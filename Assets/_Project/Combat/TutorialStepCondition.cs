@@ -16,5 +16,6 @@ namespace Combat
         ManualAdvance,
         AttackerCardSelected,
         LeaveDuel,
+        DraftCompleted,
     }
 }
