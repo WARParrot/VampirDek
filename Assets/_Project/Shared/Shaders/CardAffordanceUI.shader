@@ -7,10 +7,10 @@ Shader "VampirDek/UI/CardAffordance"
         _AffordanceMode ("Affordance Mode", Float) = 0
         _AffordanceColor ("Affordance Color", Color) = (0,1,1,1)
         _SecondaryColor ("Secondary Color", Color) = (1,1,1,1)
-        _Intensity ("Intensity", Range(0, 2)) = 1
-        _PulseSpeed ("Pulse Speed", Range(0, 12)) = 4
+        _Intensity ("Intensity", Range(0, 2)) = 0.95
+        _PulseSpeed ("Pulse Speed", Range(0, 12)) = 2.4
         _BorderWidth ("Border Width", Range(0, 0.25)) = 0.055
-        _PatternScale ("Pattern Scale", Range(2, 80)) = 22
+        _PatternScale ("Pattern Scale", Range(2, 80)) = 14
 
         _StencilComp ("Stencil Comparison", Float) = 8
         _Stencil ("Stencil ID", Float) = 0
@@ -183,7 +183,8 @@ Shader "VampirDek/UI/CardAffordance"
                 float mode = _AffordanceMode;
                 if (mode < 0.5)
                 {
-                    return ApplyClip(col, i);
+                    col.rgb = saturate(col.rgb);
+                return ApplyClip(col, i);
                 }
 
                 float2 uv = i.uv;
@@ -202,73 +203,77 @@ Shader "VampirDek/UI/CardAffordance"
                 float affA = _AffordanceColor.a;
                 float ink = saturate(_Intensity);
 
-                // Shared table-language: muted interior, occult edges, and sparse glyph ticks.
-                col.rgb = baseRgb * (1.0 - vignette * 0.08 * ink) + grain;
+                // Shared table-language: each state gets one readable hero mark plus a quiet common edge.
+                // This keeps the shader authored/stylized without turning every affordance into a VFX stack.
+                float quietEdge = saturate(border * 0.62 + corner * 0.28);
+                float paperDim = 0.045 * ink;
+                col.rgb = baseRgb * (1.0 - vignette * paperDim) + grain * 0.45;
 
                 if (mode < 1.5)
                 {
-                    float vine = DiagonalStroke(uv + float2(0.0, sin((uv.x + t * 0.18) * 6.283) * 0.018), max(_PatternScale * 0.55, 8.0), t * 0.055, 0.065);
-                    float glow = saturate(border * (0.42 + pulse * 0.48) + corner * 0.95 + rune * 0.38 + vine * 0.16);
-                    col.rgb = lerp(col.rgb, max(col.rgb, aff * 0.82 + sec * 0.18), 0.18 * ink);
-                    col.rgb += (aff * glow + sec * corner * 0.45) * (0.72 * ink);
-                    col.a = max(col.a, glow * affA * 0.9);
+                    // Compatible: a calm pact-glow. Success should feel inviting, not noisy.
+                    float pact = saturate(quietEdge * (0.78 + pulse * 0.16) + rune * 0.10);
+                    col.rgb = lerp(col.rgb, max(col.rgb, aff * 0.70 + sec * 0.16), 0.10 * ink);
+                    col.rgb += (aff * pact + sec * corner * 0.18) * (0.48 * ink);
+                    col.a = max(col.a, pact * affA * 0.72);
                 }
                 else if (mode < 2.5)
                 {
+                    // Incompatible: a single dry rejection stroke and desaturation.
                     float grey = dot(baseRgb, fixed3(0.299, 0.587, 0.114));
-                    float scratch = max(DiagonalStroke(uv, max(_PatternScale * 0.9, 10.0), t * 0.035, 0.035), CounterStroke(uv, max(_PatternScale * 0.72, 8.0), -t * 0.028, 0.04));
-                    float mask = saturate(border * 0.42 + scratch * 0.34 + corner * 0.45);
-                    col.rgb = lerp(baseRgb, fixed3(grey, grey, grey) * fixed3(0.72, 0.64, 0.52), 0.62 * ink);
-                    col.rgb += (aff * scratch * 0.42 + sec * border * 0.35) * ink;
-                    col.a = max(col.a, mask * affA * 0.62);
+                    float refusal = SlashBand(uv, 0.0 + slowPulse * 0.018, 0.022);
+                    float ashEdge = saturate(border * 0.30 + refusal * 0.85);
+                    col.rgb = lerp(baseRgb, fixed3(grey, grey, grey) * fixed3(0.70, 0.62, 0.52), 0.48 * ink);
+                    col.rgb += (aff * refusal * 0.52 + sec * border * 0.18) * ink;
+                    col.a = max(col.a, ashEdge * affA * 0.66);
                 }
                 else if (mode < 3.5)
                 {
-                    float ring = RingSigil(uv, 0.43 + slowPulse * 0.012, 0.01);
-                    float glow = saturate(border * (0.55 + pulse * 0.38) + corner + ring * 0.42);
-                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.32, 0.36 * ink);
-                    col.rgb += (aff * glow + sec * ring * 0.55) * (0.72 * ink);
-                    col.a = max(col.a, glow * affA * 0.98);
+                    // Selected: a focused moon-ring. No extra glyph noise.
+                    float ring = RingSigil(uv, 0.42 + slowPulse * 0.010, 0.012);
+                    float focus = saturate(quietEdge * 0.64 + ring * 0.92);
+                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.24, 0.22 * ink);
+                    col.rgb += (aff * quietEdge + sec * ring * 0.72) * (0.56 * ink);
+                    col.a = max(col.a, focus * affA * 0.82);
                 }
                 else if (mode < 4.5)
                 {
-                    float slash = max(SlashBand(uv, -0.18 + pulse * 0.025, 0.018), SlashBand(uv, 0.18 - pulse * 0.02, 0.014));
-                    float ember = DiagonalStroke(uv, max(_PatternScale * 0.68, 8.0), t * 0.11, 0.07);
-                    float glow = saturate(border * 0.55 + corner * 0.65 + slash * 0.92 + ember * 0.16);
-                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.34, 0.28 * ink);
-                    col.rgb += (aff * slash + lerp(aff, sec, pulse) * border * 0.7 + sec * ember * 0.18) * ink;
-                    col.a = max(col.a, glow * affA);
+                    // Target: an explicit bloodline cut. Highest-action state, so it may be sharper.
+                    float cut = SlashBand(uv, -0.02 + sin(t * 2.2) * 0.014, 0.019);
+                    float targetEdge = saturate(border * 0.42 + cut * 1.05 + corner * 0.20);
+                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.26, 0.20 * ink);
+                    col.rgb += (aff * cut + sec * border * (0.34 + pulse * 0.16)) * (0.78 * ink);
+                    col.a = max(col.a, targetEdge * affA * 0.88);
                 }
                 else if (mode < 5.5)
                 {
-                    float ward = max(SlashBand(uv, -0.25, 0.026), SlashBand(uv, 0.0, 0.022));
-                    ward = max(ward, SlashBand(uv, 0.25, 0.026));
-                    float pulseWard = ward * (0.72 + pulse * 0.28);
-                    col.rgb = baseRgb * (1.0 - 0.46 * ink);
-                    col.rgb += aff * (pulseWard * 0.62 + border * 0.32 + corner * 0.28) * ink;
-                    col.rgb += sec * vignette * 0.12 * ink;
-                    col.a = max(col.a, saturate(pulseWard + border * 0.4) * affA * 0.74);
+                    // Blocked: a legible barred seal, darker but not buried.
+                    float barA = SlashBand(uv, -0.18, 0.030);
+                    float barB = SlashBand(uv, 0.18, 0.030);
+                    float barred = saturate(max(barA, barB) * (0.82 + pulse * 0.12));
+                    col.rgb = baseRgb * (1.0 - 0.34 * ink);
+                    col.rgb += (aff * barred * 0.74 + sec * quietEdge * 0.28) * ink;
+                    col.a = max(col.a, saturate(barred + border * 0.22) * affA * 0.76);
                 }
                 else if (mode < 6.5)
                 {
-                    float thread = CounterStroke(uv, max(_PatternScale * 0.62, 7.0), t * 0.08, 0.05);
-                    float ring = RingSigil(uv, 0.36, 0.014);
-                    float glow = saturate(border * 0.52 + corner * 0.62 + thread * 0.35 + ring * 0.34);
-                    col.rgb = lerp(col.rgb, col.rgb + lerp(aff, sec, slowPulse) * 0.28, 0.38 * ink);
-                    col.rgb += (aff * (border + thread * 0.28) + sec * (ring + corner * 0.45)) * (0.68 * ink);
-                    col.a = max(col.a, glow * affA * 0.92);
+                    // Planned: a thin fate-thread, intentionally quieter than selected/target.
+                    float thread = CounterStroke(uv, max(_PatternScale * 0.44, 5.5), t * 0.045, 0.075);
+                    float threadMask = saturate(thread * 0.46 + RingSigil(uv, 0.35, 0.018) * 0.34);
+                    float planned = saturate(quietEdge * 0.46 + threadMask);
+                    col.rgb = lerp(col.rgb, col.rgb + lerp(aff, sec, slowPulse) * 0.18, 0.20 * ink);
+                    col.rgb += (aff * threadMask + sec * corner * 0.24) * (0.52 * ink);
+                    col.a = max(col.a, planned * affA * 0.70);
                 }
                 else
                 {
-                    float slash = max(SlashBand(uv, -0.08 + sin(t * 3.0) * 0.018, 0.02), CounterStroke(uv, max(_PatternScale * 0.92, 10.0), -t * 0.1, 0.045));
-                    float ring = RingSigil(uv, 0.31 + pulse * 0.035, 0.018);
-                    float heat = saturate(border * 0.75 + corner + slash * 0.45 + ring * 0.5);
-                    col.rgb = lerp(col.rgb, aff, (0.16 + pulse * 0.22) * ink);
-                    col.rgb += (aff * heat + sec * (ring + slash * 0.22)) * (0.76 * ink);
-                    col.a = max(col.a, heat * affA);
+                    // Warning: fever pulse around the edge; readable urgency without full-surface clutter.
+                    float feverRing = RingSigil(uv, 0.33 + pulse * 0.018, 0.018);
+                    float alarm = saturate(border * (0.70 + pulse * 0.22) + feverRing * 0.72 + corner * 0.32);
+                    col.rgb = lerp(col.rgb, aff, (0.08 + pulse * 0.13) * ink);
+                    col.rgb += (aff * alarm + sec * feverRing * 0.36) * (0.62 * ink);
+                    col.a = max(col.a, alarm * affA * 0.84);
                 }
-
-                col.rgb = saturate(col.rgb);
                 return ApplyClip(col, i);
             }
             ENDCG
