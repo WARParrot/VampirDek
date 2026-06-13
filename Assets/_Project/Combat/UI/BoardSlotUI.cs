@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Combat;
 using Combat.UI;
 using Definitions;
@@ -22,8 +23,13 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
     [SerializeField] private Sprite _fallbackSprite;
     [SerializeField] private Sprite _emptySlotSprite;
     private static Sprite _runtimeEmptySlotSprite;
+    private static readonly Dictionary<string, Sprite> s_cardSpriteCache = new();
     private CardAffordanceHighlighter _slotAffordance;
     private CardAffordanceHighlighter _cardAffordance;
+    private bool _uiInitialized;
+    private BoardCard _lastDisplayedOccupant;
+    private CardAffordanceState _lastSlotAffordanceState = CardAffordanceState.None;
+    private CardAffordanceState _lastCardAffordanceState = CardAffordanceState.None;
     public int Index;
 
     public BoardCard Occupant => Board?.GetSlot(RowType, Index)?.Occupant;
@@ -33,48 +39,54 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         Board = board;
         RowType = rowType;
         Index = rowLocalIndex;
-        AutoBindTextFields();
-        EnsureRaycastTargets();
+        EnsureStaticBindings();
         ClearEmptySlotText();
+        _lastDisplayedOccupant = null;
     }
 
     public void SetDisplay(BoardCard occupant)
     {
-        AutoBindTextFields();
-        EnsureRaycastTargets();
-
-        ClearEmptySlotText();
+        EnsureStaticBindings();
 
         if (occupant == null)
         {
-            if (_cardImage != null) _cardImage.enabled = false;
+            if (_lastDisplayedOccupant != null)
+            {
+                ClearEmptySlotText();
+                _lastDisplayedOccupant = null;
+            }
+            if (_cardImage != null && _cardImage.enabled) _cardImage.enabled = false;
             SetHighlightSprite(GetEmptySlotSprite());
             return;
         }
 
-        if (CardNameText != null) CardNameText.text = LocalizationService.CardName(occupant.SourceCard);
+        string cardName = LocalizationService.CardName(occupant.SourceCard);
+        if (CardNameText != null && CardNameText.text != cardName) CardNameText.text = cardName;
 
         if (CardStatsText != null)
         {
-            CardStatsText.text = BoardCardRulesText.FormatBoardCardStats(occupant);
+            string stats = BoardCardRulesText.FormatBoardCardStats(occupant);
+            if (CardStatsText.text != stats) CardStatsText.text = stats;
         }
+        if (SlotIndexText != null && SlotIndexText.text.Length != 0) SlotIndexText.text = string.Empty;
 
         var cardSprite = LoadCardSprite(occupant.SourceCard);
         if (_cardImage != null)
         {
             if (cardSprite != null)
             {
-                _cardImage.sprite = cardSprite;
-                _cardImage.color = Color.white;
-                _cardImage.enabled = true;
+                if (_cardImage.sprite != cardSprite) _cardImage.sprite = cardSprite;
+                if (_cardImage.color != Color.white) _cardImage.color = Color.white;
+                if (!_cardImage.enabled) _cardImage.enabled = true;
             }
-            else
+            else if (_cardImage.enabled)
             {
                 _cardImage.enabled = false;
             }
         }
 
         SetHighlightSprite(cardSprite != null ? cardSprite : (_fallbackSprite != null ? _fallbackSprite : GetEmptySlotSprite()));
+        _lastDisplayedOccupant = occupant;
     }
 
     public void SetHighlight(bool on)
@@ -88,23 +100,27 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         if (HighlightImage == null || _slotAffordance == null) return;
 
         bool on = state != CardAffordanceState.None;
+        if (_lastSlotAffordanceState == state && HighlightImage.enabled == on) return;
         if (on && HighlightImage.sprite == null)
             SetHighlightSprite(GetEmptySlotSprite());
 
         var tint = GetHighlightTint(state);
         if (on && tint.a <= 0f) tint.a = 0.001f;
 
-        HighlightImage.enabled = on;
-        HighlightImage.color = tint;
+        if (HighlightImage.enabled != on) HighlightImage.enabled = on;
+        if (HighlightImage.color != tint) HighlightImage.color = tint;
         HighlightImage.SetAllDirty();
         _slotAffordance.SetState(state, on ? 1f : 0f);
+        _lastSlotAffordanceState = state;
     }
 
     public void SetCardAffordance(CardAffordanceState state)
     {
         EnsureAffordanceTargets();
         if (_cardAffordance == null) return;
+        if (_lastCardAffordanceState == state) return;
         _cardAffordance.SetState(state, state == CardAffordanceState.None ? 0f : 1f);
+        _lastCardAffordanceState = state;
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -121,9 +137,17 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
     {
         // Keep empty-slot/slot-index labels from being mistaken for row labels while preserving
         // occupied card name and stats text on the board card itself.
-        if (CardNameText != null) CardNameText.text = string.Empty;
-        if (CardStatsText != null) CardStatsText.text = string.Empty;
-        if (SlotIndexText != null) SlotIndexText.text = string.Empty;
+        if (CardNameText != null && CardNameText.text.Length != 0) CardNameText.text = string.Empty;
+        if (CardStatsText != null && CardStatsText.text.Length != 0) CardStatsText.text = string.Empty;
+        if (SlotIndexText != null && SlotIndexText.text.Length != 0) SlotIndexText.text = string.Empty;
+    }
+
+    private void EnsureStaticBindings()
+    {
+        if (_uiInitialized) return;
+        AutoBindTextFields();
+        EnsureRaycastTargets();
+        _uiInitialized = true;
     }
 
     private void AutoBindTextFields()
@@ -205,12 +229,16 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
 
     private Sprite LoadCardSprite(CardDef cardDef)
     {
-        if (cardDef == null || string.IsNullOrEmpty(cardDef.CardName)) return null;
+        var cardName = cardDef?.CardName;
+        if (string.IsNullOrEmpty(cardName)) return null;
+        if (s_cardSpriteCache.TryGetValue(cardName, out var cached)) return cached;
 
-        var tex = Resources.Load<Texture2D>("Textures/" + cardDef.CardName);
-        return tex != null
+        var tex = Resources.Load<Texture2D>("Textures/" + cardName);
+        var sprite = tex != null
             ? Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.one * 0.5f)
             : null;
+        s_cardSpriteCache[cardName] = sprite;
+        return sprite;
     }
 
     private void SetHighlightSprite(Sprite sprite)
@@ -218,10 +246,12 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
         EnsureAffordanceTargets();
         if (HighlightImage == null) return;
 
-        HighlightImage.sprite = sprite != null ? sprite : GetEmptySlotSprite();
-        HighlightImage.type = Image.Type.Simple;
-        HighlightImage.preserveAspect = false;
-        HighlightImage.SetAllDirty();
+        var wanted = sprite != null ? sprite : GetEmptySlotSprite();
+        bool dirty = false;
+        if (HighlightImage.sprite != wanted) { HighlightImage.sprite = wanted; dirty = true; }
+        if (HighlightImage.type != Image.Type.Simple) { HighlightImage.type = Image.Type.Simple; dirty = true; }
+        if (HighlightImage.preserveAspect) { HighlightImage.preserveAspect = false; dirty = true; }
+        if (dirty) HighlightImage.SetAllDirty();
     }
 
     private Sprite GetEmptySlotSprite()
@@ -308,20 +338,25 @@ public class BoardSlotUI : MonoBehaviour, IPointerClickHandler
     {
         if (image == null) return;
 
+        bool dirty = false;
         if (image.sprite == null)
+        {
             image.sprite = GetEmptySlotSprite();
+            dirty = true;
+        }
 
-        image.type = Image.Type.Simple;
-        image.preserveAspect = false;
+        if (image.type != Image.Type.Simple) { image.type = Image.Type.Simple; dirty = true; }
+        if (image.preserveAspect) { image.preserveAspect = false; dirty = true; }
 
         if (image.color.a <= 0f)
         {
             var color = image.color;
             color.a = 0.001f;
             image.color = color;
+            dirty = true;
         }
 
-        image.SetAllDirty();
+        if (dirty) image.SetAllDirty();
     }
 
     private static string ShortRowName(Definitions.RowType rowType) => LocalizationService.ShortRowTypeName(rowType);

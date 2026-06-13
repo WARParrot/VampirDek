@@ -24,6 +24,9 @@ public class TargetPlanArrowsUI : MonoBehaviour
     private readonly List<ArrowView> _arrows = new();
     private readonly List<TextMeshProUGUI> _clashLabels = new();
     private readonly Dictionary<IGameEntity, BoardSlotUI> _slotByEntity = new();
+    private readonly StringBuilder _signatureBuilder = new();
+    private readonly Dictionary<IGameEntity, List<ArrowView>> _damageStackingByTarget = new();
+    private readonly List<IGameEntity> _damageStackingActiveTargets = new();
     private float _nextBoardViewLookupAt;
     private const float BoardViewLookupInterval = 0.5f;
     private string _lastSignature = string.Empty;
@@ -128,10 +131,10 @@ public class TargetPlanArrowsUI : MonoBehaviour
 
     private string BuildSignature(DuelState state)
     {
-        var sb = new StringBuilder();
-        AppendSideSignature(sb, state.OpponentSide, "E");
-        AppendSideSignature(sb, state.PlayerSide, "P");
-        return sb.ToString();
+        _signatureBuilder.Clear();
+        AppendSideSignature(_signatureBuilder, state.OpponentSide, "E");
+        AppendSideSignature(_signatureBuilder, state.PlayerSide, "P");
+        return _signatureBuilder.ToString();
     }
 
     private static void AppendSideSignature(StringBuilder sb, SideState side, string prefix)
@@ -174,18 +177,25 @@ public class TargetPlanArrowsUI : MonoBehaviour
         // (highest speed strikes first). Each arrow inherits the cumulative damage of all
         // earlier-striking attackers on the same target, so its forecast displays the HP the
         // target will have AFTER preceding attackers have already landed.
-        var byTarget = new Dictionary<IGameEntity, List<ArrowView>>();
+        for (int i = 0; i < _damageStackingActiveTargets.Count; i++)
+        {
+            if (_damageStackingByTarget.TryGetValue(_damageStackingActiveTargets[i], out var oldList))
+                oldList.Clear();
+        }
+        _damageStackingActiveTargets.Clear();
+
         foreach (var a in _arrows)
         {
             if (a.Target == null) continue;
-            if (!byTarget.TryGetValue(a.Target, out var list))
-                byTarget[a.Target] = list = new List<ArrowView>();
+            if (!_damageStackingByTarget.TryGetValue(a.Target, out var list))
+                _damageStackingByTarget[a.Target] = list = new List<ArrowView>();
+            if (list.Count == 0) _damageStackingActiveTargets.Add(a.Target);
             list.Add(a);
         }
 
-        foreach (var kv in byTarget)
+        for (int targetIndex = 0; targetIndex < _damageStackingActiveTargets.Count; targetIndex++)
         {
-            var list = kv.Value;
+            var list = _damageStackingByTarget[_damageStackingActiveTargets[targetIndex]];
             // Stable sort by speed desc; ties keep insertion order.
             list.Sort((x, y) => (y.Source?.CurrentSpeed ?? 0).CompareTo(x.Source?.CurrentSpeed ?? 0));
             int cumulative = 0;
@@ -644,6 +654,13 @@ public class TargetPlanArrowsUI : MonoBehaviour
             Destroy(_forecastHintRoot);
             _forecastHintRoot = null;
         }
+
+        for (int i = 0; i < _damageStackingActiveTargets.Count; i++)
+        {
+            if (_damageStackingByTarget.TryGetValue(_damageStackingActiveTargets[i], out var list))
+                list.Clear();
+        }
+        _damageStackingActiveTargets.Clear();
     }
 
     private static void DestroyArrow(ArrowView arrow)
