@@ -103,6 +103,7 @@ namespace Shared.UI
             var scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
+            canvasObject.GetComponent<GraphicRaycaster>().enabled = false;
 
             var overlayObject = new GameObject("EffectFlashOverlay", typeof(RectTransform), typeof(CanvasGroup), typeof(EffectFlashOverlay));
             overlayObject.transform.SetParent(canvas.transform, false);
@@ -140,6 +141,7 @@ namespace Shared.UI
             _text.raycastTarget = false;
             _text.text = string.Empty;
             _text.color = Color.white;
+            enabled = false;
         }
 
         private void Play(List<Frame> frames)
@@ -147,6 +149,7 @@ namespace Shared.UI
             _frames = frames;
             _index = 0;
             _elapsed = 0f;
+            enabled = true;
             ApplyCurrentFrame();
         }
 
@@ -156,6 +159,7 @@ namespace Shared.UI
             {
                 _group.alpha = 0f;
                 _frames = null;
+                enabled = false;
                 return;
             }
             var frame = _frames[_index];

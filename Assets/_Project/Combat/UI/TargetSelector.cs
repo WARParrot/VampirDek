@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Core;
 using Definitions;
 using UnityEngine;
@@ -15,6 +14,9 @@ namespace Combat.UI
 
         private DuelManager _duelManager;
         private BoardCard _selectedFriendly;
+        private PointerEventData _pointerEventData;
+        private readonly List<RaycastResult> _raycastResults = new();
+        private readonly Vector3[] _slotCorners = new Vector3[4];
         private bool _mouseReleasedSinceCheck;
         private Vector2 _mouseReleasePosition;
 
@@ -137,13 +139,20 @@ namespace Combat.UI
 
             if (EventSystem.current != null)
             {
-                var pointer = new PointerEventData(EventSystem.current) { position = mousePosition };
-                var results = new List<RaycastResult>();
-                EventSystem.current.RaycastAll(pointer, results);
-                var raycastSlot = results
-                    .Select(r => r.gameObject.GetComponentInParent<BoardSlotUI>())
-                    .FirstOrDefault(s => s != null);
-                if (raycastSlot != null) return raycastSlot;
+                _pointerEventData ??= new PointerEventData(EventSystem.current);
+                _pointerEventData.position = mousePosition;
+                _raycastResults.Clear();
+                EventSystem.current.RaycastAll(_pointerEventData, _raycastResults);
+                for (int i = 0; i < _raycastResults.Count; i++)
+                {
+                    var raycastSlot = _raycastResults[i].gameObject.GetComponentInParent<BoardSlotUI>();
+                    if (raycastSlot != null)
+                    {
+                        _raycastResults.Clear();
+                        return raycastSlot;
+                    }
+                }
+                _raycastResults.Clear();
             }
 
             // Some tutorial/global UI can still sit above the board in the GraphicRaycaster even
@@ -171,9 +180,8 @@ namespace Combat.UI
 
                 if (!RectTransformUtility.RectangleContainsScreenPoint(rect, screenPosition, camera)) continue;
 
-                var corners = new Vector3[4];
-                rect.GetWorldCorners(corners);
-                var area = Mathf.Abs((corners[2].x - corners[0].x) * (corners[2].y - corners[0].y));
+                rect.GetWorldCorners(_slotCorners);
+                var area = Mathf.Abs((_slotCorners[2].x - _slotCorners[0].x) * (_slotCorners[2].y - _slotCorners[0].y));
                 if (area < bestArea)
                 {
                     best = slot;

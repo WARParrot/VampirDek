@@ -48,6 +48,7 @@ namespace Shared.UI
                 var scaler = canvasObject.GetComponent<CanvasScaler>();
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 scaler.referenceResolution = new Vector2(1920f, 1080f);
+                canvasObject.GetComponent<GraphicRaycaster>().enabled = false;
             }
 
             var overlayObject = new GameObject(OverlayName, typeof(RectTransform), typeof(CanvasGroup), typeof(Image), typeof(CardDetailOverlay));
