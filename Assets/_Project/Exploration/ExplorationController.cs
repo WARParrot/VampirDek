@@ -23,6 +23,8 @@ namespace Exploration
         [SerializeField] private float _interactRange = 4f;
         [SerializeField] private LayerMask _interactMask = -1;
         [SerializeField, Min(0.02f)] private float _interactionCheckInterval = 0.1f;
+        [SerializeField, Min(0.05f)] private float _encounterCheckInterval = 0.25f;
+        [SerializeField] private bool _debugInteractionLogs = false;
 
         [Header("Audio")]
         [SerializeField, Min(0.05f)] private float _footstepInterval = 0.42f;
@@ -55,7 +57,9 @@ namespace Exploration
         private float _pitch;
         private float _nextFootstepAt;
         private float _nextInteractionCheckAt;
+        private float _nextEncounterCheckAt;
         private bool _isActive;
+        private EncounterPoint _cachedNearestEncounter;
         private readonly Collider[] _encounterHits = new Collider[32];
 
         private void Awake()
@@ -255,15 +259,19 @@ namespace Exploration
         {
             if (GlobalServices.IsMenuOpen) return;
 
-            var point = FindNearestEncounterPoint();
+            var point = FindNearestEncounterPoint(forceRefresh: true);
             if (point != null)
             {
                 await point.StartDuelAsync();
             }
         }
 
-        private EncounterPoint FindNearestEncounterPoint()
+        private EncounterPoint FindNearestEncounterPoint(bool forceRefresh = false)
         {
+            if (!forceRefresh && Time.time < _nextEncounterCheckAt)
+                return _cachedNearestEncounter != null && _cachedNearestEncounter.CanShowPrompt ? _cachedNearestEncounter : null;
+
+            _nextEncounterCheckAt = Time.time + _encounterCheckInterval;
             int hitCount = Physics.OverlapSphereNonAlloc(transform.position, _encounterStartRange, _encounterHits, _encounterMask);
             Collider[] overflowHits = hitCount == _encounterHits.Length
                 ? Physics.OverlapSphere(transform.position, _encounterStartRange, _encounterMask)
@@ -289,7 +297,8 @@ namespace Exploration
                 }
             }
 
-            return nearest;
+            _cachedNearestEncounter = nearest;
+            return _cachedNearestEncounter;
         }
 
         // Временный метод с отладкой – выводит объект, в который попал луч
@@ -297,27 +306,31 @@ namespace Exploration
         {
             if (GlobalServices.IsMenuOpen) return;
 
-            // Визуализация луча в Scene View (красный)
-            Debug.DrawRay(_camera.transform.position, _camera.transform.forward * _interactRange, Color.red, 1f);
+            if (_debugInteractionLogs)
+                Debug.DrawRay(_camera.transform.position, _camera.transform.forward * _interactRange, Color.red, 1f);
 
             if (Physics.Raycast(_camera.transform.position, _camera.transform.forward,
                 out RaycastHit hit, _interactRange, _interactMask))
             {
-                Debug.Log($"Hit object: {hit.collider.gameObject.name} (layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)})");
+                if (_debugInteractionLogs)
+                    Debug.Log($"Hit object: {hit.collider.gameObject.name} (layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)})");
                 var interactable = hit.collider.GetComponent<IInteractable>();
                 if (interactable != null)
                 {
-                    Debug.Log($"Interactable found: {hit.collider.gameObject.name}");
+                    if (_debugInteractionLogs)
+                        Debug.Log($"Interactable found: {hit.collider.gameObject.name}");
                     interactable.Interact(this);
                 }
                 else
                 {
-                    Debug.Log($"Object '{hit.collider.gameObject.name}' does not implement IInteractable.");
+                    if (_debugInteractionLogs)
+                        Debug.Log($"Object '{hit.collider.gameObject.name}' does not implement IInteractable.");
                 }
             }
             else
             {
-                Debug.Log("No interactable hit.");
+                if (_debugInteractionLogs)
+                    Debug.Log("No interactable hit.");
             }
         }
 
