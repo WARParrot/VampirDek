@@ -98,17 +98,83 @@ Shader "VampirDek/UI/CardAffordance"
                 return o;
             }
 
-            float BorderMask(float2 uv, float width)
+            float Hash21(float2 p)
+            {
+                p = frac(p * float2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return frac(p.x * p.y);
+            }
+
+            float RectBorder(float2 uv, float width)
             {
                 float2 edge = min(uv, 1.0 - uv);
                 float d = min(edge.x, edge.y);
-                return 1.0 - smoothstep(width * 0.45, width, d);
+                return 1.0 - smoothstep(width * 0.35, width, d);
             }
 
-            float Hatch(float2 uv, float scale, float offset)
+            float InnerVignette(float2 uv)
             {
-                float stripe = frac((uv.x + uv.y + offset) * scale);
-                return smoothstep(0.52, 0.58, stripe) * (1.0 - smoothstep(0.72, 0.82, stripe));
+                float2 edge = min(uv, 1.0 - uv);
+                float d = min(edge.x, edge.y);
+                return 1.0 - smoothstep(0.0, 0.42, d);
+            }
+
+            float DiagonalStroke(float2 uv, float scale, float offset, float softness)
+            {
+                float stripe = abs(frac((uv.x + uv.y + offset) * scale) - 0.5);
+                return 1.0 - smoothstep(0.055, 0.055 + softness, stripe);
+            }
+
+            float CounterStroke(float2 uv, float scale, float offset, float softness)
+            {
+                float stripe = abs(frac((uv.x - uv.y + offset) * scale) - 0.5);
+                return 1.0 - smoothstep(0.045, 0.045 + softness, stripe);
+            }
+
+            float CornerSigil(float2 uv, float width)
+            {
+                float2 q = min(uv, 1.0 - uv);
+                float corner = 1.0 - smoothstep(0.055, 0.17, max(q.x, q.y));
+                float armA = 1.0 - smoothstep(width * 0.45, width, abs(q.x - 0.035));
+                float armB = 1.0 - smoothstep(width * 0.45, width, abs(q.y - 0.035));
+                float notch = smoothstep(0.035, 0.12, max(q.x, q.y));
+                return saturate(corner * max(armA, armB) * notch);
+            }
+
+            float RuneTicks(float2 uv, float scale, float timeOffset)
+            {
+                float2 gridUv = uv * scale;
+                float2 cell = frac(gridUv) - 0.5;
+                float2 id = floor(gridUv);
+                float rnd = Hash21(id);
+                float rare = step(0.72, rnd);
+                float dash = 1.0 - smoothstep(0.018, 0.055, min(abs(cell.x), abs(cell.y)));
+                float radialGate = smoothstep(0.16, 0.34, length(uv - 0.5));
+                float flicker = 0.55 + 0.45 * sin(_Time.y * 2.1 + rnd * 6.283 + timeOffset);
+                return rare * dash * radialGate * flicker;
+            }
+
+            float RingSigil(float2 uv, float radius, float width)
+            {
+                float d = length(uv - 0.5);
+                return 1.0 - smoothstep(width, width * 2.3, abs(d - radius));
+            }
+
+            float SlashBand(float2 uv, float offset, float width)
+            {
+                float d = abs((uv.x - uv.y) + offset);
+                return 1.0 - smoothstep(width, width * 2.4, d);
+            }
+
+            fixed4 ApplyClip(fixed4 col, v2f i)
+            {
+                #ifdef UNITY_UI_CLIP_RECT
+                col.a *= UnityGet2DClipping(i.worldPosition.xy, _ClipRect);
+                #endif
+                #ifdef UNITY_UI_ALPHACLIP
+                clip(col.a - 0.001);
+                #endif
+                return col;
             }
 
             fixed4 frag(v2f i) : SV_Target
@@ -117,76 +183,93 @@ Shader "VampirDek/UI/CardAffordance"
                 float mode = _AffordanceMode;
                 if (mode < 0.5)
                 {
-                    #ifdef UNITY_UI_CLIP_RECT
-                    col.a *= UnityGet2DClipping(i.worldPosition.xy, _ClipRect);
-                    #endif
-                    #ifdef UNITY_UI_ALPHACLIP
-                    clip(col.a - 0.001);
-                    #endif
-                    return col;
+                    return ApplyClip(col, i);
                 }
 
-                float pulse = 0.5 + 0.5 * sin(_Time.y * max(_PulseSpeed, 0.01));
-                float border = BorderMask(i.uv, _BorderWidth);
-                float hatch = Hatch(i.uv, _PatternScale, _Time.y * 0.18);
-                float scanPhase = frac((i.uv.x - i.uv.y) * 3.0 + _Time.y * 0.55);
-                float scan = smoothstep(0.42, 0.5, scanPhase) * (1.0 - smoothstep(0.56, 0.64, scanPhase));
+                float2 uv = i.uv;
+                float t = _Time.y;
+                float pulse = 0.5 + 0.5 * sin(t * max(_PulseSpeed, 0.01));
+                float slowPulse = 0.5 + 0.5 * sin(t * max(_PulseSpeed, 0.01) * 0.43 + 1.7);
+                float border = RectBorder(uv, _BorderWidth);
+                float corner = CornerSigil(uv, max(_BorderWidth * 0.65, 0.024));
+                float rune = RuneTicks(uv, max(_PatternScale * 0.42, 6.0), mode * 0.71);
+                float vignette = InnerVignette(uv);
+                float grain = (Hash21(floor(uv * 96.0) + floor(t * 6.0)) - 0.5) * 0.035;
 
                 fixed3 baseRgb = col.rgb;
                 fixed3 aff = _AffordanceColor.rgb;
                 fixed3 sec = _SecondaryColor.rgb;
+                float affA = _AffordanceColor.a;
+                float ink = saturate(_Intensity);
+
+                // Shared table-language: muted interior, occult edges, and sparse glyph ticks.
+                col.rgb = baseRgb * (1.0 - vignette * 0.08 * ink) + grain;
 
                 if (mode < 1.5)
                 {
-                    col.rgb = lerp(baseRgb, max(baseRgb, aff), 0.18 * _Intensity);
-                    col.rgb += aff * (border * (0.55 + pulse * 0.45) + scan * 0.12) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a * 0.92);
+                    float vine = DiagonalStroke(uv + float2(0.0, sin((uv.x + t * 0.18) * 6.283) * 0.018), max(_PatternScale * 0.55, 8.0), t * 0.055, 0.065);
+                    float glow = saturate(border * (0.42 + pulse * 0.48) + corner * 0.95 + rune * 0.38 + vine * 0.16);
+                    col.rgb = lerp(col.rgb, max(col.rgb, aff * 0.82 + sec * 0.18), 0.18 * ink);
+                    col.rgb += (aff * glow + sec * corner * 0.45) * (0.72 * ink);
+                    col.a = max(col.a, glow * affA * 0.9);
                 }
                 else if (mode < 2.5)
                 {
                     float grey = dot(baseRgb, fixed3(0.299, 0.587, 0.114));
-                    col.rgb = lerp(baseRgb, fixed3(grey, grey, grey) * 0.72, 0.58 * _Intensity);
-                    col.rgb += aff * (hatch * 0.35 + border * 0.25) * _Intensity;
-                    col.a = max(col.a, max(border * _AffordanceColor.a * 0.55, hatch * _AffordanceColor.a * 0.28));
+                    float scratch = max(DiagonalStroke(uv, max(_PatternScale * 0.9, 10.0), t * 0.035, 0.035), CounterStroke(uv, max(_PatternScale * 0.72, 8.0), -t * 0.028, 0.04));
+                    float mask = saturate(border * 0.42 + scratch * 0.34 + corner * 0.45);
+                    col.rgb = lerp(baseRgb, fixed3(grey, grey, grey) * fixed3(0.72, 0.64, 0.52), 0.62 * ink);
+                    col.rgb += (aff * scratch * 0.42 + sec * border * 0.35) * ink;
+                    col.a = max(col.a, mask * affA * 0.62);
                 }
                 else if (mode < 3.5)
                 {
-                    col.rgb = lerp(baseRgb, baseRgb + aff * 0.35, 0.35 * _Intensity);
-                    col.rgb += aff * border * (0.65 + pulse * 0.75) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a);
+                    float ring = RingSigil(uv, 0.43 + slowPulse * 0.012, 0.01);
+                    float glow = saturate(border * (0.55 + pulse * 0.38) + corner + ring * 0.42);
+                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.32, 0.36 * ink);
+                    col.rgb += (aff * glow + sec * ring * 0.55) * (0.72 * ink);
+                    col.a = max(col.a, glow * affA * 0.98);
                 }
                 else if (mode < 4.5)
                 {
-                    col.rgb = lerp(baseRgb, baseRgb + aff * 0.28, 0.32 * _Intensity);
-                    col.rgb += lerp(aff, sec, pulse) * border * (0.85 + pulse * 0.45) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a);
+                    float slash = max(SlashBand(uv, -0.18 + pulse * 0.025, 0.018), SlashBand(uv, 0.18 - pulse * 0.02, 0.014));
+                    float ember = DiagonalStroke(uv, max(_PatternScale * 0.68, 8.0), t * 0.11, 0.07);
+                    float glow = saturate(border * 0.55 + corner * 0.65 + slash * 0.92 + ember * 0.16);
+                    col.rgb = lerp(col.rgb, col.rgb + aff * 0.34, 0.28 * ink);
+                    col.rgb += (aff * slash + lerp(aff, sec, pulse) * border * 0.7 + sec * ember * 0.18) * ink;
+                    col.a = max(col.a, glow * affA);
                 }
                 else if (mode < 5.5)
                 {
-                    col.rgb = baseRgb * (1.0 - 0.42 * _Intensity);
-                    col.rgb += aff * (hatch * 0.48 + border * 0.35) * _Intensity;
-                    col.a = max(col.a, max(border * _AffordanceColor.a * 0.75, hatch * _AffordanceColor.a * 0.35));
+                    float ward = max(SlashBand(uv, -0.25, 0.026), SlashBand(uv, 0.0, 0.022));
+                    ward = max(ward, SlashBand(uv, 0.25, 0.026));
+                    float pulseWard = ward * (0.72 + pulse * 0.28);
+                    col.rgb = baseRgb * (1.0 - 0.46 * ink);
+                    col.rgb += aff * (pulseWard * 0.62 + border * 0.32 + corner * 0.28) * ink;
+                    col.rgb += sec * vignette * 0.12 * ink;
+                    col.a = max(col.a, saturate(pulseWard + border * 0.4) * affA * 0.74);
                 }
                 else if (mode < 6.5)
                 {
-                    col.rgb = lerp(baseRgb, baseRgb + lerp(aff, sec, pulse) * 0.34, 0.42 * _Intensity);
-                    col.rgb += (aff * border + sec * scan * 0.4) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a * 0.95);
+                    float thread = CounterStroke(uv, max(_PatternScale * 0.62, 7.0), t * 0.08, 0.05);
+                    float ring = RingSigil(uv, 0.36, 0.014);
+                    float glow = saturate(border * 0.52 + corner * 0.62 + thread * 0.35 + ring * 0.34);
+                    col.rgb = lerp(col.rgb, col.rgb + lerp(aff, sec, slowPulse) * 0.28, 0.38 * ink);
+                    col.rgb += (aff * (border + thread * 0.28) + sec * (ring + corner * 0.45)) * (0.68 * ink);
+                    col.a = max(col.a, glow * affA * 0.92);
                 }
                 else
                 {
-                    col.rgb = lerp(baseRgb, aff, (0.18 + pulse * 0.25) * _Intensity);
-                    col.rgb += aff * (border + hatch * 0.4) * _Intensity;
-                    col.a = max(col.a, border * _AffordanceColor.a);
+                    float slash = max(SlashBand(uv, -0.08 + sin(t * 3.0) * 0.018, 0.02), CounterStroke(uv, max(_PatternScale * 0.92, 10.0), -t * 0.1, 0.045));
+                    float ring = RingSigil(uv, 0.31 + pulse * 0.035, 0.018);
+                    float heat = saturate(border * 0.75 + corner + slash * 0.45 + ring * 0.5);
+                    col.rgb = lerp(col.rgb, aff, (0.16 + pulse * 0.22) * ink);
+                    col.rgb += (aff * heat + sec * (ring + slash * 0.22)) * (0.76 * ink);
+                    col.a = max(col.a, heat * affA);
                 }
 
-                #ifdef UNITY_UI_CLIP_RECT
-                col.a *= UnityGet2DClipping(i.worldPosition.xy, _ClipRect);
-                #endif
-                #ifdef UNITY_UI_ALPHACLIP
-                clip(col.a - 0.001);
-                #endif
-                return col;
+                col.rgb = saturate(col.rgb);
+                return ApplyClip(col, i);
             }
             ENDCG
         }

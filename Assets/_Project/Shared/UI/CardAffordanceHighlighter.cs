@@ -29,10 +29,10 @@ namespace Shared.UI
 
         [SerializeField] private Graphic _graphic;
         [SerializeField] private CardAffordanceState _state;
-        [SerializeField] private float _intensity = 1f;
-        [SerializeField] private float _pulseSpeed = 4f;
-        [SerializeField] private float _borderWidth = 0.055f;
-        [SerializeField] private float _patternScale = 22f;
+        [SerializeField] private float _intensity = 1.12f;
+        [SerializeField] private float _pulseSpeed = 2.8f;
+        [SerializeField] private float _borderWidth = 0.07f;
+        [SerializeField] private float _patternScale = 18f;
 
         private Material _runtimeMaterial;
         private Material _originalMaterial;
@@ -62,7 +62,7 @@ namespace Shared.UI
             }
         }
 
-        public void SetState(CardAffordanceState state, float intensity = 1f)
+        public void SetState(CardAffordanceState state, float intensity = 1.12f)
         {
             _state = state;
             _intensity = Mathf.Clamp(intensity, 0f, 2f);
@@ -141,13 +141,16 @@ namespace Shared.UI
         {
             return state switch
             {
-                CardAffordanceState.Compatible => (new Color(0.10f, 1.00f, 0.70f, 0.95f), new Color(0.70f, 1.00f, 0.25f, 0.95f)),
-                CardAffordanceState.Incompatible => (new Color(1.00f, 0.62f, 0.12f, 0.82f), new Color(0.42f, 0.26f, 0.08f, 0.82f)),
-                CardAffordanceState.Selected => (new Color(0.12f, 0.88f, 1.00f, 1.00f), new Color(0.70f, 1.00f, 1.00f, 1.00f)),
-                CardAffordanceState.Target => (new Color(1.00f, 0.18f, 0.10f, 1.00f), new Color(1.00f, 0.74f, 0.12f, 1.00f)),
-                CardAffordanceState.Blocked => (new Color(0.95f, 0.08f, 0.10f, 0.90f), new Color(0.25f, 0.02f, 0.02f, 0.90f)),
-                CardAffordanceState.Planned => (new Color(0.12f, 0.55f, 1.00f, 0.95f), new Color(1.00f, 0.84f, 0.20f, 0.95f)),
-                CardAffordanceState.Warning => (new Color(1.00f, 0.20f, 0.10f, 1.00f), new Color(1.00f, 0.95f, 0.25f, 1.00f)),
+                // VampirDek uses affordance colour as table-language, not debug colour:
+                // verdant pact, stale refusal, moonlit selection, blood target, warded block,
+                // fate thread, and fever warning.
+                CardAffordanceState.Compatible => (new Color(0.22f, 0.95f, 0.54f, 0.92f), new Color(0.96f, 0.82f, 0.34f, 0.86f)),
+                CardAffordanceState.Incompatible => (new Color(0.93f, 0.50f, 0.16f, 0.78f), new Color(0.34f, 0.20f, 0.10f, 0.82f)),
+                CardAffordanceState.Selected => (new Color(0.18f, 0.78f, 1.00f, 0.94f), new Color(0.74f, 0.92f, 1.00f, 0.90f)),
+                CardAffordanceState.Target => (new Color(0.98f, 0.12f, 0.08f, 0.98f), new Color(1.00f, 0.55f, 0.12f, 0.96f)),
+                CardAffordanceState.Blocked => (new Color(0.72f, 0.04f, 0.07f, 0.88f), new Color(0.16f, 0.02f, 0.03f, 0.92f)),
+                CardAffordanceState.Planned => (new Color(0.18f, 0.45f, 1.00f, 0.88f), new Color(1.00f, 0.78f, 0.22f, 0.90f)),
+                CardAffordanceState.Warning => (new Color(1.00f, 0.16f, 0.08f, 0.98f), new Color(1.00f, 0.90f, 0.18f, 0.96f)),
                 _ => (Color.clear, Color.clear)
             };
         }
