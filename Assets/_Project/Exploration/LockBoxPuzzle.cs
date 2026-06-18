@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using Shared.Localization;
 using Core;
+using Exploration.Inventory;
 
 namespace Exploration
 {
@@ -13,6 +14,13 @@ namespace Exploration
         [SerializeField] private GameObject _lockedVisual;
         [SerializeField] private GameObject _unlockedVisual;
         [SerializeField] private Text _instructionText;
+
+        [Header("Optional clue item")]
+        [Tooltip("If set, player must hold this item (e.g. 'Scrap of paper with code') to start the puzzle. Examine it in inventory to reveal the code.")]
+        [SerializeField] private ItemDef _requiredClueItem;
+        [SerializeField] private string _missingClueKey = "lockbox.missing_clue";
+        [SerializeField] private string _missingClueFallback = "Нужна подсказка, чтобы угадать код.";
+        [SerializeField] private InteractionPromptUI _messageOverridePrompt;
 
         private bool _solved;
         private int _currentIndex;
@@ -39,6 +47,19 @@ namespace Exploration
         public void Interact(ExplorationController player)
         {
             if (_solved) return;
+
+            if (_requiredClueItem != null)
+            {
+                var inv = Inventory.Inventory.Current;
+                if (inv == null || !inv.Has(_requiredClueItem))
+                {
+                    var msg = LocalizationService.T(_missingClueKey, _missingClueFallback);
+                    if (_messageOverridePrompt != null) _messageOverridePrompt.Show(msg);
+                    else Debug.Log($"[LockboxPuzzle] {msg}");
+                    return;
+                }
+            }
+
             _player = player;
             _player.Deactivate();
             _isActive = true;

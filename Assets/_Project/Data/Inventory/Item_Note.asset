@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2715b24adc058e54facb5441307cc73a, type: 3}
+  m_Name: Item_Note
+  m_EditorClassIdentifier: Exploration::Exploration.Inventory.ItemDef
+  Id: note_clue
+  Icon: {fileID: 0}
+  DisplayNameKey: item.name
+  DisplayNameFallback: "Старая записка"
+  DescriptionKey: item.desc
+  DescriptionFallback: "Пожелтевший лист с записями о домах вампиров."
+  ExamineTextFallback: "Существует шесть домов вампиров.\n\n• Дом Алой Короны — с него всё началось. Оплот вампирской политики; представитель — Дракула. Тронный зал.\n• Дом Вечного голода — сыграли ключевую роль в подавлении массовых восстаний людей. Представитель — Ворг. Улица при разрушенной цитадели.\n• Дом Лунного блика — разработал заклинание, скрывающее замки от людских глаз. Представитель — Вивьен. Комната со стенами из осколков зеркал.\n• Дом Полярных сов — тюремщики, держат неугодных вампиров для экспериментов других домов. Представитель — Вивьен.\n• Дом Хранителей пепла — после подавления величайшего восстания ритуалами восстановили все замки (кроме цитадели Вечного голода). Представитель — Вивьен. Стены библиотеки.\n• Дом Манящего Эха (Поповых) — изобрели граммофон для связи между вампирами посредством крови. Представитель — Вивьен.\n\n(Существует и седьмой — Дом Солнечной Симфонии (Сеченновых), но он слишком молод, чтобы войти в старый ряд.)\n\nПорядок их рождения сокрыт в зубцах шкатулки. Первые буквы имён — ключ."
+  ExamineTextKey: item.examine
+  IsKeyItem: 0
+  SlotSize: 1
+  IsStackable: 0
+  MaxStack: 1
+  ExaminePrefab: {fileID: 0}
+  ExamineCameraDistance: 0.4
+  ExamineStartEuler: {x: 0, y: 0, z: 0}
+  ConsumeOnUse: 0

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2715b24adc058e54facb5441307cc73a, type: 3}
+  m_Name: Item_KeyRoom1
+  m_EditorClassIdentifier: Exploration::Exploration.Inventory.ItemDef
+  Id: key_room1
+  Icon: {fileID: 0}
+  DisplayNameKey: item.name
+  DisplayNameFallback: "Старый ключ"
+  DescriptionKey: item.desc
+  DescriptionFallback: "Тяжёлый бронзовый ключ. Выпал из руки поверженного вампира."
+  ExamineTextFallback: "Кажется, он подходит к двери этой комнаты.\n\nПоследние слова вампира эхом стоят в ушах:\n«…где-то в этой комнате есть противоядие. Найди его — иначе мой укус сделает тебя гулем…»"
+  ExamineTextKey: item.examine
+  IsKeyItem: 1
+  SlotSize: 1
+  IsStackable: 0
+  MaxStack: 1
+  ExaminePrefab: {fileID: 0}
+  ExamineCameraDistance: 0.4
+  ExamineStartEuler: {x: 0, y: 0, z: 0}
+  ConsumeOnUse: 0

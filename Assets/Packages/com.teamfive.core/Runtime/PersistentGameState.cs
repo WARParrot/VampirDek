@@ -14,5 +14,15 @@ namespace Core
         public List<string> CompletedEncounterIds = new();
         public List<string> CollectedCardIds = new();
         public Dictionary<string, bool> Flags = new();
+
+        [Serializable]
+        public class InventoryEntry
+        {
+            public string ItemId;
+            public int Count;
+            public bool IsKey;
+        }
+
+        public List<InventoryEntry> Inventory = new();
     }
 }

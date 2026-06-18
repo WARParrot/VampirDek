@@ -314,11 +314,11 @@ namespace Exploration
             {
                 if (_debugInteractionLogs)
                     Debug.Log($"Hit object: {hit.collider.gameObject.name} (layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)})");
-                var interactable = hit.collider.GetComponent<IInteractable>();
+                var interactable = hit.collider.GetComponentInParent<IInteractable>();
                 if (interactable != null)
                 {
                     if (_debugInteractionLogs)
-                        Debug.Log($"Interactable found: {hit.collider.gameObject.name}");
+                        Debug.Log($"Interactable found via parent of: {hit.collider.gameObject.name}");
                     interactable.Interact(this);
                 }
                 else
@@ -353,7 +353,7 @@ namespace Exploration
             if (Physics.Raycast(_camera.transform.position, _camera.transform.forward,
                 out RaycastHit hit, _interactRange, _interactMask))
             {
-                var interactable = hit.collider.GetComponent<IInteractable>();
+                var interactable = hit.collider.GetComponentInParent<IInteractable>();
                 if (interactable != null)
                 {
                     string promptText = string.IsNullOrEmpty(interactable.PromptText)

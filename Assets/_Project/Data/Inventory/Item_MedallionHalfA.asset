@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2715b24adc058e54facb5441307cc73a, type: 3}
+  m_Name: Item_MedallionHalfA
+  m_EditorClassIdentifier: Exploration::Exploration.Inventory.ItemDef
+  Id: medallion_half_a
+  Icon: {fileID: 0}
+  DisplayNameKey: item.name
+  DisplayNameFallback: Item
+  DescriptionKey: item.desc
+  DescriptionFallback: "\u041B\u0435\u0432\u0430\u044F \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430
+    \u0440\u0430\u0441\u043A\u043E\u043B\u043E\u0442\u043E\u0433\u043E \u043C\u0435\u0434\u0430\u043B\u044C\u043E\u043D\u0430."
+  ExamineTextFallback: "\u041D\u0430 \u0441\u043A\u043E\u043B\u0435 \u0432\u0438\u0434\u043D\u044B
+    \u0441\u043B\u0435\u0434\u044B \u0441\u0432\u0435\u0436\u0435\u0439 \u043A\u0440\u043E\u0432\u0438."
+  ExamineTextKey: item.examine
+  IsKeyItem: 0
+  SlotSize: 1
+  IsStackable: 0
+  MaxStack: 1
+  ExaminePrefab: {fileID: 0}
+  ExamineCameraDistance: 0.4
+  ExamineStartEuler: {x: 0, y: 0, z: 0}
+  ConsumeOnUse: 1
