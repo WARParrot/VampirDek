@@ -901,8 +901,30 @@ namespace Combat
                 }
             }
 
-            Debug.LogWarning($"[DuelManager] No terminal phase transition found for outcome {_duelOutcome}. Returning to exploration immediately. {DescribeDuelDebugState()}");
+            var outcomeTag = _duelOutcome == DuelOutcome.PlayerWon ? "Loot" : "DuelEnd";
+            var outcomePhase = FindPhaseWithTag(outcomeTag);
+            if (outcomePhase != null)
+            {
+                Debug.LogWarning($"[DuelManager] No terminal transition found from current phase for outcome {_duelOutcome}; routing directly to {DescribePhase(outcomePhase)}. {DescribeDuelDebugState()}");
+                await TransitionToPhaseAsync(outcomePhase);
+                return;
+            }
+
+            Debug.LogWarning($"[DuelManager] No terminal phase transition or fallback phase found for outcome {_duelOutcome}. Returning to exploration immediately. {DescribeDuelDebugState()}");
             await ReturnToExplorationAsync();
+        }
+
+        private PhaseNode FindPhaseWithTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag) || _duelState?.PhaseGraph?.Nodes == null) return null;
+
+            foreach (var node in _duelState.PhaseGraph.Nodes)
+            {
+                if (node?.Tags != null && node.Tags.Contains(tag))
+                    return node;
+            }
+
+            return null;
         }
 
         private void CompleteTutorialIfTerminalDuel()
