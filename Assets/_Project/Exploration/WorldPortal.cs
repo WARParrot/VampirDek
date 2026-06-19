@@ -8,6 +8,8 @@ namespace Exploration
 {
     public class WorldPortal : MonoBehaviour, IInteractable
     {
+        private static bool _nextNightTransitionInProgress;
+
         [SerializeField] private WorldSceneInfo _targetWorld;
         [SerializeField] private Transform _spawnPoint;
 
@@ -35,9 +37,30 @@ namespace Exploration
         public async void Interact(ExplorationController player)
         {
             var stateService = GlobalServices.GameStateService;
-            if (EndlessReplayLoop.IsAwaitingNextNightPortal(stateService?.State))
+            var state = stateService?.State;
+            if (EndlessReplayLoop.IsAwaitingNextNightPortal(state))
             {
-                await EnterNextNightAsync(player);
+                if (_nextNightTransitionInProgress)
+                {
+                    Debug.Log("[WorldPortal] Next-night transition is already in progress; ignoring duplicate portal trigger.");
+                    return;
+                }
+
+                _nextNightTransitionInProgress = true;
+                try
+                {
+                    await EnterNextNightAsync();
+                }
+                finally
+                {
+                    _nextNightTransitionInProgress = false;
+                }
+                return;
+            }
+
+            if (state?.BlockWorldPortalTravelTriggers == true)
+            {
+                Debug.Log("[WorldPortal] Ordinary portal travel is blocked while replay transition state is active.");
                 return;
             }
 
@@ -56,7 +79,7 @@ namespace Exploration
 
             Debug.Log("[WorldPortal] accessing world.");
 
-            var state = stateService.State;
+            state = stateService.State;
             state.PlayerPosition = _spawnPoint != null ? _spawnPoint.position : player.transform.position;
             state.PlayerRotation = _spawnPoint != null ? _spawnPoint.rotation : player.transform.rotation;
             state.CurrentWorldSceneAddress = _targetWorld.AddressableKey;
@@ -67,15 +90,12 @@ namespace Exploration
             await GlobalServices.Director.PushModeAsync(newExploration);
         }
 
-        private async UniTask EnterNextNightAsync(ExplorationController player)
+        private async UniTask EnterNextNightAsync()
         {
-            var spawnPosition = _spawnPoint != null ? _spawnPoint.position : player.transform.position;
-            var spawnRotation = _spawnPoint != null ? _spawnPoint.rotation : player.transform.rotation;
-            var worldAddress = !string.IsNullOrWhiteSpace(_targetWorld?.AddressableKey)
-                ? _targetWorld.AddressableKey
-                : GlobalServices.GameStateService?.State?.CurrentWorldSceneAddress;
-
-            await EndlessReplayLoop.AdvanceToNextRunAsync(worldAddress, spawnPosition, spawnRotation);
+            // Next-night is a replay reset, not an ordinary portal transfer. Keep the player in
+            // the current world and reload it at the default spawn so cleared duel tables can
+            // reinitialize from the reset CompletedEncounterIds.
+            await EndlessReplayLoop.AdvanceToNextRunAsync(null, Vector3.zero, Quaternion.identity);
         }
     }
 }

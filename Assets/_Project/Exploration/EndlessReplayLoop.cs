@@ -64,6 +64,7 @@ namespace Exploration
             EnsureInitialized(state);
             state.EndlessReplayEnabled = true;
             state.AwaitingNextNightPortal = true;
+            state.BlockWorldPortalTravelTriggers = true;
             await stateService.SaveAsync();
         }
 
@@ -111,6 +112,7 @@ namespace Exploration
 
             state.EndlessReplayEnabled = true;
             state.AwaitingNextNightPortal = false;
+            state.BlockWorldPortalTravelTriggers = false;
             state.ReplayRunNumber = Math.Max(1, state.ReplayRunNumber) + 1;
             state.ReplayRunSeed = NextSeed(state.ReplayRunSeed, state.ReplayRunNumber);
             ExpandEnemyDeckForNextRun(state);

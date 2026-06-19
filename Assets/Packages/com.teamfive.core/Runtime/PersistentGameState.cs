@@ -36,6 +36,9 @@ namespace Core
         /// <summary>Set after a run ending; the next run starts only when the player interacts with a WorldPortal.</summary>
         public bool AwaitingNextNightPortal;
 
+        /// <summary>Blocks ordinary WorldPortal world-travel triggers while the replay transition is pending or being consumed.</summary>
+        public bool BlockWorldPortalTravelTriggers;
+
         [Serializable]
         public class InventoryEntry
         {
