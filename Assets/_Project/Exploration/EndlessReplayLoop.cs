@@ -112,7 +112,7 @@ namespace Exploration
 
             state.EndlessReplayEnabled = true;
             state.AwaitingNextNightPortal = false;
-            state.BlockWorldPortalTravelTriggers = false;
+            state.BlockWorldPortalTravelTriggers = true;
             state.ReplayRunNumber = Math.Max(1, state.ReplayRunNumber) + 1;
             state.ReplayRunSeed = NextSeed(state.ReplayRunSeed, state.ReplayRunNumber);
             ExpandEnemyDeckForNextRun(state);
