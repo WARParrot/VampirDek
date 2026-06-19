@@ -21,7 +21,7 @@ namespace Exploration
                 if (EndlessReplayLoop.IsAwaitingNextNightPortal(state))
                     return LocalizationService.T("interaction.next_night", "Enter the next night");
                 if (state?.BlockWorldPortalTravelTriggers == true)
-                    return string.Empty;
+                    return LocalizationService.T("interaction.win_duel_to_enter", "Win the duel to enter.");
                 return LocalizationService.TFormat("interaction.enter_world", "Enter {0}", LocalizedWorldName());
             }
         }

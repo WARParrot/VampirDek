@@ -1526,6 +1526,82 @@ namespace Combat
             }
         }
 
+        private static readonly string[] PreferredRewardCardIds =
+        {
+            "Gourmet",
+            "BloodWitch",
+            "NightFury",
+            "Crypt",
+            "Ritualist",
+            "BloodAltar"
+        };
+
+        private static List<string> SelectBiasedRewardChoices(IReadOnlyList<string> rewardPool, System.Random rng, int count)
+        {
+            var candidates = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void AddCandidate(string cardId)
+            {
+                if (string.IsNullOrWhiteSpace(cardId) || !seen.Add(cardId))
+                    return;
+
+                if (CardDatabase.GetCard(cardId) != null)
+                    candidates.Add(cardId);
+            }
+
+            foreach (var cardId in rewardPool)
+                AddCandidate(cardId);
+
+            foreach (var cardId in PreferredRewardCardIds)
+                AddCandidate(cardId);
+
+            if (candidates.Count <= count)
+                return candidates.OrderBy(_ => rng.Next()).Take(count).ToList();
+
+            var selected = new List<string>(count);
+            var remaining = new List<string>(candidates);
+            while (selected.Count < count && remaining.Count > 0)
+            {
+                var totalWeight = remaining.Sum(GetRewardCardWeight);
+                if (totalWeight <= 0)
+                    break;
+
+                var roll = rng.Next(totalWeight);
+                for (var i = 0; i < remaining.Count; i++)
+                {
+                    roll -= GetRewardCardWeight(remaining[i]);
+                    if (roll >= 0)
+                        continue;
+
+                    selected.Add(remaining[i]);
+                    remaining.RemoveAt(i);
+                    break;
+                }
+            }
+
+            return selected;
+        }
+
+        private static int GetRewardCardWeight(string cardId)
+        {
+            var card = CardDatabase.GetCard(cardId);
+            if (card == null)
+                return 0;
+
+            var weight = 1;
+            if (PreferredRewardCardIds.Contains(cardId, StringComparer.OrdinalIgnoreCase))
+                weight += 6;
+            if (card.Attack >= 3)
+                weight += 2;
+            if (card.Health >= 2)
+                weight += 1;
+            if ((card.Effects?.Count ?? 0) > 0 || (card.InnateEnchantments?.Count ?? 0) > 0)
+                weight += 2;
+
+            return weight;
+        }
+
         private async UniTask ShowLootSelectionAsync()
         {
             CaptureDuelOutcomeIfFinished();
@@ -1542,7 +1618,12 @@ namespace Combat
             }
 
             var rng = new System.Random(GetRunStableSeed(_encounter.EncounterId));
-            var selected = rewardPool.OrderBy(x => rng.Next()).Take(3).ToList();
+            var selected = SelectBiasedRewardChoices(rewardPool, rng, 3);
+            if (selected.Count < 3)
+            {
+                Debug.LogError("RewardCardPool must provide at least 3 valid cards after bias expansion.");
+                return;
+            }
 
             var cardSelectionUI = CardSelectionUIRef;
             if (cardSelectionUI == null)
