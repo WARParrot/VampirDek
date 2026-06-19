@@ -69,18 +69,19 @@ namespace Exploration
             Object.DontDestroyOnLoad(_stage);
             _stage.transform.position = new Vector3(-1000f, -1000f, 0f);
 
-            // Camera.
+            // Camera. Pulled further back (z 0.45 → 0.95) and FoV narrowed so the bottle
+            // appears at roughly half its previous size — comfortable to look at, not in your face.
             var camGo = new GameObject("~PotionExamineCam", typeof(Camera));
             camGo.transform.SetParent(_stage.transform, false);
-            camGo.transform.localPosition = new Vector3(0f, 0.05f, 0.45f);
+            camGo.transform.localPosition = new Vector3(0f, 0.08f, 0.95f);
             camGo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
             _camera = camGo.GetComponent<Camera>();
             _camera.targetTexture = _rt;
             _camera.backgroundColor = new Color(0.04f, 0.03f, 0.06f, 1f);
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.fieldOfView = 35f;
+            _camera.fieldOfView = 28f;
             _camera.nearClipPlane = 0.05f;
-            _camera.farClipPlane = 4f;
+            _camera.farClipPlane = 6f;
             _camera.cullingMask = ~0;
 
             // Lighting.

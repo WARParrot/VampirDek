@@ -7,6 +7,7 @@ using VContainer;
 using VContainer.Unity;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.InputSystem;
 using Exploration;
 using System.Numerics;
 using System.Linq;
@@ -22,6 +23,10 @@ namespace Bootstrap
         [Header("Default Deck")]
         [SerializeField] private DeckData _defaultPlayerDeck;
 
+        private const string ExplorationTutorialCompletedKey = "exploration_tutorial_completed";
+        private const string CombatTutorialCompletedKey = "combat_tutorial_completed";
+        private const string CombatTutorialStartCountKey = "combat_tutorial_start_count";
+
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
@@ -34,6 +39,27 @@ namespace Bootstrap
 
             builder.Register<HintManager>(Lifetime.Singleton);
             builder.RegisterInstance(_gameSettings);
+        }
+
+        private void Update()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
+            var controlHeld = keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed;
+            var shiftHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+            if (!controlHeld || !shiftHeld || !keyboard.f9Key.wasPressedThisFrame) return;
+
+            ClearTutorialPlayerPrefs();
+        }
+
+        private static void ClearTutorialPlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey(ExplorationTutorialCompletedKey);
+            PlayerPrefs.DeleteKey(CombatTutorialCompletedKey);
+            PlayerPrefs.DeleteKey(CombatTutorialStartCountKey);
+            PlayerPrefs.Save();
+            Debug.Log("[Bootstrap] Cleared tutorial PlayerPrefs. Exploration and combat tutorials will be available again. Keybind: Ctrl+Shift+F9.");
         }
 
         private async void Start()

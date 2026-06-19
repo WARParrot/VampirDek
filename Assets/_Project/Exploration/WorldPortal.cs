@@ -20,10 +20,18 @@ namespace Exploration
                 var state = GlobalServices.GameStateService?.State;
                 if (EndlessReplayLoop.IsAwaitingNextNightPortal(state))
                     return LocalizationService.T("interaction.next_night", "Enter the next night");
-                if (state?.BlockWorldPortalTravelTriggers == true)
+                if (ShouldBlockOrdinaryPortalTravel(state))
                     return LocalizationService.T("interaction.win_duel_to_enter", "Win the duel to enter.");
                 return LocalizationService.TFormat("interaction.enter_world", "Enter {0}", LocalizedWorldName());
             }
+        }
+
+        private static bool ShouldBlockOrdinaryPortalTravel(PersistentGameState state)
+        {
+            // In endless replay mode, WorldPortal is a loop-control affordance only:
+            // it advances the next night when explicitly armed, otherwise it teaches
+            // the player to win the duel instead of allowing ordinary scene travel.
+            return state == null || state.EndlessReplayEnabled || state.BlockWorldPortalTravelTriggers;
         }
 
         private string LocalizedWorldName()
@@ -61,9 +69,9 @@ namespace Exploration
                 return;
             }
 
-            if (state?.BlockWorldPortalTravelTriggers == true)
+            if (ShouldBlockOrdinaryPortalTravel(state))
             {
-                Debug.Log("[WorldPortal] Ordinary portal prompt/travel is blocked until the replay loop arms next-night transition.");
+                Debug.Log("[WorldPortal] Ordinary portal travel is blocked by the replay loop; win the duel to enter the next night.");
                 return;
             }
 
