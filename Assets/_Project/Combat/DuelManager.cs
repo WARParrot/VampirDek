@@ -1532,6 +1532,8 @@ namespace Combat
             if (_duelOutcome != DuelOutcome.PlayerWon)
                 return;
 
+            await ArmNextNightPortalAsync();
+
             var rewardPool = _encounter.RewardCardPool;
             if (rewardPool == null || rewardPool.Count < 3)
             {
@@ -1586,13 +1588,6 @@ namespace Combat
                 string json = JsonUtility.ToJson(playerData);
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
                 await saveSystem.SaveAsync("playerdata.json", bytes);
-                if (state != null)
-                {
-                    state.EndlessReplayEnabled = true;
-                    state.AwaitingNextNightPortal = true;
-                    state.BlockWorldPortalTravelTriggers = true;
-                }
-
                 if (GlobalServices.GameStateService != null)
                     await GlobalServices.GameStateService.SaveAsync();
 
@@ -1602,6 +1597,22 @@ namespace Combat
             {
                 Debug.LogError("[Loot] SaveSystem недоступен!");
             }
+        }
+
+        private static async UniTask ArmNextNightPortalAsync()
+        {
+            var stateService = GlobalServices.GameStateService;
+            var state = stateService?.State;
+            if (state == null)
+            {
+                Debug.LogWarning("[Loot] Cannot arm next-night portal: GameStateService state is unavailable.");
+                return;
+            }
+
+            state.EndlessReplayEnabled = true;
+            state.AwaitingNextNightPortal = true;
+            state.BlockWorldPortalTravelTriggers = true;
+            await stateService.SaveAsync();
         }
 
         private void DetachAllEnchantments(SideState side)
