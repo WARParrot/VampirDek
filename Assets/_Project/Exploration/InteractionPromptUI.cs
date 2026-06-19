@@ -63,6 +63,10 @@ namespace Exploration
         /// </summary>
         public void Hide()
         {
+            // Guard against being called from another component's OnDisable AFTER this UI has
+            // already been destroyed (Unity tears scene objects down in unspecified order on
+            // scene unload — ExplorationController.OnDisable used to hit this MRE every reload).
+            if (this == null) return;
             if (!_isVisible && _targetAlpha <= 0f) return;
 
             _targetAlpha = 0f;

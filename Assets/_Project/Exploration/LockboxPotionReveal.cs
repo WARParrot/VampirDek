@@ -12,11 +12,15 @@ namespace Exploration
     {
         [SerializeField] private RotaryLockPuzzle _puzzle;
         [SerializeField] private Transform _potionSpawn; // where the bottle starts (inside the box)
-        [SerializeField] private float _riseHeight = 0.6f;
-        [SerializeField] private float _riseDuration = 1.4f;
-        [SerializeField] private float _hoverDuration = 0.8f;
-        [SerializeField] private float _fadeOutDuration = 0.6f;
-        [SerializeField] private float _delayBeforeRise = 0.45f; // wait for lid to swing
+        [SerializeField] private Transform _existingPotion; // real potion mesh in the box, if any
+        [SerializeField] private Transform _lid; // chest lid to swing back
+        [SerializeField] private float _lidOpenAngle = -110f;
+        [SerializeField] private float _lidOpenDuration = 1.1f;
+        [SerializeField] private float _riseHeight = 1.2f;
+        [SerializeField] private float _riseDuration = 2.4f;
+        [SerializeField] private float _hoverDuration = 1.4f;
+        [SerializeField] private float _fadeOutDuration = 1.0f;
+        [SerializeField] private float _delayBeforeRise = 0.1f; // wait for lid to swing
 
         private bool _played;
 
@@ -46,24 +50,116 @@ namespace Exploration
         {
             if (_played) return;
             _played = true;
-            StartCoroutine(PlayReveal());
+            // Host the coroutine on a SEPARATE GameObject so it survives even if the puzzle
+            // root deactivates its visuals (RotaryLockPuzzle.Solve toggles _lockedVisual /
+            // _unlockedVisual right before OnUnlocked.Invoke, which would suspend any
+            // coroutine running on this component).
+            var host = new GameObject("~LockboxRevealRunner");
+            DontDestroyOnLoad(host);
+            var runner = host.AddComponent<RevealRunner>();
+            runner.Begin(this);
+        }
+
+        /// <summary>External coroutine host so the reveal can't be paused by the puzzle root.</summary>
+        private class RevealRunner : MonoBehaviour
+        {
+            public void Begin(LockboxPotionReveal owner)
+            {
+                StartCoroutine(Run(owner));
+            }
+
+            private IEnumerator Run(LockboxPotionReveal owner)
+            {
+                yield return owner.PlayReveal();
+                Destroy(gameObject);
+            }
         }
 
         public void OverrideSpawn(Transform spawn) => _potionSpawn = spawn;
+        public void OverrideExistingPotion(Transform potion) => _existingPotion = potion;
+        public void OverrideLid(Transform lid) => _lid = lid;
 
         private void HandleUnlocked() => TriggerReveal();
 
-        private IEnumerator PlayReveal()
+        internal IEnumerator PlayReveal()
         {
             Debug.Log($"[LockboxPotionReveal] Reveal started on '{name}'. Spawn anchor: " +
                       (_potionSpawn != null ? _potionSpawn.position.ToString("F2") : transform.position.ToString("F2")));
-            // Let the lid swing open first.
+
+            // Swing the lid backward around its BACK edge (not its centre). The back edge
+            // is computed from the lid's renderer bounds — we pick the world-Z-max edge as
+            // "back" relative to the chest. The hinge axis is the lid's local +X. Lid lifts
+            // backward like a real chest, not flipping sideways.
+            if (_lid != null)
+            {
+                var ren = _lid.GetComponent<Renderer>() ?? _lid.GetComponentInChildren<Renderer>();
+                if (ren != null)
+                {
+                    var b = ren.bounds;
+                    // World X was tested and tipped the lid sideways. Force the hinge axis
+                    // to world Z and pivot at one of the X extremes (the back edge along Z).
+                    Vector3 hingePoint = new Vector3(b.max.x, b.max.y, b.center.z);
+                    Vector3 hingeAxis = Vector3.forward;
+
+                    float elapsed = 0f;
+                    float lastAngle = 0f;
+                    while (elapsed < _lidOpenDuration)
+                    {
+                        elapsed += Time.deltaTime;
+                        float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / _lidOpenDuration));
+                        float target = k * _lidOpenAngle;
+                        float delta = target - lastAngle;
+                        _lid.RotateAround(hingePoint, hingeAxis, delta);
+                        lastAngle = target;
+                        yield return null;
+                    }
+                }
+                else Debug.LogWarning("[LockboxPotionReveal] Lid set but no Renderer on it — skipping swing.");
+            }
+            else Debug.LogWarning("[LockboxPotionReveal] No lid wired — skipping swing.");
+
+            // Kill the dials: SetActive(false) on the GameObject AND disable every Renderer
+            // up the chain. Some chests have dials parented as Mesh children, others have
+            // them as top-level children with a shared mesh — covering both cases.
+            int hidden = 0, deactivated = 0;
+            if (_puzzle != null)
+            {
+                foreach (var d in _puzzle.GetComponentsInChildren<RotaryDial>(true))
+                {
+                    if (d == null) continue;
+                    foreach (var r in d.GetComponentsInChildren<Renderer>(true))
+                        if (r != null) { r.enabled = false; hidden++; }
+                    d.gameObject.SetActive(false);
+                    deactivated++;
+                }
+            }
+            Debug.Log($"[LockboxPotionReveal] Dials: hidden {hidden} renderers, deactivated {deactivated} GameObjects.");
+
+            // Let the lid settle.
             yield return new WaitForSeconds(_delayBeforeRise);
 
-            // Spawn the potion at the box centre (or _potionSpawn if authored).
-            var anchor = _potionSpawn != null ? _potionSpawn.position : transform.position + Vector3.up * 0.1f;
-            var bottle = BuildPotionVisual();
-            bottle.transform.position = anchor;
+            // Use the REAL potion mesh from inside the chest when present (set by bootstrap).
+            // Fall back to procedural visual only if the box has no such child.
+            GameObject bottle;
+            bool destroyAfter;
+            if (_existingPotion != null)
+            {
+                bottle = _existingPotion.gameObject;
+                bottle.SetActive(true);
+                bottle.transform.SetParent(null, true);
+                destroyAfter = false;
+                Debug.Log($"[LockboxPotionReveal] Using existing potion '{bottle.name}' at {bottle.transform.position:F2}.");
+            }
+            else
+            {
+                bottle = BuildPotionVisual();
+                bottle.transform.position = _potionSpawn != null
+                    ? _potionSpawn.position
+                    : transform.position + Vector3.up * 0.1f;
+                destroyAfter = true;
+                Debug.Log($"[LockboxPotionReveal] Spawned procedural bottle at {bottle.transform.position:F2}.");
+            }
+            var anchor = bottle.transform.position;
 
             // Rise.
             Vector3 from = anchor;
@@ -87,22 +183,12 @@ namespace Exploration
                 yield return null;
             }
 
-            // Fade out the bottle and the box together. Renderers get an instanced material
-            // so we can drop their alpha — leaves shared materials untouched.
-            var bottleRenderers = bottle.GetComponentsInChildren<Renderer>();
-            var boxRenderers = GetComponentsInChildren<Renderer>(true);
-            float fadeT = 0f;
-            while (fadeT < _fadeOutDuration)
-            {
-                fadeT += Time.deltaTime;
-                float a = 1f - Mathf.Clamp01(fadeT / _fadeOutDuration);
-                ApplyAlpha(bottleRenderers, a);
-                ApplyAlpha(boxRenderers, a);
-                yield return null;
-            }
-
-            Destroy(bottle);
-            gameObject.SetActive(false); // chest gone from the world
+            // Bottle stays in the world after the reveal — the player just received the
+            // antidote in their inventory and the on-screen prop has done its job. No fade
+            // on the chest either; the dial renderers are already hidden and the box can
+            // stay open as a piece of set dressing.
+            if (destroyAfter) Destroy(bottle);
+            else bottle.SetActive(false);
         }
 
         private static GameObject BuildPotionVisual()

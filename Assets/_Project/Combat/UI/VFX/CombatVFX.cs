@@ -60,8 +60,14 @@ namespace Combat.UI
             try { DontDestroyOnLoad(gameObject); } catch (Exception ex) { Debug.LogWarning($"[CombatVFX] DontDestroyOnLoad failed: {ex.Message}"); }
 
             int waited = 0;
-            while (GlobalServices.EventBus == null && waited < 600)
+            // Resolver may not be set yet at scene boot. Probe it via a try/catch each frame
+            // so the coroutine doesn't die with an NRE while we're waiting for VContainer.
+            while (waited < 600)
             {
+                bool busReady = false;
+                try { busReady = GlobalServices.Resolver != null && GlobalServices.EventBus != null; }
+                catch { busReady = false; }
+                if (busReady) break;
                 waited++;
                 yield return null;
             }
