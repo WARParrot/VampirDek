@@ -1,8 +1,11 @@
+using System.Collections.Generic;
+using System.Linq;
 using Core;
+using Combat;
+using Definitions;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer;
-using Definitions;
 using Shared.Localization;
 
 namespace Exploration
@@ -12,7 +15,15 @@ namespace Exploration
         [SerializeField] private WorldSceneInfo _targetWorld;
         [SerializeField] private Transform _spawnPoint;
 
-        public string PromptText => LocalizationService.TFormat("interaction.enter_world", "Enter {0}", LocalizedWorldName());
+        public string PromptText
+        {
+            get
+            {
+                if (EndlessReplayLoop.IsAwaitingNextNightPortal(GlobalServices.GameStateService?.State))
+                    return LocalizationService.T("interaction.next_night", "Enter the next night");
+                return LocalizationService.TFormat("interaction.enter_world", "Enter {0}", LocalizedWorldName());
+            }
+        }
 
         private IProgressionService _progression;
 
@@ -43,6 +54,12 @@ namespace Exploration
 
             if (progression == null || stateService == null) return;
 
+            if (EndlessReplayLoop.IsAwaitingNextNightPortal(stateService.State))
+            {
+                await EnterNextNightAsync(player, stateService);
+                return;
+            }
+
             if (!progression.CanAccessWorld(_targetWorld.SceneId))
             {
                 Debug.Log("Cannot access yet.");
@@ -61,5 +78,40 @@ namespace Exploration
             var newExploration = new ExplorationMode(_targetWorld.AddressableKey);
             await GlobalServices.Director.PushModeAsync(newExploration);
         }
+
+        private async UniTask EnterNextNightAsync(ExplorationController player, IGameStateService stateService)
+        {
+            var choices = SelectDeckExpansionChoices(stateService.State);
+            if (choices.Count > 0)
+            {
+                var chosen = await DeckExpansionSelectionUI.ShowAsync(choices);
+                await EndlessReplayLoop.AddDeckExpansionCardAsync(chosen);
+                Debug.Log($"[WorldPortal] Added next-night deck card: {chosen?.CardName ?? "none"}.");
+            }
+            else
+            {
+                Debug.LogWarning("[WorldPortal] No deck-expansion card choices available for next-night transition.");
+            }
+
+            var spawnPosition = _spawnPoint != null ? _spawnPoint.position : player.transform.position;
+            var spawnRotation = _spawnPoint != null ? _spawnPoint.rotation : player.transform.rotation;
+            await EndlessReplayLoop.AdvanceToNextRunAsync(_targetWorld.AddressableKey, spawnPosition, spawnRotation);
+        }
+
+        private static List<CardDef> SelectDeckExpansionChoices(PersistentGameState state)
+        {
+            var allCards = CardDatabase.AllCards
+                .Where(card => card != null && !string.IsNullOrEmpty(card.CardName) && card.Type != CardType.Town)
+                .ToList();
+
+            if (allCards.Count <= 3) return allCards;
+
+            var rng = new System.Random(EndlessReplayLoop.GetStableSeed($"next-night-reward:{state?.ReplayRunNumber ?? 1}"));
+            return allCards
+                .OrderBy(_ => rng.Next())
+                .Take(3)
+                .ToList();
+        }
+
     }
 }

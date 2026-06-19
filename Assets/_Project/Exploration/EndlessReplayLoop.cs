@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using Core;
+using Definitions;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -46,7 +48,52 @@ namespace Exploration
             }
         }
 
-        public static async UniTask AdvanceToNextRunAsync()
+        public static bool IsAwaitingNextNightPortal(PersistentGameState state)
+        {
+            return state != null && state.AwaitingNextNightPortal;
+        }
+
+        public static async UniTask MarkAwaitingNextNightPortalAsync()
+        {
+            var stateService = GlobalServices.GameStateService;
+            var state = stateService?.State;
+            if (state == null) return;
+
+            EnsureInitialized(state);
+            state.EndlessReplayEnabled = true;
+            state.AwaitingNextNightPortal = true;
+            await stateService.SaveAsync();
+        }
+
+        public static async UniTask AddDeckExpansionCardAsync(CardDef chosen)
+        {
+            if (chosen == null || string.IsNullOrEmpty(chosen.CardName)) return;
+
+            var playerData = GlobalServices.PlayerData ??= new PersistentPlayerData();
+            playerData.ActiveDeckCardIds ??= new();
+            playerData.OwnedCardIds ??= new();
+
+            playerData.ActiveDeckCardIds.Add(chosen.CardName);
+            if (!playerData.OwnedCardIds.Contains(chosen.CardName))
+                playerData.OwnedCardIds.Add(chosen.CardName);
+
+            var state = GlobalServices.GameStateService?.State;
+            if (state != null)
+            {
+                EnsureInitialized(state);
+                if (!state.CollectedCardIds.Contains(chosen.CardName))
+                    state.CollectedCardIds.Add(chosen.CardName);
+            }
+
+            var saveSystem = GlobalServices.SaveSystem;
+            if (saveSystem != null)
+            {
+                var json = JsonUtility.ToJson(playerData);
+                await saveSystem.SaveAsync("playerdata.json", System.Text.Encoding.UTF8.GetBytes(json));
+            }
+        }
+
+        public static async UniTask AdvanceToNextRunAsync(string worldAddress = null, Vector3? playerPosition = null, Quaternion? playerRotation = null)
         {
             var stateService = GlobalServices.GameStateService;
             if (stateService?.State == null)
@@ -58,9 +105,10 @@ namespace Exploration
             var state = stateService.State;
             EnsureInitialized(state);
 
-            var currentWorld = ResolveCurrentWorldAddress(state);
+            var currentWorld = string.IsNullOrWhiteSpace(worldAddress) ? ResolveCurrentWorldAddress(state) : worldAddress;
 
             state.EndlessReplayEnabled = true;
+            state.AwaitingNextNightPortal = false;
             state.ReplayRunNumber = Math.Max(1, state.ReplayRunNumber) + 1;
             state.ReplayRunSeed = NextSeed(state.ReplayRunSeed, state.ReplayRunNumber);
             state.CompletedEncounterIds.Clear();
@@ -68,8 +116,8 @@ namespace Exploration
             state.Inventory.Clear();
             state.ActiveDuelTableId = null;
             state.CurrentWorldSceneAddress = currentWorld;
-            state.PlayerPosition = Vector3.zero;
-            state.PlayerRotation = Quaternion.identity;
+            state.PlayerPosition = playerPosition ?? Vector3.zero;
+            state.PlayerRotation = playerRotation ?? Quaternion.identity;
 
             EscapeQuestState.Reset();
             await stateService.SaveAsync();

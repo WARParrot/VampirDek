@@ -29,6 +29,9 @@ namespace Core
         /// <summary>Seed for deterministic per-run variations such as reward choices.</summary>
         public int ReplayRunSeed;
 
+        /// <summary>Set after a run ending; the next run starts only when the player interacts with a WorldPortal.</summary>
+        public bool AwaitingNextNightPortal;
+
         [Serializable]
         public class InventoryEntry
         {

@@ -19,5 +19,7 @@ namespace Combat
             _cache.TryGetValue(cardName, out var card);
             return card;
         }
+
+        public static IReadOnlyCollection<CardDef> AllCards => _cache.Values;
     }
 }
