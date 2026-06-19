@@ -108,9 +108,32 @@ namespace Exploration
                 var spawn = ComputeVisualCentre(puzzle.gameObject);
                 if (spawn != null) reveal.OverrideSpawn(spawn);
 
-                // Auto-wire the lid swing. The editor tool used to do this; we re-do it at
-                // runtime so even hand-authored boxes get the animation.
-                EnsureLidWired(puzzle);
+                // Prefer the REAL potion model that already lives in the chest hierarchy.
+                var existing = FindPotionMesh(puzzle.transform);
+                if (existing != null)
+                {
+                    Debug.Log($"[EscapeQuestBootstrap] Existing potion mesh found: '{existing.name}' (path: {GetPath(existing)}).");
+                    reveal.OverrideExistingPotion(existing);
+                }
+                else
+                {
+                    Debug.Log($"[EscapeQuestBootstrap] No in-scene potion mesh on '{puzzle.name}'; falling back to procedural visual.");
+                }
+
+                // Hand the lid Transform to the reveal coroutine so it can swing it back
+                // around its REAR EDGE (not its centre — that would spin it sideways).
+                var lid = FindLid(puzzle.transform) ?? GuessLidByGeometry(puzzle.transform);
+                if (lid != null)
+                {
+                    Debug.Log($"[EscapeQuestBootstrap] Lid for '{puzzle.name}': '{lid.name}' (path: {GetPath(lid)}).");
+                    reveal.OverrideLid(lid);
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    foreach (Transform c in puzzle.transform) sb.Append(c.name).Append(", ");
+                    Debug.LogWarning($"[EscapeQuestBootstrap] No lid found on '{puzzle.name}'. Children: [{sb.ToString().TrimEnd(',', ' ')}].");
+                }
             }
 
             // STEP 2: now safe to auto-solve.
@@ -235,7 +258,84 @@ namespace Exploration
                 }
             }
 
+            // Detail panel: push the description label DOWN, push the hint band to the very
+            // bottom of the panel (the "Hint" text — TAB/ESC — закрыть etc.).
+            var detail = FindByName(ui.transform, "Detail");
+            if (detail != null)
+            {
+                var desc = FindByName(detail, "Description");
+                if (desc != null)
+                {
+                    desc.anchorMin = new Vector2(0f, 1f);
+                    desc.anchorMax = new Vector2(0f, 1f);
+                    desc.pivot = new Vector2(0f, 1f);
+                    desc.anchoredPosition = new Vector2(24f, -210f);
+                    desc.sizeDelta = new Vector2(600f, 260f);
+                }
+
+                // Hint band is just noise — handled outside this block via KillAllHints below.
+            }
+
+            // Examine modal: lift the text block higher inside the frame so it doesn't sit
+            // against the close button.
+            var examineFrame = FindByName(ui.transform, "ExamineFrame");
+            if (examineFrame != null)
+            {
+                var examineText = FindByName(examineFrame, "ExamineText");
+                if (examineText != null)
+                {
+                    // Stretch full width/height of frame, then lift the bottom edge up so the
+                    // text block lives higher and clears the close button.
+                    examineText.anchorMin = new Vector2(0f, 0f);
+                    examineText.anchorMax = new Vector2(1f, 1f);
+                    examineText.pivot = new Vector2(0.5f, 1f);
+                    examineText.offsetMin = new Vector2(224f, 160f); // bottom edge +160
+                    examineText.offsetMax = new Vector2(-24f, -24f);
+                }
+            }
+
+            KillAllHints(ui);
+
             Debug.Log("[EscapeQuestBootstrap] InventoryCanvas layout patched at runtime.");
+        }
+
+        /// <summary>
+        /// Wipe every visible "hint" / footer / instruction strip from InventoryUI:
+        ///   - Disable any Transform whose name contains "hint" / "Footer" / "TAB" so authoring
+        ///     variations all get caught.
+        ///   - Null out InventoryUI._hintLabel via reflection so the runtime stops re-writing
+        ///     its text every frame ("TAB / ESC — закрыть   •   ЛКМ по предмету — выбрать").
+        ///   - Find any UI.Text component whose text starts with that string and disable it.
+        /// </summary>
+        private static void KillAllHints(InventoryUI ui)
+        {
+            // Pass 1: disable by name.
+            foreach (var t in ui.GetComponentsInChildren<RectTransform>(true))
+            {
+                if (t == null) continue;
+                var n = t.name.ToLowerInvariant();
+                if (n == "hint" || n.Contains("hint") || n.Contains("footer") || n.Contains("hintlabel"))
+                {
+                    t.gameObject.SetActive(false);
+                }
+            }
+
+            // Pass 2: stomp on UI.Text instances whose text looks like the hint string.
+            foreach (var txt in ui.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+            {
+                if (txt == null) continue;
+                var s = txt.text ?? string.Empty;
+                if (s.Contains("TAB") || s.Contains("ЛКМ по предмету"))
+                {
+                    txt.text = string.Empty;
+                    txt.gameObject.SetActive(false);
+                }
+            }
+
+            // Pass 3: null out the _hintLabel reference so RefreshHint can't write to it.
+            var hintField = typeof(InventoryUI).GetField("_hintLabel",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            if (hintField != null) hintField.SetValue(ui, null);
         }
 
         private static RectTransform FindByName(Transform root, string name)
@@ -331,9 +431,9 @@ namespace Exploration
             var openable = lid.GetComponent<OpenableObject>();
             bool freshlyAdded = openable == null;
             if (freshlyAdded) openable = lid.gameObject.AddComponent<OpenableObject>();
-            // The editor tool defaulted to swing on X = -110 degrees. Match it.
             SetPrivate(openable, "_door", lid);
-            var openEuler = new Vector3(-110f, 0f, 0f);
+            // Hinge axis: rotate about local +X, 110° (lid tips forward/back depending on model orientation).
+            var openEuler = new Vector3(110f, 0f, 0f);
             SetPrivateValue(openable, "_openLocalEuler", openEuler);
             SetPrivateValue(openable, "_isLocked", true);
 
@@ -376,6 +476,41 @@ namespace Exploration
             var cur = t.parent;
             while (cur != null) { sb.Insert(0, cur.name + "/"); cur = cur.parent; }
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Look for a real potion / bottle mesh among the chest's children. Recognises common
+        /// English and Russian naming. Returns null if nothing matches.
+        /// </summary>
+        private static Transform FindPotionMesh(Transform root)
+        {
+            string[] hints = { "potion", "bottle", "flask", "vial", "колб", "зель", "бут", "флак" };
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var n = r.transform.name.ToLowerInvariant();
+                foreach (var h in hints)
+                    if (n.Contains(h)) return r.transform;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Fallback when name hints fail: pick the child Renderer with the highest world-Y
+        /// bounds centre, skipping anything that looks like a dial.
+        /// </summary>
+        private static Transform GuessLidByGeometry(Transform root)
+        {
+            Transform best = null;
+            float bestY = float.NegativeInfinity;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(false))
+            {
+                var n = r.transform.name.ToLowerInvariant();
+                if (n.Contains("dial") || n.Contains("ring") || n.Contains("wheel")
+                    || n.Contains("циф") || n.Contains("колес") || n.Contains("кольц")) continue;
+                float y = r.bounds.center.y;
+                if (y > bestY) { bestY = y; best = r.transform; }
+            }
+            return best;
         }
 
         private static Transform FindLid(Transform root)

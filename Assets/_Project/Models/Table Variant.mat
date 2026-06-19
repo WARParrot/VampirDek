@@ -9,32 +9,54 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Table Variant
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-  m_Parent: {fileID: -4277235315664290872, guid: 5a204dbd203756445bc288f32b02207d, type: 3}
-  m_ModifiedSerializedProperties: 16
-  m_ValidKeywords: []
+  m_Parent: {fileID: 2100000, guid: a08fc94b373fd2f4a852ac02007fbbb7, type: 2}
+  m_ModifiedSerializedProperties: 24
+  m_ValidKeywords:
+  - _ALPHATEST_ON
+  - _METALLICSPECGLOSSMAP
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
+  m_DoubleSidedGI: 1
+  m_CustomRenderQueue: 2450
   stringTagMap:
-    RenderType: Opaque
+    RenderType: TransparentCutout
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: ae1a129719f26174cac2e39ee4f07751, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: ae1a129719f26174cac2e39ee4f07751, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 2800000, guid: 58e75ff2379474140ad0c256b113ba33, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AlphaClip: 1
+    - _AlphaToMask: 1
+    - _Blend: 3
+    - _Cull: 0
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _ReceiveShadows: 1
+    - _Smoothness: 0
+    - _SrcBlend: 1
+    - _SrcBlendAlpha: 1
     - _Surface: 0
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.106918216, g: 0.07477908, b: 0.0615284, a: 1}
-    - _Color: {r: 0.10691819, g: 0.07477904, b: 0.061528377, a: 1}
+    - _BaseColor: {r: 1, g: 0.99320817, b: 0, a: 1}
+    - _Color: {r: 1, g: 0.9932081, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &7519244860487986353
