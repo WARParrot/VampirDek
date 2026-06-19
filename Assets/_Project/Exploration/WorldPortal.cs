@@ -60,8 +60,13 @@ namespace Exploration
 
             if (state?.BlockWorldPortalTravelTriggers == true)
             {
-                Debug.Log("[WorldPortal] Ordinary portal travel is blocked while replay transition state is active.");
-                return;
+                // Recover saves created while the block flag incorrectly defaulted to true. The
+                // block is meaningful only together with AwaitingNextNightPortal; otherwise it
+                // would permanently suppress the portal path needed to reach the replay loop.
+                state.BlockWorldPortalTravelTriggers = false;
+                if (stateService != null)
+                    await stateService.SaveAsync();
+                Debug.LogWarning("[WorldPortal] Cleared stale replay portal block without pending next-night transition.");
             }
 
             if (_targetWorld == null) return;
