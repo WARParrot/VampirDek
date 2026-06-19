@@ -115,7 +115,7 @@ namespace Combat
                 return;
             }
 
-            List<CardDef> opponentDeckList = DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
+            var opponentDeckList = ctx.OpponentDeck ?? DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
             var playerDeckList = ctx.PlayerDeck;
             if (playerDeckList == null || opponentDeckList == null)
             {
@@ -1526,37 +1526,51 @@ namespace Combat
                 Debug.LogError("CardSelectionUI not found in scene.");
                 return;
             }
+
             CardDef chosen = await cardSelectionUI.ShowAsync(selected);
+            if (chosen == null || string.IsNullOrEmpty(chosen.CardName))
+                return;
 
-            if (_playerPersistentDeck != null)
+            var playerData = GlobalServices.PlayerData ??= new PersistentPlayerData();
+            playerData.ActiveDeckCardIds ??= new List<string>();
+            playerData.OwnedCardIds ??= new List<string>();
+
+            if (playerData.ActiveDeckCardIds.Count == 0 && _playerPersistentDeck?.Cards != null)
             {
+                playerData.ActiveDeckCardIds = _playerPersistentDeck.Cards
+                    .Where(c => c != null && !string.IsNullOrEmpty(c.CardName))
+                    .Select(c => c.CardName)
+                    .ToList();
+            }
+
+            playerData.ActiveDeckCardIds.Add(chosen.CardName);
+            if (!playerData.OwnedCardIds.Contains(chosen.CardName))
+                playerData.OwnedCardIds.Add(chosen.CardName);
+
+            if (_playerPersistentDeck?.Cards != null)
                 _playerPersistentDeck.Cards.Add(chosen);
-                if (GlobalServices.PlayerData != null && _playerPersistentDeck != null)
-                {
 
-                    var cardIds = _playerPersistentDeck.Cards
-                        .Select(c => c.CardName)
-                        .ToList();
+            var state = GlobalServices.GameStateService?.State;
+            if (state != null)
+            {
+                state.CollectedCardIds ??= new List<string>();
+                if (!state.CollectedCardIds.Contains(chosen.CardName))
+                    state.CollectedCardIds.Add(chosen.CardName);
+            }
 
-                    GlobalServices.PlayerData.ActiveDeckCardIds = cardIds;
-
-                    var saveSystem = GlobalServices.SaveSystem;
-                    if (saveSystem != null)
-                    {
-                        string json = JsonUtility.ToJson(GlobalServices.PlayerData);
-                        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
-                        await saveSystem.SaveAsync("playerdata.json", bytes);
-                        Debug.Log($"[Loot] Колода сохранена: {cardIds.Count} карт");
-                    }
-                    else
-                    {
-                        Debug.LogError("[Loot] SaveSystem недоступен!");
-                    }
-                }
+            var saveSystem = GlobalServices.SaveSystem;
+            if (saveSystem != null)
+            {
+                string json = JsonUtility.ToJson(playerData);
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                await saveSystem.SaveAsync("playerdata.json", bytes);
+                if (GlobalServices.GameStateService != null)
+                    await GlobalServices.GameStateService.SaveAsync();
+                Debug.Log($"[Loot] Deck expanded after duel win: {chosen.CardName}; active deck now has {playerData.ActiveDeckCardIds.Count} cards.");
             }
             else
             {
-                Debug.LogError("PlayerPersistentDeck not found in DuelManager.");
+                Debug.LogError("[Loot] SaveSystem недоступен!");
             }
         }
 

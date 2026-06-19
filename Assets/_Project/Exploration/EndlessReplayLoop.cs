@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Core;
+using Combat;
 using Definitions;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -111,6 +113,7 @@ namespace Exploration
             state.AwaitingNextNightPortal = false;
             state.ReplayRunNumber = Math.Max(1, state.ReplayRunNumber) + 1;
             state.ReplayRunSeed = NextSeed(state.ReplayRunSeed, state.ReplayRunNumber);
+            ExpandEnemyDeckForNextRun(state);
             state.CompletedEncounterIds.Clear();
             state.Flags.Clear();
             state.Inventory.Clear();
@@ -137,6 +140,7 @@ namespace Exploration
             state.CompletedEncounterIds ??= new();
             state.LifetimeCompletedEncounterIds ??= new();
             state.CollectedCardIds ??= new();
+            state.EnemyDeckCardIds ??= new();
             state.Flags ??= new();
             state.Inventory ??= new();
 
@@ -145,6 +149,25 @@ namespace Exploration
 
             if (state.ReplayRunSeed == 0)
                 state.ReplayRunSeed = NextSeed(Environment.TickCount, state.ReplayRunNumber);
+        }
+
+
+        private static void ExpandEnemyDeckForNextRun(PersistentGameState state)
+        {
+            if (state == null) return;
+            state.EnemyDeckCardIds ??= new List<string>();
+
+            var candidates = CardDatabase.AllCards
+                .Where(card => card != null && !string.IsNullOrEmpty(card.CardName) && card.Type != CardType.Town)
+                .ToList();
+            if (candidates.Count == 0) return;
+
+            var rng = new System.Random(GetStableSeed($"enemy-next-night:{state.ReplayRunNumber}"));
+            var chosen = candidates.OrderBy(_ => rng.Next()).FirstOrDefault();
+            if (chosen == null) return;
+
+            state.EnemyDeckCardIds.Add(chosen.CardName);
+            Debug.Log($"[EndlessReplayLoop] Enemy deck expanded for night {state.ReplayRunNumber}: {chosen.CardName}.");
         }
 
         private static string ResolveCurrentWorldAddress(PersistentGameState state)

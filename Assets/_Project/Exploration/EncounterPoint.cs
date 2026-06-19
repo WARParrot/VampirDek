@@ -2,6 +2,7 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Definitions;
 using Core;
 using Combat;
@@ -152,6 +153,7 @@ namespace Exploration
             }
 
             var playerDeck = await GetPlayerDeckAsync();
+            var opponentDeck = await GetOpponentDeckAsync(encounter);
 
             string savedJson = GlobalServices.SaveSystem.LoadActiveBattleJson(UniqueTableId);
 
@@ -165,6 +167,7 @@ namespace Exploration
             {
                 Encounter = encounter,
                 PlayerDeck = playerDeck,
+                OpponentDeck = opponentDeck,
                 PlayerPersistentDeck = DefaultPlayerDeck,
                 TableId = UniqueTableId,
                 SavedMatchJson = savedJson,
@@ -231,6 +234,49 @@ namespace Exploration
                     Debug.LogWarning($"Card '{cardId}' not found in database.");
             }
             return deck;*/
+        }
+
+
+        private async UniTask<List<CardDef>> GetOpponentDeckAsync(CombatEncounter encounter)
+        {
+            var stateService = GlobalServices.GameStateService;
+            var state = stateService?.State;
+            if (state != null)
+            {
+                state.EnemyDeckCardIds ??= new List<string>();
+                if (state.EnemyDeckCardIds.Count > 0)
+                {
+                    var savedDeck = ResolveCardIds(state.EnemyDeckCardIds);
+                    if (savedDeck.Count > 0) return savedDeck;
+                }
+            }
+
+            var deckAsset = DeckDatabase.GetDeck(encounter?.OpponentDeckId);
+            var resolvedDeck = ResolveDeckCards(deckAsset);
+            if (state != null && resolvedDeck.Count > 0)
+            {
+                state.EnemyDeckCardIds = resolvedDeck
+                    .Where(card => card != null && !string.IsNullOrEmpty(card.CardName))
+                    .Select(card => card.CardName)
+                    .ToList();
+                if (stateService != null) await stateService.SaveAsync();
+            }
+
+            return resolvedDeck;
+        }
+
+        private static List<CardDef> ResolveCardIds(IEnumerable<string> cardIds)
+        {
+            var result = new List<CardDef>();
+            if (cardIds == null) return result;
+
+            foreach (var cardId in cardIds)
+            {
+                var cardDef = CardDatabase.GetCard(cardId);
+                if (cardDef != null) result.Add(cardDef);
+            }
+
+            return result;
         }
 
         private static List<CardDef> ResolveDeckCards(DeckData deckData)

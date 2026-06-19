@@ -18,6 +18,10 @@ namespace Core
         public List<string> LifetimeCompletedEncounterIds = new();
 
         public List<string> CollectedCardIds = new();
+
+        /// <summary>Persistent enemy deck used across replay runs; expanded when the player enters the next night.</summary>
+        public List<string> EnemyDeckCardIds = new();
+
         public Dictionary<string, bool> Flags = new();
 
         /// <summary>Infinite replay loop switch. Default true so old saves opt into the replayable structure.</summary>
