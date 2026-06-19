@@ -37,7 +37,7 @@ namespace Core
         public bool AwaitingNextNightPortal;
 
         /// <summary>Blocks ordinary WorldPortal world-travel triggers while the replay transition is pending or being consumed.</summary>
-        public bool BlockWorldPortalTravelTriggers;
+        public bool BlockWorldPortalTravelTriggers = true;
 
         [Serializable]
         public class InventoryEntry

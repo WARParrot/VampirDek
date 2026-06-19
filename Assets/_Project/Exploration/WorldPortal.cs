@@ -17,8 +17,11 @@ namespace Exploration
         {
             get
             {
-                if (EndlessReplayLoop.IsAwaitingNextNightPortal(GlobalServices.GameStateService?.State))
+                var state = GlobalServices.GameStateService?.State;
+                if (EndlessReplayLoop.IsAwaitingNextNightPortal(state))
                     return LocalizationService.T("interaction.next_night", "Enter the next night");
+                if (state?.BlockWorldPortalTravelTriggers == true)
+                    return string.Empty;
                 return LocalizationService.TFormat("interaction.enter_world", "Enter {0}", LocalizedWorldName());
             }
         }
@@ -60,13 +63,8 @@ namespace Exploration
 
             if (state?.BlockWorldPortalTravelTriggers == true)
             {
-                // Recover saves created while the block flag incorrectly defaulted to true. The
-                // block is meaningful only together with AwaitingNextNightPortal; otherwise it
-                // would permanently suppress the portal path needed to reach the replay loop.
-                state.BlockWorldPortalTravelTriggers = false;
-                if (stateService != null)
-                    await stateService.SaveAsync();
-                Debug.LogWarning("[WorldPortal] Cleared stale replay portal block without pending next-night transition.");
+                Debug.Log("[WorldPortal] Ordinary portal prompt/travel is blocked until the replay loop arms next-night transition.");
+                return;
             }
 
             if (_targetWorld == null) return;
