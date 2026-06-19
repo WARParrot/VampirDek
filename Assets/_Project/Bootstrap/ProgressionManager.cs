@@ -3,6 +3,7 @@ using System.Linq;
 using Core;
 using Cysharp.Threading.Tasks;
 using Definitions;
+using Exploration;
 
 namespace Bootstrap
 {
@@ -37,8 +38,8 @@ namespace Bootstrap
             state.CompletedEncounterIds ??= new();
             state.Flags ??= new();
 
-            if (e.PlayerWon && !string.IsNullOrEmpty(e.EncounterId) && !state.CompletedEncounterIds.Contains(e.EncounterId))
-                state.CompletedEncounterIds.Add(e.EncounterId);
+            if (e.PlayerWon)
+                EndlessReplayLoop.MarkEncounterWon(state, e.EncounterId);
 
             if (e.PlayerWon && !string.IsNullOrEmpty(e.WinFlag))
                 state.Flags[e.WinFlag] = true;

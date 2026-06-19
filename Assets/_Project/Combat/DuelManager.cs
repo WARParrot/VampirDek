@@ -1477,6 +1477,33 @@ namespace Combat
 
             await UniTask.Yield();
         }
+        private static int GetRunStableSeed(string salt)
+        {
+            var state = GlobalServices.GameStateService?.State;
+            var seed = state?.ReplayRunSeed ?? 0;
+            if (seed == 0)
+            {
+                seed = Environment.TickCount;
+                if (state != null)
+                {
+                    if (state.ReplayRunNumber < 1)
+                        state.ReplayRunNumber = 1;
+                    state.ReplayRunSeed = seed;
+                }
+            }
+
+            unchecked
+            {
+                var hash = seed;
+                if (!string.IsNullOrEmpty(salt))
+                {
+                    foreach (var ch in salt)
+                        hash = (hash * 397) ^ ch;
+                }
+                return hash == int.MinValue ? int.MaxValue : Math.Abs(hash);
+            }
+        }
+
         private async UniTask ShowLootSelectionAsync()
         {
             CaptureDuelOutcomeIfFinished();
@@ -1490,7 +1517,7 @@ namespace Combat
                 return;
             }
 
-            var rng = new System.Random();
+            var rng = new System.Random(GetRunStableSeed(_encounter.EncounterId));
             var selected = rewardPool.OrderBy(x => rng.Next()).Take(3).ToList();
 
             var cardSelectionUI = CardSelectionUIRef;

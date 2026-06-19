@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using Core;
+using Cysharp.Threading.Tasks;
 
 namespace Exploration
 {
@@ -18,13 +19,13 @@ namespace Exploration
             "Вы вышли из комнаты.\n\n" +
             "Ужасы прошлой ночи позади. Зелье из шкатулки сделало своё —\n" +
             "вы победили вампира и остались человеком.\n\n" +
-            "Вы выжили.";
+            "Вы выжили. Но ночь в этом доме умеет повторяться.";
 
         private const string GhoulText =
             "Вы вышли из комнаты.\n\n" +
             "Вы победили вампира — но яд его укуса уже расходился по венам.\n" +
             "Противоядие так и осталось в шкатулке.\n\n" +
-            "Вы выжили, но обратились в гуля.";
+            "Вы выжили, но обратились в гуля. Следующая ночь начнётся иначе.";
 
         private static GameObject _root;
 
@@ -39,11 +40,14 @@ namespace Exploration
             Cursor.visible = true;
         }
 
-        public static void Dismiss()
+        public static void Dismiss(bool advanceToNextRun = false)
         {
             if (_root != null) { Object.Destroy(_root); _root = null; }
             Time.timeScale = 1f;
             GlobalServices.IsMenuOpen = false;
+
+            if (advanceToNextRun)
+                EndlessReplayLoop.AdvanceToNextRunAsync().Forget();
         }
 
         private static GameObject Build(string body, bool survived)
@@ -96,7 +100,7 @@ namespace Exploration
             hrt.sizeDelta = new Vector2(800, 60);
             hrt.anchoredPosition = new Vector2(0, 60);
             var hint = hintGo.GetComponent<Text>();
-            hint.text = "Esc / Enter — закрыть";
+            hint.text = "Enter / Space — следующая ночь   •   Esc — закрыть";
             hint.alignment = TextAnchor.MiddleCenter;
             hint.fontSize = 20;
             hint.color = new Color(0.55f, 0.52f, 0.45f, 1f);
@@ -116,8 +120,10 @@ namespace Exploration
             {
                 var kb = Keyboard.current;
                 if (kb == null) return;
-                if (kb.escapeKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
-                    Dismiss();
+                if (kb.escapeKey.wasPressedThisFrame)
+                    Dismiss(false);
+                else if (kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+                    Dismiss(true);
             }
         }
     }
