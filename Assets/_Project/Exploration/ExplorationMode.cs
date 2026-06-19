@@ -42,6 +42,12 @@ namespace Exploration
             _player = Object.FindAnyObjectByType<ExplorationController>();
             if (_player != null)
                 _player.Activate();
+
+            // Restore inventory from save once the scene is loaded and Inventory singleton is alive.
+            var inv = Inventory.Inventory.Current;
+            var state = GlobalServices.GameStateService?.State;
+            if (inv != null && state != null)
+                inv.LoadFrom(state.Inventory);
         }
 
         public async UniTask ExitAsync()
@@ -65,6 +71,8 @@ namespace Exploration
                     state.PlayerPosition = _player.transform.position;
                     state.PlayerRotation = _player.transform.rotation;
                     state.CurrentWorldSceneAddress = _worldSceneAddress;
+                    var inv = Inventory.Inventory.Current;
+                    if (inv != null) state.Inventory = inv.Serialize();
                 }
                 _player.Deactivate();
             }

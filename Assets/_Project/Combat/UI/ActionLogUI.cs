@@ -232,17 +232,25 @@ namespace Combat.UI
         private void Unsubscribe()
         {
             if (!_subscribed) return;
-            var bus = GlobalServices.EventBus;
-            if (bus == null) return;
-            bus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
-            bus.Unsubscribe<PlacedCardEvent>(OnCardPlaced);
-            bus.Unsubscribe<EntityDiedEvent>(OnEntityDied);
-            bus.Unsubscribe<DamageDealtEvent>(OnDamageDealt);
-            bus.Unsubscribe<ClashResolvedEvent>(OnClashResolved);
-            bus.Unsubscribe<CardDrawnEvent>(OnCardDrawn);
-            bus.Unsubscribe<PlaceFailedEvent>(OnPlaceFailed);
-            bus.Unsubscribe<DuelStartedEvent>(OnDuelStarted);
-            bus.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
+            // GlobalServices.EventBus can throw on shutdown (resolver disposed). Match the
+            // try/catch pattern used in TrySubscribe so OnDestroy never logs a NullRef.
+            try
+            {
+                var bus = GlobalServices.EventBus;
+                if (bus != null)
+                {
+                    bus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
+                    bus.Unsubscribe<PlacedCardEvent>(OnCardPlaced);
+                    bus.Unsubscribe<EntityDiedEvent>(OnEntityDied);
+                    bus.Unsubscribe<DamageDealtEvent>(OnDamageDealt);
+                    bus.Unsubscribe<ClashResolvedEvent>(OnClashResolved);
+                    bus.Unsubscribe<CardDrawnEvent>(OnCardDrawn);
+                    bus.Unsubscribe<PlaceFailedEvent>(OnPlaceFailed);
+                    bus.Unsubscribe<DuelStartedEvent>(OnDuelStarted);
+                    bus.Unsubscribe<DuelEndedEvent>(OnDuelEnded);
+                }
+            }
+            catch { }
             _subscribed = false;
         }
 

@@ -10,6 +10,7 @@ namespace Combat
     {
         public CombatEncounter Encounter;
         public List<CardDef> PlayerDeck;
+        public List<CardDef> OpponentDeck;
         public string TableId;
         public MatchStateDTO SavedMatchState;
         public string SavedMatchJson;

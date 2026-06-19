@@ -143,9 +143,14 @@ namespace Combat.UI
         private void Unsubscribe()
         {
             if (!_subscribed) return;
-            var bus = GlobalServices.EventBus;
-            if (bus == null) return;
-            bus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
+            // GlobalServices.EventBus can throw on shutdown (resolver disposed). Match the
+            // try/catch pattern used in TrySubscribe so OnDestroy never logs a NullRef.
+            try
+            {
+                var bus = GlobalServices.EventBus;
+                if (bus != null) bus.Unsubscribe<PhaseEnterEvent>(OnPhaseEnter);
+            }
+            catch { }
             _subscribed = false;
         }
 

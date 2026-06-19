@@ -115,7 +115,7 @@ namespace Combat
                 return;
             }
 
-            List<CardDef> opponentDeckList = DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
+            var opponentDeckList = ctx.OpponentDeck ?? DeckDatabase.GetDeck(_encounter.OpponentDeckId)?.Cards;
             var playerDeckList = ctx.PlayerDeck;
             if (playerDeckList == null || opponentDeckList == null)
             {
@@ -901,8 +901,30 @@ namespace Combat
                 }
             }
 
-            Debug.LogWarning($"[DuelManager] No terminal phase transition found for outcome {_duelOutcome}. Returning to exploration immediately. {DescribeDuelDebugState()}");
+            var outcomeTag = _duelOutcome == DuelOutcome.PlayerWon ? "Loot" : "DuelEnd";
+            var outcomePhase = FindPhaseWithTag(outcomeTag);
+            if (outcomePhase != null)
+            {
+                Debug.LogWarning($"[DuelManager] No terminal transition found from current phase for outcome {_duelOutcome}; routing directly to {DescribePhase(outcomePhase)}. {DescribeDuelDebugState()}");
+                await TransitionToPhaseAsync(outcomePhase);
+                return;
+            }
+
+            Debug.LogWarning($"[DuelManager] No terminal phase transition or fallback phase found for outcome {_duelOutcome}. Returning to exploration immediately. {DescribeDuelDebugState()}");
             await ReturnToExplorationAsync();
+        }
+
+        private PhaseNode FindPhaseWithTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag) || _duelState?.PhaseGraph?.Nodes == null) return null;
+
+            foreach (var node in _duelState.PhaseGraph.Nodes)
+            {
+                if (node?.Tags != null && node.Tags.Contains(tag))
+                    return node;
+            }
+
+            return null;
         }
 
         private void CompleteTutorialIfTerminalDuel()
@@ -1477,11 +1499,116 @@ namespace Combat
 
             await UniTask.Yield();
         }
+        private static int GetRunStableSeed(string salt)
+        {
+            var state = GlobalServices.GameStateService?.State;
+            var seed = state?.ReplayRunSeed ?? 0;
+            if (seed == 0)
+            {
+                seed = Environment.TickCount;
+                if (state != null)
+                {
+                    if (state.ReplayRunNumber < 1)
+                        state.ReplayRunNumber = 1;
+                    state.ReplayRunSeed = seed;
+                }
+            }
+
+            unchecked
+            {
+                var hash = seed;
+                if (!string.IsNullOrEmpty(salt))
+                {
+                    foreach (var ch in salt)
+                        hash = (hash * 397) ^ ch;
+                }
+                return hash == int.MinValue ? int.MaxValue : Math.Abs(hash);
+            }
+        }
+
+        private static readonly string[] PreferredRewardCardIds =
+        {
+            "Gourmet",
+            "BloodWitch",
+            "NightFury",
+            "Crypt",
+            "Ritualist",
+            "BloodAltar"
+        };
+
+        private static List<string> SelectBiasedRewardChoices(IReadOnlyList<string> rewardPool, System.Random rng, int count)
+        {
+            var candidates = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void AddCandidate(string cardId)
+            {
+                if (string.IsNullOrWhiteSpace(cardId) || !seen.Add(cardId))
+                    return;
+
+                if (CardDatabase.GetCard(cardId) != null)
+                    candidates.Add(cardId);
+            }
+
+            foreach (var cardId in rewardPool)
+                AddCandidate(cardId);
+
+            foreach (var cardId in PreferredRewardCardIds)
+                AddCandidate(cardId);
+
+            if (candidates.Count <= count)
+                return candidates.OrderBy(_ => rng.Next()).Take(count).ToList();
+
+            var selected = new List<string>(count);
+            var remaining = new List<string>(candidates);
+            while (selected.Count < count && remaining.Count > 0)
+            {
+                var totalWeight = remaining.Sum(GetRewardCardWeight);
+                if (totalWeight <= 0)
+                    break;
+
+                var roll = rng.Next(totalWeight);
+                for (var i = 0; i < remaining.Count; i++)
+                {
+                    roll -= GetRewardCardWeight(remaining[i]);
+                    if (roll >= 0)
+                        continue;
+
+                    selected.Add(remaining[i]);
+                    remaining.RemoveAt(i);
+                    break;
+                }
+            }
+
+            return selected;
+        }
+
+        private static int GetRewardCardWeight(string cardId)
+        {
+            var card = CardDatabase.GetCard(cardId);
+            if (card == null)
+                return 0;
+
+            var weight = 1;
+            if (PreferredRewardCardIds.Contains(cardId, StringComparer.OrdinalIgnoreCase))
+                weight += 6;
+            if (card.Attack >= 3)
+                weight += 2;
+            if (card.Health >= 2)
+                weight += 1;
+            if ((card.Effects?.Count ?? 0) > 0 || (card.InnateEnchantments?.Count ?? 0) > 0)
+                weight += 2;
+
+            return weight;
+        }
+
         private async UniTask ShowLootSelectionAsync()
         {
             CaptureDuelOutcomeIfFinished();
             if (_duelOutcome != DuelOutcome.PlayerWon)
                 return;
+
+            await ArmNextNightPortalAsync();
 
             var rewardPool = _encounter.RewardCardPool;
             if (rewardPool == null || rewardPool.Count < 3)
@@ -1490,8 +1617,13 @@ namespace Combat
                 return;
             }
 
-            var rng = new System.Random();
-            var selected = rewardPool.OrderBy(x => rng.Next()).Take(3).ToList();
+            var rng = new System.Random(GetRunStableSeed(_encounter.EncounterId));
+            var selected = SelectBiasedRewardChoices(rewardPool, rng, 3);
+            if (selected.Count < 3)
+            {
+                Debug.LogError("RewardCardPool must provide at least 3 valid cards after bias expansion.");
+                return;
+            }
 
             var cardSelectionUI = CardSelectionUIRef;
             if (cardSelectionUI == null)
@@ -1499,38 +1631,69 @@ namespace Combat
                 Debug.LogError("CardSelectionUI not found in scene.");
                 return;
             }
+
             CardDef chosen = await cardSelectionUI.ShowAsync(selected);
+            if (chosen == null || string.IsNullOrEmpty(chosen.CardName))
+                return;
 
-            if (_playerPersistentDeck != null)
+            var playerData = GlobalServices.PlayerData ??= new PersistentPlayerData();
+            playerData.ActiveDeckCardIds ??= new List<string>();
+            playerData.OwnedCardIds ??= new List<string>();
+
+            if (playerData.ActiveDeckCardIds.Count == 0 && _playerPersistentDeck?.Cards != null)
             {
+                playerData.ActiveDeckCardIds = _playerPersistentDeck.Cards
+                    .Where(c => c != null && !string.IsNullOrEmpty(c.CardName))
+                    .Select(c => c.CardName)
+                    .ToList();
+            }
+
+            playerData.ActiveDeckCardIds.Add(chosen.CardName);
+            if (!playerData.OwnedCardIds.Contains(chosen.CardName))
+                playerData.OwnedCardIds.Add(chosen.CardName);
+
+            if (_playerPersistentDeck?.Cards != null)
                 _playerPersistentDeck.Cards.Add(chosen);
-                if (GlobalServices.PlayerData != null && _playerPersistentDeck != null)
-                {
 
-                    var cardIds = _playerPersistentDeck.Cards
-                        .Select(c => c.CardName)
-                        .ToList();
+            var state = GlobalServices.GameStateService?.State;
+            if (state != null)
+            {
+                state.CollectedCardIds ??= new List<string>();
+                if (!state.CollectedCardIds.Contains(chosen.CardName))
+                    state.CollectedCardIds.Add(chosen.CardName);
+            }
 
-                    GlobalServices.PlayerData.ActiveDeckCardIds = cardIds;
+            var saveSystem = GlobalServices.SaveSystem;
+            if (saveSystem != null)
+            {
+                string json = JsonUtility.ToJson(playerData);
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                await saveSystem.SaveAsync("playerdata.json", bytes);
+                if (GlobalServices.GameStateService != null)
+                    await GlobalServices.GameStateService.SaveAsync();
 
-                    var saveSystem = GlobalServices.SaveSystem;
-                    if (saveSystem != null)
-                    {
-                        string json = JsonUtility.ToJson(GlobalServices.PlayerData);
-                        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
-                        await saveSystem.SaveAsync("playerdata.json", bytes);
-                        Debug.Log($"[Loot] Колода сохранена: {cardIds.Count} карт");
-                    }
-                    else
-                    {
-                        Debug.LogError("[Loot] SaveSystem недоступен!");
-                    }
-                }
+                Debug.Log($"[Loot] Deck expanded after duel win: {chosen.CardName}; active deck now has {playerData.ActiveDeckCardIds.Count} cards. Next-night portal armed.");
             }
             else
             {
-                Debug.LogError("PlayerPersistentDeck not found in DuelManager.");
+                Debug.LogError("[Loot] SaveSystem недоступен!");
             }
+        }
+
+        private static async UniTask ArmNextNightPortalAsync()
+        {
+            var stateService = GlobalServices.GameStateService;
+            var state = stateService?.State;
+            if (state == null)
+            {
+                Debug.LogWarning("[Loot] Cannot arm next-night portal: GameStateService state is unavailable.");
+                return;
+            }
+
+            state.EndlessReplayEnabled = true;
+            state.AwaitingNextNightPortal = true;
+            state.BlockWorldPortalTravelTriggers = true;
+            await stateService.SaveAsync();
         }
 
         private void DetachAllEnchantments(SideState side)
