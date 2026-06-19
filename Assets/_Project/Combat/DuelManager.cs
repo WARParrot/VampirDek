@@ -1588,7 +1588,9 @@ namespace Combat
                 await saveSystem.SaveAsync("playerdata.json", bytes);
                 if (GlobalServices.GameStateService != null)
                     await GlobalServices.GameStateService.SaveAsync();
-                Debug.Log($"[Loot] Deck expanded after duel win: {chosen.CardName}; active deck now has {playerData.ActiveDeckCardIds.Count} cards.");
+
+                await Exploration.EndlessReplayLoop.MarkAwaitingNextNightPortalAsync();
+                Debug.Log($"[Loot] Deck expanded after duel win: {chosen.CardName}; active deck now has {playerData.ActiveDeckCardIds.Count} cards. Next-night portal armed.");
             }
             else
             {
