@@ -1586,10 +1586,16 @@ namespace Combat
                 string json = JsonUtility.ToJson(playerData);
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
                 await saveSystem.SaveAsync("playerdata.json", bytes);
+                if (state != null)
+                {
+                    state.EndlessReplayEnabled = true;
+                    state.AwaitingNextNightPortal = true;
+                    state.BlockWorldPortalTravelTriggers = true;
+                }
+
                 if (GlobalServices.GameStateService != null)
                     await GlobalServices.GameStateService.SaveAsync();
 
-                await Exploration.EndlessReplayLoop.MarkAwaitingNextNightPortalAsync();
                 Debug.Log($"[Loot] Deck expanded after duel win: {chosen.CardName}; active deck now has {playerData.ActiveDeckCardIds.Count} cards. Next-night portal armed.");
             }
             else
